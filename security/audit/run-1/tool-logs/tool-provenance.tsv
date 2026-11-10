@@ -1,0 +1,6 @@
+tool	repo	commit
+oss-scanner	anthropics/oss-scanner	fb92c8e61bf17892d0402d6fcaf827a115d01a1e
+security-audit-skill	cloudflare/security-audit-skill	c1c8a8c1471069fb0e188eeaff69b8e8db6564a8
+SkillSpector	NVIDIA/SkillSpector	db069f804d6f11b10e8f8c226e7689b01a935791
+open-code-review	alibaba/open-code-review	bbd9be699440302dadb0744d8ad971d93c90abaa
+osv-scanner	google/osv-scanner	02f96a40691c2d155fdda799af436e111231e365

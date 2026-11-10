@@ -1,0 +1,714 @@
+{
+  "units": [
+    {
+      "coverage_id": "benchmarks%2Fevaluation.py%23evaluate::benchmarks%2Fevaluation.py%23subprocess.Popen::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Chained%20vulnerabilities%20and%20trust%20boundaries",
+      "disposition": "candidate",
+      "reviewed_paths": [
+        "baselines/codeevolve_evaluate.py",
+        "baselines/openevolve_evaluator.py",
+        "baselines/run_baseline.sh",
+        "baselines/shinka_evaluate.py",
+        "benchmarks/evaluation.py",
+        "benchmarks/problems/burgers_1d/evaluator.py",
+        "benchmarks/problems/circle_packing_26/evaluator.py",
+        "benchmarks/problems/circle_packing_rectangle_21/evaluator.py",
+        "benchmarks/problems/convection_diffusion_2d/evaluator.py",
+        "benchmarks/problems/erdos_minimum_overlap/evaluator.py",
+        "benchmarks/problems/first_autocorrelation/evaluator.py",
+        "benchmarks/problems/heilbronn_convex_13/evaluator.py",
+        "benchmarks/problems/heilbronn_convex_14/evaluator.py",
+        "benchmarks/problems/heilbronn_triangle_11/evaluator.py",
+        "benchmarks/problems/helmholtz_2d/evaluator.py",
+        "benchmarks/problems/hexagon_packing_11/evaluator.py",
+        "benchmarks/problems/hexagon_packing_12/evaluator.py",
+        "benchmarks/problems/kissing_number_11/evaluator.py",
+        "benchmarks/problems/min_max_distance_14_3d/evaluator.py",
+        "benchmarks/problems/min_max_distance_16_2d/evaluator.py",
+        "benchmarks/problems/nonnormal_eigenvalues/evaluator.py",
+        "benchmarks/problems/second_autocorrelation/evaluator.py",
+        "benchmarks/problems/sparse_linear_systems/evaluator.py",
+        "benchmarks/problems/sums_differences/evaluator.py",
+        "benchmarks/problems/third_autocorrelation/evaluator.py",
+        "benchmarks/problems/uncertainty_inequality/evaluator.py",
+        "benchmarks/run_evaluator.py",
+        "benchmarks/scientific_cases.py"
+      ],
+      "checks": [
+        {
+          "agent_id": "hunter-benchmark-harness",
+          "reviewed_paths": [
+            "benchmarks/evaluation.py",
+            "benchmarks/run_evaluator.py",
+            "benchmarks/problems/circle_packing_rectangle_21/evaluator.py",
+            "benchmarks/problems/erdos_minimum_overlap/evaluator.py",
+            "benchmarks/problems/first_autocorrelation/evaluator.py",
+            "benchmarks/problems/heilbronn_convex_13/evaluator.py",
+            "benchmarks/problems/heilbronn_convex_14/evaluator.py",
+            "benchmarks/problems/heilbronn_triangle_11/evaluator.py",
+            "benchmarks/problems/hexagon_packing_11/evaluator.py",
+            "benchmarks/problems/hexagon_packing_12/evaluator.py",
+            "benchmarks/problems/kissing_number_11/evaluator.py",
+            "benchmarks/problems/min_max_distance_14_3d/evaluator.py",
+            "benchmarks/problems/min_max_distance_16_2d/evaluator.py",
+            "benchmarks/problems/second_autocorrelation/evaluator.py",
+            "benchmarks/problems/sums_differences/evaluator.py",
+            "benchmarks/problems/third_autocorrelation/evaluator.py",
+            "benchmarks/problems/uncertainty_inequality/evaluator.py"
+          ],
+          "invariant": "Only the problem evaluator can determine the metrics that evaluation.py returns to the framework and appends to EVAL_LOG; an invalid program scores 0.",
+          "method": "source",
+          "result": "Does not hold in source for the 15 evaluators that import the program into the run_evaluator.py interpreter (circle_packing_rectangle_21:79, erdos_minimum_overlap:58, first_autocorrelation:67, heilbronn_convex_13:41, heilbronn_convex_14:41, heilbronn_triangle_11:58, hexagon_packing_11:195, hexagon_packing_12:195, kissing_number_11:66, min_max_distance_14_3d:35, min_max_distance_16_2d:35, second_autocorrelation:68, sums_differences:72, third_autocorrelation:61, uncertainty_inequality:109). evaluation.py:50-52 takes the last stdout/stderr line that starts with the fixed public marker, never reads process.returncode, and only rejects non-numeric or NaN scores (61-63). The evaluators catch Exception only, so program code that prints a marker line and ends the interpreter (os._exit or SystemExit), or that patches the evaluator module in place, decides the recorded score. No nonce, exit-status check, score bound or process separation is present. Returned as candidate benchmarks-evaluation/inband-metrics-marker-forgery.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-benchmark-harness",
+          "reviewed_paths": [
+            "benchmarks/evaluation.py",
+            "benchmarks/scientific_cases.py",
+            "benchmarks/problems/circle_packing_26/evaluator.py",
+            "baselines/run_baseline.sh"
+          ],
+          "invariant": "The score log EVAL_LOG (and programs/<sha>.py beside it), described as the source of all frameworks' scores, can be written only by evaluation.py.",
+          "method": "source",
+          "result": "Does not hold in source. evaluation.py:46 passes the whole parent environment, including EVAL_LOG exported by run_baseline.sh:55, to run_evaluator.py; scientific_cases.py:42-44 and circle_packing_26/evaluator.py:148-150 start their children without an env argument, so every evaluated program in all 21 problems receives the log path and runs under the uid that owns the log. The log is a plain file opened in append mode (74-75) with no signature, separate owner or append-only descriptor. Run directories of other frameworks for the same problem are siblings under results/<problem>/ (run_baseline.sh:18). Returned as candidate benchmarks-evaluation/eval-log-writable-by-evaluated-program.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-benchmark-harness",
+          "reviewed_paths": [
+            "benchmarks/evaluation.py",
+            "benchmarks/scientific_cases.py",
+            "benchmarks/problems/circle_packing_26/evaluator.py",
+            "baselines/run_baseline.sh"
+          ],
+          "invariant": "Everything an evaluated program starts is terminated when its evaluation ends or its time limit expires (evaluation.py:41 states that the timeout can kill everything the child started).",
+          "method": "source",
+          "result": "Does not hold in source. killpg is issued only inside the TimeoutExpired handler (evaluation.py:55-56; scientific_cases.py:47-48) and only for the original process group, so a descendant that changed session or group survives a timeout, and on the normal path (48) nothing is signalled at all, so any background process that released the stdout pipe survives a normally completed evaluation. circle_packing_26/evaluator.py:180 kills only the direct child. Because the child is placed in its own session (46), the group SIGTERM that run_baseline.sh:54 relies on at the end of the budget does not reach in-flight evaluations either. Returned as candidate benchmarks-evaluation/time-limit-process-escape.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-benchmark-harness",
+          "reviewed_paths": [
+            "benchmarks/scientific_cases.py",
+            "benchmarks/evaluation.py",
+            "benchmarks/problems/burgers_1d/evaluator.py",
+            "benchmarks/problems/convection_diffusion_2d/evaluator.py",
+            "benchmarks/problems/helmholtz_2d/evaluator.py",
+            "benchmarks/problems/nonnormal_eigenvalues/evaluator.py",
+            "benchmarks/problems/sparse_linear_systems/evaluator.py"
+          ],
+          "invariant": "A program evaluated on a scientific-computing problem receives only the case inputs and never the reference answer (scientific_cases.py:2-3).",
+          "method": "source",
+          "result": "Holds only for the argument channel. The child gets inputs.pkl without the reference (scientific_cases.py:38-39, 43), but it runs under the same uid with the inherited environment and unrestricted file access. reference.npz for convection_diffusion_2d and helmholtz_2d is a mode 0644 file beside the evaluator (evaluator.py:24 in both), keyed by case name; the references of burgers_1d, nonnormal_eigenvalues and sparse_linear_systems are regenerated from a fixed seed by the evaluator source itself. The absolute problem directory is in the argv of the child's parent process (evaluation.py:44). Returned as candidate benchmarks-scientific-cases/reference-answers-readable-by-program.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-benchmark-harness",
+          "reviewed_paths": [
+            "benchmarks/scientific_cases.py",
+            "benchmarks/evaluation.py",
+            "benchmarks/run_evaluator.py"
+          ],
+          "invariant": "Data returned from the per-case child of the scientific problems cannot execute code in, or inject a metrics marker into, the evaluator process.",
+          "method": "source",
+          "result": "Holds in source. The child output is written with np.save(allow_pickle=False) and read with np.load(allow_pickle=False) (scientific_cases.py:29, 57); the only pickle load is of inputs written by the evaluator and read by the child (24-25, 38-39). Child stdout is captured (44) and only its last non-empty line, cut to 300 characters, is reprinted in the middle of a 'case ...' line (56, 84), so it cannot begin a line with the marker. run_evaluator.py:15 reduces metric values to JSON scalars or strings.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-benchmark-harness",
+          "reviewed_paths": [
+            "benchmarks/evaluation.py",
+            "benchmarks/run_evaluator.py",
+            "baselines/run_baseline.sh",
+            "baselines/codeevolve_evaluate.py"
+          ],
+          "invariant": "The problem directory, the evaluating interpreter and the benchmarks import path are chosen only by the operator, and the saved program file name cannot leave the programs folder.",
+          "method": "source",
+          "result": "Holds in source. problem comes from the operator's BENCHMARK_PROBLEM or the command line (evaluation.py:34, 82) and is joined to benchmarks/problems (44); EVAL_PYTHON (22) and BENCHMARKS_DIR (codeevolve_evaluate.py:10) are read from the adapter's own environment, which an evaluated child cannot change. The three adapters call evaluate() with the program path only, so no lower-trust value reaches the problem or log parameters. The saved program name is 16 hexadecimal characters of a SHA-1 (68, 71). An absolute or dot-dot problem value would select another evaluator.py, but only the operator supplies it.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-benchmark-harness",
+          "reviewed_paths": [
+            "baselines/openevolve_evaluator.py",
+            "baselines/shinka_evaluate.py",
+            "baselines/codeevolve_evaluate.py"
+          ],
+          "invariant": "The three framework adapters add no path, shell or deserialization sink of their own on values derived from the evaluated program.",
+          "method": "source",
+          "result": "Holds in source. Each adapter forwards the framework-chosen program path to the shared evaluate(), keeps numeric metrics, and writes JSON to framework-supplied result paths (shinka_evaluate.py:29-30, codeevolve_evaluate.py:15-16); there is no shell, eval or pickle use. They apply no further validation, so a score forged in the shared harness is passed on unchanged (openevolve_evaluator.py:14, shinka_evaluate.py:27-28, codeevolve_evaluate.py:14). The error text and output tail that they hand back to the frameworks' prompts belong to the AI companion units of other hunters.",
+          "artifact": null
+        }
+      ],
+      "candidate_fingerprints": [
+        "benchmarks-evaluation/inband-metrics-marker-forgery",
+        "benchmarks-evaluation/eval-log-writable-by-evaluated-program",
+        "benchmarks-evaluation/time-limit-process-escape",
+        "benchmarks-scientific-cases/reference-answers-readable-by-program"
+      ],
+      "unresolved": []
+    },
+    {
+      "coverage_id": "benchmarks%2Fproblems%2Fcircle_packing_26%2Fevaluator.py%23run_with_timeout::benchmarks%2Fproblems%2Fcircle_packing_26%2Fevaluator.py%23pickle.load::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+      "disposition": "candidate",
+      "reviewed_paths": [
+        "baselines/openevolve/openevolve/evaluator.py",
+        "benchmarks/evaluation.py",
+        "benchmarks/problems/circle_packing_26/evaluator.py",
+        "benchmarks/problems/kissing_number_11/evaluator.py",
+        "benchmarks/run_evaluator.py"
+      ],
+      "checks": [
+        {
+          "agent_id": "hunter-benchmark-harness",
+          "reviewed_paths": [
+            "benchmarks/problems/circle_packing_26/evaluator.py",
+            "benchmarks/run_evaluator.py",
+            "benchmarks/evaluation.py"
+          ],
+          "invariant": "Running the program in a separate process keeps program-controlled data from executing code in the evaluator process that emits the metrics.",
+          "method": "source",
+          "result": "Does not hold in source. The wrapper pickles whatever objects run_packing() returns (evaluator.py:119, 123-130), and the program can also write the results file itself because the path is the wrapper script path plus '.results' (129, 144). The evaluator checks only the exit code (162-163) and then calls pickle.load on that file (166-168) inside the run_evaluator.py process. A SystemExit raised during the load is not caught by 'except Exception' (271), and the child's stdout has already been reprinted with only its first line prefixed (157). Returned as candidate circle-packing-26-evaluator/results-pickle-load.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-benchmark-harness",
+          "reviewed_paths": [
+            "benchmarks/problems/circle_packing_26/evaluator.py",
+            "benchmarks/evaluation.py",
+            "benchmarks/problems/kissing_number_11/evaluator.py",
+            "baselines/openevolve/openevolve/evaluator.py"
+          ],
+          "invariant": "The generated wrapper script, its results file and the module search path of the processes that run them are confined to a directory only the operator can write.",
+          "method": "source",
+          "result": "Does not hold in source. The wrapper is created directly in tempfile.gettempdir() (evaluator.py:95) and executed as a script (148-150), which makes that shared directory the first module search path entry for the wrapper's imports of numpy, pickle and traceback (99-102); evaluation.py sets PYTHONNOUSERSITE only (28-30), not safe-path mode. The results file is a predictable sibling name in the same directory, opened without exclusive creation by the child (129) and loaded if it exists (166-168). The same pattern reaches the 15 in-process evaluators under OpenEvolve, whose program file is also created directly in the shared temp directory (openevolve/evaluator.py:259) and whose directory the evaluators insert at sys.path[0] (for example kissing_number_11/evaluator.py:65). Returned as candidate circle-packing-26-evaluator/shared-tempdir-on-module-search-path.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-benchmark-harness",
+          "reviewed_paths": [
+            "benchmarks/problems/circle_packing_26/evaluator.py",
+            "benchmarks/evaluation.py",
+            "baselines/openevolve/openevolve/evaluator.py"
+          ],
+          "invariant": "program_path, which is interpolated unquoted into the generated wrapper source, cannot carry text chosen by a lower-trust principal.",
+          "method": "source",
+          "result": "Holds for the audited callers. program_path is the resolved path that the framework chose (evaluation.py:36, 44): a tempfile name under OpenEvolve (openevolve/evaluator.py:259), and operator-chosen run directories with fixed file names for the other two frameworks per the glue scripts. No LLM-controlled text reaches the path. The interpolation at evaluator.py:105, 109 and 113 (and of temp_file.name at 129-139) is still unquoted, so an operator path containing a quote, backslash or brace yields a broken or different wrapper; recorded as hardening.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-benchmark-harness",
+          "reviewed_paths": [
+            "benchmarks/problems/circle_packing_26/evaluator.py",
+            "benchmarks/evaluation.py"
+          ],
+          "invariant": "The wrapper child is stopped at the time limit and its temporary files are removed.",
+          "method": "source",
+          "result": "Partly holds. The child is started in the evaluator's process group (evaluator.py:148-150), so the outer killpg at 60 s (evaluation.py:56) reaches it unless it changed group; that escape is part of candidate benchmarks-evaluation/time-limit-process-escape. The evaluator's own limit is 600 s (208-210, 291), longer than the outer 60 s, so its TimeoutExpired branch (178-182) is not reached under the shared harness, and that branch would kill only the direct child. When the outer SIGKILL arrives, the finally block (184-189) does not run, so the wrapper script and any results file stay in the temp directory; recorded as hardening.",
+          "artifact": null
+        }
+      ],
+      "candidate_fingerprints": [
+        "circle-packing-26-evaluator/results-pickle-load",
+        "circle-packing-26-evaluator/shared-tempdir-on-module-search-path"
+      ],
+      "unresolved": []
+    }
+  ],
+  "candidates": [
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "benchmarks-evaluation/inband-metrics-marker-forgery",
+      "title": "Evaluated program can set its own recorded score through the in-band metrics marker",
+      "description": "The shared harness reads the score from the last line of the child's combined stdout and stderr that starts with the fixed marker '@@METRICS@@'. For 15 of the 21 problems the evaluator imports the LLM-generated program into the same interpreter that later prints that marker. Program code can therefore print its own marker line and end the interpreter (os._exit, or sys.exit, which the evaluators' 'except Exception' does not catch) before the genuine line is printed, or replace the evaluator's functions in memory. evaluation.py never checks the child's exit status, uses no per-run secret, and accepts any numeric non-NaN score, including values far above what the evaluator can produce. The forged value is returned to the framework as the fitness and is appended to EVAL_LOG by the trusted parent, which the file header describes as the place all frameworks' scores are read from. The lower-trust principal is the LLM output; the affected resource is the integrity of the benchmark scores and of the selection signal inside each run. The strongest control visible in source is the child process boundary with a 60 s limit, which does not separate the program from the marker's author. For the six evaluators that run the program in a further child process, the same marker channel might be reachable by a same-uid descendant that reopens the parent's stdout pipe through /proc and then stops the parent; that variant depends on operating-system behaviour and is not established from source.",
+      "claimed_root_cause": "The metrics channel is unauthenticated and shared with the untrusted program: run_evaluator.py executes the program inside the process that emits the marker, and evaluation.py trusts the last marker line without checking the exit status, a per-run secret or a plausible score range.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "benchmarks/evaluation.py",
+          "line": 33,
+          "scope": "evaluate",
+          "description": "The framework adapters pass the path of an LLM-generated program to the shared evaluate()."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/evaluation.py",
+          "line": 43,
+          "scope": "evaluate",
+          "description": "run_evaluator.py is started on that program with stdout piped and stderr merged into it."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/run_evaluator.py",
+          "line": 12,
+          "scope": "module",
+          "description": "The problem evaluator's evaluate() runs in this interpreter, which prints the genuine marker only afterwards (line 16)."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/problems/kissing_number_11/evaluator.py",
+          "line": 66,
+          "scope": "evaluate",
+          "description": "__import__ executes the program's top-level code in the evaluator process; the surrounding handler catches Exception only (line 95)."
+        },
+        {
+          "kind": "sink",
+          "file": "benchmarks/evaluation.py",
+          "line": 52,
+          "scope": "evaluate",
+          "description": "The JSON after the last marker line becomes the metrics, with no exit-status or origin check; the score is then returned and logged."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 50,
+          "description": "Marker lines are selected from all output lines by prefix only; found[-1] is used."
+        },
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 62,
+          "description": "The only score validation is a type and NaN test; there is no upper bound and process.returncode is never read."
+        },
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 72,
+          "description": "The accepted score is written into the EVAL_LOG record by the parent process."
+        },
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 2,
+          "description": "Header states combined_score is the score and is 0 for an invalid program."
+        },
+        {
+          "file": "benchmarks/run_evaluator.py",
+          "line": 16,
+          "description": "The genuine marker is printed with the same fixed public prefix after the program has run in-process."
+        },
+        {
+          "file": "benchmarks/problems/kissing_number_11/evaluator.py",
+          "line": 95,
+          "description": "Only Exception is caught, so SystemExit or os._exit from program code ends the evaluator before it reports."
+        },
+        {
+          "file": "benchmarks/problems/first_autocorrelation/evaluator.py",
+          "line": 67,
+          "description": "Same in-process import pattern; one of 15 evaluators that share it."
+        },
+        {
+          "file": "baselines/shinka_evaluate.py",
+          "line": 27,
+          "description": "The adapter forwards combined_score to the framework without further validation."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation was allowed in this run (no target code execution), so the forged score has not been observed in the returned metrics or in EVAL_LOG.",
+        "Whether a same-uid descendant can inject a marker for the six process-isolated evaluators by reopening the parent's stdout pipe through /proc is an operating-system fact that was not observed.",
+        "The script that reads EVAL_LOG for the published tables is not in the repository, so any filtering it applies to implausible scores is not source-visible."
+      ],
+      "validation_plan": {
+        "local": "In the no-network sandbox with python3 and numpy, create <scratch>/a/poc_a.py with three lines: import os, json / print('@@METRICS@@' + json.dumps({'combined_score': 123.0}), flush=True) / os._exit(0). The file defines no kissing_number11 function, so it is an invalid program. From the repository root run: EVAL_LOG=<scratch>/a/eval_log.jsonl python3 benchmarks/evaluation.py kissing_number_11 <scratch>/a/poc_a.py. Single observable: the printed metrics have combined_score 123.0 and the one line appended to <scratch>/a/eval_log.jsonl has score 123.0; if the control held, the score would be 0 with an error."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "benchmarks-evaluation/eval-log-writable-by-evaluated-program",
+      "title": "Evaluated program receives the path of the shared score log and can write records to it directly",
+      "description": "EVAL_LOG is documented as the file from which every framework's scores are read. evaluation.py starts the evaluator child with the complete parent environment, so the log path exported by run_baseline.sh reaches run_evaluator.py, and the per-case children of the scientific problems and the circle_packing_26 wrapper inherit it again because they are started without an env argument. The log is an ordinary file owned by the uid that runs the program and is opened in append mode by the parent; nothing authenticates a record or restricts who appends, truncates or rewrites it. A program in any of the 21 problems, including those whose header says the child is given only the case inputs, can therefore append records with a chosen score, time and sha, or alter earlier records and the saved sources under programs/. Run directories of the other frameworks for the same problem are siblings of the log's parent directory, so the same access reaches their logs when they are on the same host. This is independent of the marker channel: moving the program out of the evaluator process would not remove it. The lower-trust principal is the LLM output; the affected resource is the integrity of the score record that the cross-framework comparison relies on.",
+      "claimed_root_cause": "The score record of truth is a plain file in the trust domain of the evaluated program, and evaluation.py passes its location to that program through the inherited environment; there is no integrity control on the log.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "benchmarks/evaluation.py",
+          "line": 33,
+          "scope": "evaluate",
+          "description": "An LLM-generated program is submitted for scoring while EVAL_LOG is set in the adapter's environment."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/evaluation.py",
+          "line": 46,
+          "scope": "evaluate",
+          "description": "The child environment is the full parent environment plus thread settings, so EVAL_LOG is inherited."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/scientific_cases.py",
+          "line": 42,
+          "scope": "run_case",
+          "description": "The per-case child that runs the program is started without an env argument and inherits EVAL_LOG as well."
+        },
+        {
+          "kind": "sink",
+          "file": "benchmarks/evaluation.py",
+          "line": 74,
+          "scope": "evaluate",
+          "description": "The log is a plain append-mode file with no authentication of records; the program runs under the same uid and knows its path."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 6,
+          "description": "Comment: all frameworks' scores are read from these logs."
+        },
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 71,
+          "description": "Program sources are saved beside the log by hash with a plain write; they share the same exposure."
+        },
+        {
+          "file": "baselines/run_baseline.sh",
+          "line": 55,
+          "description": "EVAL_LOG is exported for the whole framework run as <run directory>/eval_log.jsonl."
+        },
+        {
+          "file": "baselines/run_baseline.sh",
+          "line": 18,
+          "description": "Run directories of all frameworks for a problem are siblings under results/<problem>/."
+        },
+        {
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 148,
+          "description": "The wrapper child is started without an env argument and inherits EVAL_LOG too."
+        },
+        {
+          "file": "benchmarks/scientific_cases.py",
+          "line": 2,
+          "description": "Header describes the child as receiving only the case inputs, yet the environment and file access are unrestricted."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation was allowed in this run, so a record written by an evaluated program has not been observed in the log.",
+        "The reader of EVAL_LOG used for the published results is not in the repository; how it treats additional, duplicate or back-dated records is not source-visible."
+      ],
+      "validation_plan": {
+        "local": "In the no-network sandbox with python3 and numpy, create the directory <scratch>/b and the file <scratch>/b/poc_b.py containing: import json, os / def solve(nu, T, x): / (indented) open(os.environ['EVAL_LOG'], 'a').write(json.dumps({'time': 1.0, 'score': 777.0, 'sha': 'forged', 'error': '', 'metrics': {}}) + chr(10)) / (indented) return x * 0. From the repository root run: EVAL_LOG=<scratch>/b/eval_log.jsonl python3 benchmarks/evaluation.py burgers_1d <scratch>/b/poc_b.py. Single observable: <scratch>/b/eval_log.jsonl contains lines with sha 'forged' and score 777.0 written by the per-case child, next to the one genuine record whose score is near 0.",
+        "deployment": "Owner check: confirm whether the analysis that produces the result tables reads eval_log.jsonl without any cross-check against re-evaluation of programs/<sha>.py, and whether several frameworks' runs share one host account."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "benchmarks-evaluation/time-limit-process-escape",
+      "title": "Processes started by an evaluated program outlive the evaluation and its time limit",
+      "description": "evaluation.py starts the evaluator in a new session and states that this lets a timeout kill everything the child started. The group kill is sent only when communicate() times out, and only to the original process group. A descendant that the program moved to another session or group is not signalled, and when the evaluation finishes normally nothing is signalled at all, so a background process that does not hold the stdout pipe keeps running with the operator's uid and environment after the score has been recorded. The per-case runner of the scientific problems has the same structure, and the circle_packing_26 evaluator kills only its direct child. Because the evaluator child is in its own session, the group SIGTERM that run_baseline.sh relies on at the end of the budget does not reach in-flight evaluations, whose only supervisor is the adapter process being terminated. The task statements promise a hard 60 s limit on one core. A surviving process is not bound by it: it can continue computing and leave results for later programs of the same lineage, act on the score log after the parent has written the genuine record, and keep running after the framework run ends. The lower-trust principal is the LLM output; the affected resources are the compute-budget rule the comparison depends on and the operator's host after the run. A related robustness effect is that the communicate() call after the kill has no timeout, so a surviving descendant that still holds the pipe keeps evaluate() from returning.",
+      "claimed_root_cause": "Process lifetime is bound to the evaluation only through a process-group SIGKILL issued in the timeout handler; there is no kill on normal completion and no containment (subreaper, cgroup or PID namespace) for descendants that leave the group.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "benchmarks/evaluation.py",
+          "line": 33,
+          "scope": "evaluate",
+          "description": "An LLM-generated program is submitted for scoring."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/evaluation.py",
+          "line": 43,
+          "scope": "evaluate",
+          "description": "The evaluator child is started as leader of a new session and process group."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/run_evaluator.py",
+          "line": 12,
+          "scope": "module",
+          "description": "Program code runs and may start a process in a different session with its standard streams detached."
+        },
+        {
+          "kind": "sink",
+          "file": "benchmarks/evaluation.py",
+          "line": 56,
+          "scope": "evaluate",
+          "description": "The only termination step: SIGKILL to the original group, reached only on TimeoutExpired."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 41,
+          "description": "Comment claims the separate process group lets a timeout kill everything the child started."
+        },
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 48,
+          "description": "Normal completion path: no signal is sent to the group after communicate() returns."
+        },
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 57,
+          "description": "communicate() without a timeout after the kill; it waits for every holder of the pipe."
+        },
+        {
+          "file": "benchmarks/scientific_cases.py",
+          "line": 48,
+          "description": "Same pattern for the per-case child: group kill only in the timeout handler."
+        },
+        {
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 180,
+          "description": "process.kill() reaches only the direct wrapper child."
+        },
+        {
+          "file": "baselines/run_baseline.sh",
+          "line": 54,
+          "description": "End of budget relies on SIGTERM to the framework's process group, which excludes evaluator sessions."
+        },
+        {
+          "file": "benchmarks/problems/kissing_number_11/task.md",
+          "line": 23,
+          "description": "Task statement promises a single CPU core and a hard time limit of 60 seconds."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation was allowed in this run, so a surviving descendant has not been observed after a timeout or after normal completion.",
+        "Whether the deployment adds outer containment (container, systemd scope, cgroup kill) around framework runs is not source-visible."
+      ],
+      "validation_plan": {
+        "local": "In the no-network sandbox with python3 and numpy, create <scratch>/c/child.py: import os, time / time.sleep(8) / open(os.environ['POC_MARKER'], 'w').write('alive'). Create <scratch>/c/poc_c.py: import os, subprocess, sys, time / subprocess.Popen([sys.executable, os.environ['POC_CHILD']], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True) / time.sleep(30). From the repository root run, with the limit shortened to keep the check bounded: POC_CHILD=<scratch>/c/child.py POC_MARKER=<scratch>/c/marker python3 -c \"import sys; sys.path.insert(0, 'benchmarks'); import evaluation; evaluation.TIME_LIMIT = 3; print(evaluation.evaluate('<scratch>/c/poc_c.py', 'kissing_number_11'))\". Single observable: evaluate() returns the error 'time limit of 3 s exceeded' after about 3 s, and about 5 s later <scratch>/c/marker is created by the descendant that survived the group kill. The helper exits by itself after 8 s.",
+        "deployment": "Owner check: after a baseline run ends, list processes of the run account (ps -u <account> -o pid,ppid,sid,etime,cmd) and confirm whether any interpreter started from an evaluation is still alive."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "benchmarks-scientific-cases/reference-answers-readable-by-program",
+      "title": "Scientific-problem programs can read the reference answers they are scored against",
+      "description": "scientific_cases.py states that the program's entry function runs in a child process that receives only the case inputs and never the reference answer. That is true of the arguments, but the child runs under the same uid with no file-system restriction. For convection_diffusion_2d and helmholtz_2d the answers are stored in reference.npz beside the evaluator, world-readable and keyed by case name; for burgers_1d, nonnormal_eigenvalues and sparse_linear_systems the evaluator source regenerates the references from a fixed seed, so importing that file yields them. The absolute problem directory appears in the command line of the child's parent process, and BENCHMARK_PROBLEM is in the inherited environment. A program that returns the stored reference for the case it is given has relative error 0 and receives full marks on every case without solving the problem. The lower-trust principal is the LLM output; the affected resource is the validity of the scores of the five scientific-computing problems. The control named in source is the separate child process with input-only arguments.",
+      "claimed_root_cause": "Reference answers are kept in files readable by the process that runs the untrusted program, and the isolation claimed for that process covers only its arguments, not its file access or environment.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "benchmarks/evaluation.py",
+          "line": 43,
+          "scope": "evaluate",
+          "description": "The evaluator child is started with the absolute problem directory and program path in its argv and the full environment."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/problems/convection_diffusion_2d/evaluator.py",
+          "line": 24,
+          "scope": "cases",
+          "description": "References are loaded from reference.npz in the problem directory, keyed by case name."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/scientific_cases.py",
+          "line": 42,
+          "scope": "run_case",
+          "description": "The per-case child is started under the same uid with inherited environment and no file-system restriction."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/scientific_cases.py",
+          "line": 26,
+          "scope": "CHILD",
+          "description": "The program's entry function executes in that child and can open any file the operator can read."
+        },
+        {
+          "kind": "sink",
+          "file": "benchmarks/scientific_cases.py",
+          "line": 75,
+          "scope": "evaluate_cases",
+          "description": "The returned array is compared with the same reference; an identical array gives relative error 0 and full digits."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "benchmarks/scientific_cases.py",
+          "line": 2,
+          "description": "Header: the child receives only the case inputs, never the reference answer."
+        },
+        {
+          "file": "benchmarks/scientific_cases.py",
+          "line": 62,
+          "description": "digits() maps a relative error of 0 to the cap, so an exact copy scores full marks."
+        },
+        {
+          "file": "benchmarks/problems/helmholtz_2d/evaluator.py",
+          "line": 24,
+          "description": "Second problem whose answers are in reference.npz beside the evaluator."
+        },
+        {
+          "file": "benchmarks/problems/sparse_linear_systems/evaluator.py",
+          "line": 76,
+          "description": "Planted solutions come from a fixed seed in the evaluator source and can be regenerated by importing it."
+        },
+        {
+          "file": "benchmarks/problems/burgers_1d/evaluator.py",
+          "line": 28,
+          "description": "Reference values are computed by a function in the evaluator source from fixed inputs."
+        },
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 44,
+          "description": "The absolute problem directory is placed in the evaluator child's argv, visible to its children."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation was allowed in this run, so a full score obtained by returning the stored reference has not been observed.",
+        "Reading the parent's command line needs a /proc file system consistent with the PID namespace; that is an operating-system fact of the evaluation host."
+      ],
+      "validation_plan": {
+        "local": "In the no-network sandbox with python3 and numpy and a /proc that matches the sandbox PID namespace, create <scratch>/r/poc_r.py: import os / import numpy as np / def solve(eps, b, x, y): / (indented) problem_dir = open('/proc/%d/cmdline' % os.getppid(), 'rb').read().split(bytes(1))[2].decode() / (indented) return np.load(os.path.join(problem_dir, 'reference.npz'))['eps_%g' % eps]. From the repository root run: python3 benchmarks/evaluation.py convection_diffusion_2d <scratch>/r/poc_r.py. Single observable: combined_score is 1.0 and output_tail reports 6.00 of 6 digits for all five cases although the file contains no solver; if the control held, the reference would be unreachable and the score would be 0."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "circle-packing-26-evaluator/results-pickle-load",
+      "title": "circle_packing_26 evaluator unpickles a results file controlled by the evaluated program",
+      "description": "The circle_packing_26 evaluator is the one evaluator that runs the program in a child process of its own. The child returns its result by pickling the objects that run_packing() returned into a file next to the wrapper script, and the evaluator loads that file with pickle.load after checking only that the child exited with code 0. The objects are chosen by the program, and the program can also write the file itself because its path is the wrapper script path plus '.results'. Unpickling therefore executes program-chosen callables inside the run_evaluator.py process, which is the process that prints the metrics marker. That removes the only separation this evaluator has between the program and the scorer: code running there can emit its own metrics and end the process, and a SystemExit raised during the load is not caught by the evaluator's 'except Exception', while the child's stdout, whose lines after the first are reprinted without a prefix, has already been written. The lower-trust principal is the LLM output; the crossed boundary is child process to evaluator process; the affected resource is the integrity of this problem's scores. Both processes run under the same uid, so no additional operating-system privilege is claimed.",
+      "claimed_root_cause": "run_with_timeout uses pickle as the result format for data produced by the untrusted child and loads it in the evaluator process with no restriction on the types that may be constructed.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 208,
+          "scope": "evaluate",
+          "description": "The LLM-generated program path is handed to run_with_timeout."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 119,
+          "scope": "run_with_timeout",
+          "description": "In the child, the wrapper calls the program's run_packing(); the returned objects are program-controlled."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 129,
+          "scope": "run_with_timeout",
+          "description": "The wrapper pickles those objects into '<wrapper path>.results', a path the program can also write directly."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 162,
+          "scope": "run_with_timeout",
+          "description": "The only gate before loading is the child's exit code."
+        },
+        {
+          "kind": "sink",
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 168,
+          "scope": "run_with_timeout",
+          "description": "pickle.load of the child-written file runs in the evaluator process."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 144,
+          "description": "results_path is derived from the wrapper script name, which the child knows as its own script path."
+        },
+        {
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 157,
+          "description": "Child stdout is reprinted with a prefix on its first line only, before the load."
+        },
+        {
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 271,
+          "description": "evaluate() catches Exception only; SystemExit from the load ends the evaluator before it reports."
+        },
+        {
+          "file": "benchmarks/run_evaluator.py",
+          "line": 16,
+          "description": "The process that performs the load is the one that prints the genuine metrics marker."
+        },
+        {
+          "file": "benchmarks/scientific_cases.py",
+          "line": 57,
+          "description": "Sibling control for comparison: the scientific problems return child data with np.load(allow_pickle=False)."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation was allowed in this run, so execution in the evaluator process during the load has not been observed."
+      ],
+      "validation_plan": {
+        "local": "In the no-network sandbox with python3 and numpy, create the directories <scratch>/d and <scratch>/d/tmp and the file <scratch>/d/poc_d.py: import os / class Marker: / (indented) def __reduce__(self): return (exec, (\"import os; open(os.environ['POC_MARKER'], 'w').write(str(os.getpid()))\",)) / def run_packing(): / (indented) open(os.environ['POC_CHILD_PID'], 'w').write(str(os.getpid())) / (indented) return (Marker(), Marker(), 0.0). From the repository root run: TMPDIR=<scratch>/d/tmp POC_MARKER=<scratch>/d/marker POC_CHILD_PID=<scratch>/d/child_pid python3 benchmarks/evaluation.py circle_packing_26 <scratch>/d/poc_d.py. Single observable: <scratch>/d/marker exists and holds a PID different from the one in <scratch>/d/child_pid, showing the callable ran in the evaluator process during pickle.load rather than in the program's child."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "circle-packing-26-evaluator/shared-tempdir-on-module-search-path",
+      "title": "Evaluation runs Python with the shared temp directory first on the module search path",
+      "description": "The circle_packing_26 evaluator writes its wrapper script directly into the system temp directory and runs it as a script. Python then puts the script's directory, normally the world-writable /tmp, at the front of the module search path, ahead of the standard library and site-packages, and the wrapper imports numpy, pickle and traceback. A file such as numpy.py or pickle.py present in that directory is imported and executed with the operator's uid on every circle_packing_26 evaluation, under any framework. The harness sets PYTHONNOUSERSITE but not safe-path mode. The results file is a predictable sibling name in the same directory, is opened by the child without exclusive creation, and is unpickled by the evaluator whenever it exists and the child exited with 0, so on hosts without the protected-file sysctls a file placed there by another account can be loaded. The same pattern reaches the 15 in-process evaluators when OpenEvolve is the framework: OpenEvolve writes each program directly into the temp directory and the evaluators insert the program's directory at sys.path[0] before importing it, so the program's own imports of modules not yet loaded, for example jax in the shipped initial programs, resolve from the shared directory first. Two lower-trust principals are affected differently. Another local account on a shared host could plant such a file and gain code execution as the operator; whether such accounts and a shared /tmp exist is a deployment fact. An evaluated program can plant one and thereby persist into every later evaluation and run on the host. The affected resources are the operator's account and the integrity of later evaluations.",
+      "claimed_root_cause": "Scripts and result files are created directly in the shared temp directory instead of a private directory, and the interpreters are started without isolated or safe-path mode, so the shared directory becomes an import location.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 95,
+          "scope": "run_with_timeout",
+          "description": "The wrapper script is created with NamedTemporaryFile in the default temp directory, which other principals can write to."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 99,
+          "scope": "run_with_timeout",
+          "description": "The generated script imports numpy, os, pickle and traceback by name."
+        },
+        {
+          "kind": "sink",
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 148,
+          "scope": "run_with_timeout",
+          "description": "The script is run as [sys.executable, path], so its directory is sys.path[0] and those imports search the shared temp directory first."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 28,
+          "description": "The child environment adds PYTHONNOUSERSITE and thread settings only; no PYTHONSAFEPATH or isolated mode."
+        },
+        {
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 144,
+          "description": "The results file is the predictable sibling '<wrapper path>.results' in the same shared directory."
+        },
+        {
+          "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+          "line": 166,
+          "description": "An existing results file is unpickled after an exit code of 0, whoever created it."
+        },
+        {
+          "file": "benchmarks/problems/kissing_number_11/evaluator.py",
+          "line": 65,
+          "description": "In-process evaluators insert the program's directory at sys.path[0] before importing the program."
+        },
+        {
+          "file": "baselines/openevolve/openevolve/evaluator.py",
+          "line": 259,
+          "description": "OpenEvolve creates each program file directly in the default temp directory, making it that program directory."
+        },
+        {
+          "file": "benchmarks/scientific_cases.py",
+          "line": 36,
+          "description": "Sibling control for comparison: the scientific runner uses a private TemporaryDirectory for its script and outputs."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation was allowed in this run, so import of a file from the temp directory by the wrapper has not been observed.",
+        "Whether evaluation hosts have other local accounts sharing a world-writable temp directory, and the values of fs.protected_regular and fs.protected_symlinks there, are deployment facts not visible in source."
+      ],
+      "validation_plan": {
+        "local": "In the no-network sandbox with python3 and numpy, create the directory <scratch>/t/tmp and the file <scratch>/t/tmp/pickle.py containing: import os / open(os.environ['POC_MARKER'], 'w').write(str(os.getpid())). From the repository root run the repository's own unmodified program: TMPDIR=<scratch>/t/tmp POC_MARKER=<scratch>/t/marker python3 benchmarks/evaluation.py circle_packing_26 benchmarks/problems/circle_packing_26/initial_program.py. Single observable: <scratch>/t/marker is created, showing that a file in the temp directory was imported in place of the standard-library module during a normal evaluation. The evaluation then reports score 0 because the stand-in module is empty.",
+        "deployment": "Owner check on an evaluation host: run 'ls -ld \"${TMPDIR:-/tmp}\"' and 'getent passwd' to see whether the temp directory is world-writable and shared with other accounts, and 'sysctl fs.protected_regular fs.protected_symlinks'."
+      }
+    }
+  ],
+  "hardening": [
+    "benchmarks/problems/circle_packing_26/evaluator.py:105-139 interpolates program_path and temp_file.name unquoted into generated Python source (inside quotes and inside an f-string). No lower-trust value reaches these today, but an operator path containing a quote, backslash or brace breaks or changes the wrapper; pass the paths through sys.argv or repr().",
+    "benchmarks/problems/circle_packing_26/evaluator.py:208-210 uses a 600 s inner limit under a 60 s outer limit, so its timeout branch is unreachable in the shared harness, and the outer SIGKILL skips the finally block (184-189): the wrapper script and results file stay in the temp directory after every timed-out evaluation. Use a private temporary directory owned by evaluation.py's work directory.",
+    "benchmarks/evaluation.py:57 and benchmarks/scientific_cases.py:49 call communicate() without a timeout after the group kill; a descendant that left the group and still holds the pipe keeps evaluate() from returning.",
+    "benchmarks/evaluation.py:52 does not validate the marker payload: invalid JSON or a non-object raises out of evaluate() and the evaluation is never logged; Infinity and booleans pass the score test at 62 and json.dumps then writes non-standard JSON to the log.",
+    "benchmarks/evaluation.py:28-30 enforces the documented single CPU core only through advisory environment variables; nothing pins affinity or limits process count, so a program can start several worker processes.",
+    "benchmarks/problems/kissing_number_11/evaluator.py:46 and 53-55 validate the packing with assert statements, which are removed when the evaluating interpreter runs with PYTHONOPTIMIZE or -O; the environment is inherited unchanged from the operator's shell.",
+    "benchmarks/problems/circle_packing_26/evaluator.py:20 reads the score scale from the ambient variable CIRCLE_PACKING_TARGET_VALUE, which evaluation.py:46 passes through; a stray value in the operator's shell silently rescales every score of that problem.",
+    "benchmarks/evaluation.py:46 places the evaluator in its own session without installing a termination handler, so in-flight evaluations are not stopped when the framework receives the end-of-budget SIGTERM (baselines/run_baseline.sh:54) and then run with no time limit."
+  ],
+  "uncovered": []
+}

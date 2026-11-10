@@ -1,0 +1,605 @@
+{
+  "units": [
+    {
+      "coverage_id": "baselines%2Fopenevolve%2Fscripts%2Fmanual.py%23POST%20%2Fmanual%2Fapi%2Ftasks%2F%3Ctask_id%3E%2Fanswer::baselines%2Fopenevolve%2Fopenevolve%2Fllm%2Fopenai.py%23manual_mode::profile%2Fquick%2Fall-in-scope-subsystems::WEB-PROTOCOL-AND-AUTH.md%23Ordinary%20CSRF",
+      "disposition": "candidate",
+      "reviewed_paths": [
+        "baselines/openevolve/scripts/manual.py",
+        "baselines/openevolve/scripts/visualizer.py",
+        "baselines/openevolve/scripts/static/js/manual.js",
+        "baselines/openevolve/scripts/templates/manual_page.html",
+        "baselines/openevolve/openevolve/llm/openai.py",
+        "baselines/openevolve/openevolve/process_parallel.py",
+        "baselines/openevolve/openevolve/controller.py",
+        "baselines/openevolve/openevolve/config.py",
+        "baselines/run_openevolve.py"
+      ],
+      "checks": [
+        {
+          "agent_id": "hunter-openevolve-visualizer",
+          "reviewed_paths": [
+            "baselines/openevolve/scripts/manual.py",
+            "baselines/openevolve/scripts/visualizer.py",
+            "baselines/openevolve/scripts/static/js/manual.js",
+            "baselines/openevolve/scripts/templates/manual_page.html",
+            "baselines/openevolve/openevolve/llm/openai.py"
+          ],
+          "invariant": "A cross-site page that cannot read responses must not be able to change manual-mode state with a preflight-free (simple) request.",
+          "method": "source",
+          "result": "The route POST /manual/api/tasks/<task_id>/answer (manual.py:159) reads request.form first (manual.py:165), so application/x-www-form-urlencoded and multipart/form-data bodies are accepted; both are CORS-safelisted and need no preflight. JSON is an optional second path (manual.py:166-168). There is no session, cookie, CSRF token, Origin, Referer or Host check anywhere in manual.py or visualizer.py (no CORS headers, no after_request hook, no SERVER_NAME or trusted-hosts configuration; the app is created bare at visualizer.py:17). The only gate is that <queue>/<task_id>.json exists (manual.py:173). task_id is a uuid4 minted by the framework (openai.py:269), it is one path segment so it cannot traverse out of the queue directory, and no fixed-name *.json file lives in the queue directory. The listing GET /manual/api/tasks (manual.py:136-142) sends no Access-Control-Allow-Origin header and returns a JSON object, so a cross-site page cannot read it. Result: a blind cross-site form POST (ordinary CSRF in the strict sense) is refuted by source, because the attacker cannot learn a valid task id. This is not a candidate.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-openevolve-visualizer",
+          "reviewed_paths": [
+            "baselines/openevolve/scripts/manual.py",
+            "baselines/openevolve/scripts/visualizer.py",
+            "baselines/openevolve/openevolve/llm/openai.py"
+          ],
+          "invariant": "Only the operator may read pending manual tasks and supply the answer that becomes the LLM reply.",
+          "method": "source",
+          "result": "The same unauthenticated listing endpoint that protects against blind CSRF hands the task id to any client that can read the response: GET /manual/api/tasks returns every pending id (manual.py:141-142) and GET /manual/api/tasks/<id> returns the full prompt (manual.py:152-157). A principal with read access to the port therefore passes the only gate. Three such principals are source-visible: another local user on the run host (loopback is not a per-user boundary), a network client when the operator passes a non-loopback --host (visualizer.py:207, 239), and a web page using DNS rebinding, because the server accepts any Host header. Recorded as candidate openevolve-visualizer/manual-answer-unauthenticated-reply-injection.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-openevolve-visualizer",
+          "reviewed_paths": [
+            "baselines/openevolve/openevolve/llm/openai.py",
+            "baselines/openevolve/openevolve/process_parallel.py"
+          ],
+          "invariant": "The value written by the answer endpoint must not reach code execution without operator review.",
+          "method": "source",
+          "result": "_write_answer stores {id, answer} at <queue>/<task_id>.answer.json (manual.py:118-125). OpenAILLM._manual_wait_for_answer polls that path every 0.5 s (openai.py:290-299), parses it and returns data['answer'] as the model reply (openai.py:301-309) with no check of who wrote it. In the worker the reply becomes llm_response (process_parallel.py:208), is turned into child code by diff application or full-rewrite parsing (process_parallel.py:283, 312, 327) and is handed to the evaluator (process_parallel.py:364). The first answer written wins: the poll returns as soon as the file exists, so a later operator answer for the same task is ignored.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-openevolve-visualizer",
+          "reviewed_paths": [
+            "baselines/openevolve/openevolve/controller.py",
+            "baselines/openevolve/openevolve/config.py",
+            "baselines/run_openevolve.py",
+            "baselines/openevolve/scripts/visualizer.py",
+            "baselines/openevolve/scripts/manual.py"
+          ],
+          "invariant": "Preconditions: manual mode must be enabled, the visualizer must point at the live run directory, and the default bind is loopback.",
+          "method": "source",
+          "result": "Manual mode is opt-in: LLMConfig.manual_mode defaults to False (config.py:138) and is copied to each model config (config.py:200); the controller creates and clears <output_dir>/manual_tasks_queue only when it is true (controller.py:224-232). The repository glue does not set it: the llm block written by baselines/run_openevolve.py:37 has no manual_mode key. The manual blueprint itself is registered unconditionally (visualizer.py:194), so the endpoints exist on every visualizer run, but they only find tasks when --path resolves to the run root (manual.py:26-49, 161-162). The default bind host is 127.0.0.1 (visualizer.py:207) on port 8080 (visualizer.py:213).",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-openevolve-visualizer",
+          "reviewed_paths": [
+            "baselines/openevolve/scripts/visualizer.py"
+          ],
+          "invariant": "The --debug option must not expose an unauthenticated code-execution surface by default.",
+          "method": "source",
+          "result": "--debug is off by default (visualizer.py:208-212) and is passed straight to app.run(debug=...) (visualizer.py:239), which enables the Werkzeug reloader and interactive debugger. The help text says 'local use only'. No route in scripts/ reads arbitrary files, so there is no source-visible way for a client to derive the debugger PIN. Opt-in flag with a documented warning: recorded as hardening, not a candidate.",
+          "artifact": null
+        }
+      ],
+      "candidate_fingerprints": [
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection"
+      ],
+      "unresolved": []
+    },
+    {
+      "coverage_id": "baselines%2Fopenevolve%2Fscripts%2Fstatic%2Fjs%2Fsidebar.js%23innerHTML::baselines%2Fopenevolve%2Fscripts%2Fstatic%2Fjs%2Fsidebar.js%23escapeHtml::profile%2Fquick%2Fall-in-scope-subsystems::CLIENT-SIDE.md%23DOM-based%20XSS",
+      "disposition": "candidate",
+      "reviewed_paths": [
+        "baselines/openevolve/scripts/static/js/sidebar.js",
+        "baselines/openevolve/scripts/static/js/main.js",
+        "baselines/openevolve/scripts/visualizer.py",
+        "baselines/openevolve/openevolve/database.py",
+        "baselines/openevolve/openevolve/process_parallel.py",
+        "baselines/openevolve/scripts/static/js/list.js",
+        "baselines/openevolve_evaluator.py",
+        "benchmarks/evaluation.py",
+        "baselines/openevolve/scripts/static/js/manual.js",
+        "baselines/openevolve/scripts/templates/manual_page.html",
+        "baselines/openevolve/scripts/manual.py",
+        "baselines/openevolve/openevolve/llm/openai.py",
+        "baselines/openevolve/scripts/static/js/graph.js",
+        "baselines/openevolve/scripts/static/js/performance.js",
+        "baselines/openevolve/scripts/static/js/mainUI.js",
+        "baselines/openevolve/scripts/static/js/state.js",
+        "baselines/openevolve/scripts/templates/index.html",
+        "baselines/openevolve/scripts/templates/program_page.html",
+        "baselines/requirements_openevolve_shinkaevolve.txt"
+      ],
+      "checks": [
+        {
+          "agent_id": "hunter-openevolve-visualizer",
+          "reviewed_paths": [
+            "baselines/openevolve/scripts/static/js/sidebar.js",
+            "baselines/openevolve/scripts/static/js/main.js",
+            "baselines/openevolve/scripts/visualizer.py",
+            "baselines/openevolve/openevolve/database.py",
+            "baselines/openevolve/openevolve/process_parallel.py"
+          ],
+          "invariant": "LLM-derived text (prompts, raw LLM responses, artifacts) must be HTML-escaped before it reaches innerHTML in the sidebar.",
+          "method": "source",
+          "result": "Not held. renderSidebarTabContent escapes program code (sidebar.js:369) and diff lines (sidebar.js:353-355) but builds the Prompts tab as `<pre class=\"sidebar-pre\">${promptVal ?? ''}</pre>` with no escaping (sidebar.js:421). promptVal is d.prompts[templateKey][subKey] (sidebar.js:376-386) or d.artifacts_json (sidebar.js:391-394, re-serialised with JSON.stringify at 410-414, which does not escape '<'). The string is assigned to innerHTML at sidebar.js:468, 491 and 508. The data is the raw model reply: process_parallel.py:810 passes result.llm_response to log_prompt, database.py:2818 stores it under 'responses', database.py:973 writes it into the program JSON, and visualizer.py:68 and 124 serve it unchanged. The 'user' prompt entry carries earlier generated code and program output as well. Recorded as candidate openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-openevolve-visualizer",
+          "reviewed_paths": [
+            "baselines/openevolve/scripts/static/js/sidebar.js",
+            "baselines/openevolve/scripts/static/js/main.js",
+            "baselines/openevolve/scripts/static/js/list.js",
+            "baselines/openevolve/scripts/visualizer.py",
+            "baselines/openevolve_evaluator.py",
+            "benchmarks/evaluation.py"
+          ],
+          "invariant": "Program ids, parent ids and metric names must be escaped in the sidebar and list views.",
+          "method": "source",
+          "result": "Not held, with weaker sources. Metric names are interpolated raw at main.js:52 (formatMetrics, used at sidebar.js:478) and at list.js:87 and list.js:113, then assigned to innerHTML at list.js:96 and list.js:129; renderNodeList runs on every data load (main.js:83), so this variant needs no click. Ids are interpolated raw at sidebar.js:294, 436, 443, 474, 477 and list.js:99, 102, 134. Metric values are forced to finite numbers or null by sanitize_program_for_visualization (visualizer.py:91-98), but keys are untouched. In this repository's glue the metric dict is parsed from the last @@METRICS@@ line of the evaluator child's stdout (benchmarks/evaluation.py:50-52) and numeric entries keep their keys (baselines/openevolve_evaluator.py:14); the evolved program runs in that child. Ids are framework uuid4 values unless the checkpoint files were authored by someone else. Folded into candidate openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text as variants of the same missing-escape root cause; whether OpenEvolve's own evaluator preserves arbitrary metric keys was not traced (peer-owned file).",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-openevolve-visualizer",
+          "reviewed_paths": [
+            "baselines/openevolve/scripts/static/js/manual.js",
+            "baselines/openevolve/scripts/templates/manual_page.html",
+            "baselines/openevolve/scripts/manual.py",
+            "baselines/openevolve/openevolve/llm/openai.py"
+          ],
+          "invariant": "Manual-mode task list fields rendered with innerHTML must not carry attacker-influenced text.",
+          "method": "source",
+          "result": "taskCardHtml interpolates t.id, t.model and t.created_at raw (manual.js:49-53) into listEl.innerHTML (manual.js:62). Sources: id is the task file stem (manual.py:77), a uuid4 minted at openai.py:269; created_at is a framework ISO timestamp (openai.py:25, 275); model is the configured model name (openai.py:276). The answer endpoint cannot create a file that appears in the listing: it only writes *.answer.json, which _list_tasks skips (manual.py:74-75). The prompt text goes into a Monaco editor value, not HTML (manual.js:96). No lower-trust source reaches this sink; recorded as hardening only.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-openevolve-visualizer",
+          "reviewed_paths": [
+            "baselines/openevolve/scripts/static/js/graph.js",
+            "baselines/openevolve/scripts/static/js/performance.js",
+            "baselines/openevolve/scripts/static/js/mainUI.js",
+            "baselines/openevolve/scripts/static/js/state.js",
+            "baselines/openevolve/scripts/static/js/sidebar.js",
+            "baselines/openevolve/scripts/static/js/manual.js"
+          ],
+          "invariant": "No browser-controlled source (location, referrer, window.name, postMessage, storage) may reach an HTML or script sink.",
+          "method": "source",
+          "result": "graph.js and performance.js write node data only through d3 .text() (graph.js:282; performance.js:436-499) and one static innerHTML template (performance.js:15). There is no message listener, eval, Function, document.write or string timer in scripts/static/js. localStorage values are used for a CSS width (sidebar.js:17-19), a theme attribute (mainUI.js:59-71) and an equality test for the selected prompt key (sidebar.js:397-403). manual.js builds its API base from location.pathname and uses it only as a same-origin fetch path (manual.js:22). Nothing found.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-openevolve-visualizer",
+          "reviewed_paths": [
+            "baselines/openevolve/scripts/templates/index.html",
+            "baselines/openevolve/scripts/templates/program_page.html",
+            "baselines/openevolve/scripts/templates/manual_page.html",
+            "baselines/openevolve/scripts/visualizer.py"
+          ],
+          "invariant": "Server-rendered templates must escape program data.",
+          "method": "source",
+          "result": "program_page.html prints id, metrics, code, prompts and artifacts through Jinja expressions with no |safe filter (program_page.html:5, 23-38, 59, 74); Flask enables autoescaping for .html templates, and the recursive macro escapes leaf values explicitly (program_page.html:47, 59). index.html and manual_page.html contain no data expressions apart from url_for. Nothing found for the live server templates.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-openevolve-visualizer",
+          "reviewed_paths": [
+            "baselines/openevolve/scripts/visualizer.py",
+            "baselines/openevolve/scripts/templates/index.html",
+            "baselines/requirements_openevolve_shinkaevolve.txt"
+          ],
+          "invariant": "Data embedded in an inline <script> by the static export must be serialised so that it cannot terminate the script element.",
+          "method": "source",
+          "result": "Not held by source. run_static_export serialises the whole dataset with jsonify(data).get_data(as_text=True) (visualizer.py:158) and concatenates it into `<script>window.STATIC_DATA = ...;</script>` (visualizer.py:159), which is spliced into index.html (visualizer.py:172) and written to disk (visualizer.py:176-177). jsonify produces plain JSON; the HTML-safe escaping of '<', '>' and '&' exists only in the separate tojson template filter, which this code does not use. A string value containing '</script>' (program code, prompts, responses, artifacts) therefore ends the element. Flask is not vendored and is not installed on the audit host; the pinned version is Flask==3.1.3 (requirements_openevolve_shinkaevolve.txt:22), so the serialiser output still has to be observed. Recorded as candidate openevolve-visualizer/static-export-inline-script-json-breakout.",
+          "artifact": null
+        }
+      ],
+      "candidate_fingerprints": [
+        "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+        "openevolve-visualizer/static-export-inline-script-json-breakout"
+      ],
+      "unresolved": []
+    }
+  ],
+  "candidates": [
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+      "title": "OpenEvolve manual-mode endpoints let any client that can reach the visualizer port supply the LLM reply that is then executed",
+      "description": "When OpenEvolve runs in manual mode, each LLM call is written as a task file and the run waits for a matching answer file. The visualizer's manual blueprint lists pending task ids, returns each prompt, and accepts an answer by form POST, all without authentication and without any Origin or Host validation. The answer text is returned to the framework as the model reply, converted into a child program and passed to the evaluator, which runs it under the operator's account.\n\nThe lower-trust principal is anyone other than the operator who can read responses from the port. Source shows three: (1) another local user on a shared run host, since the default bind is loopback, which every local account can reach; (2) a network client, if the operator starts the visualizer with a non-loopback --host; (3) a web page in the operator's browser that uses DNS rebinding, since any Host header is accepted. Each can list task ids, read the prompts, and post an answer. The first answer written wins, so the operator's own answer for that task is ignored.\n\nA blind cross-site form POST alone does not work: the task id is a random uuid4 and the listing is not readable cross-origin. That narrower claim was refuted from source and is not part of this candidate.\n\nPreconditions: llm.manual_mode must be enabled (it is off by default and is not set by baselines/run_openevolve.py), and the visualizer must be running with --path pointing at the live run directory.",
+      "claimed_root_cause": "The manual blueprint treats reachability of the port as authorization. The only check on the answer route is that the task file exists, and the task id needed to pass it is published by the unauthenticated listing route on the same server. No token, Origin check or Host allowlist binds the answer to the operator.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "baselines/openevolve/scripts/manual.py",
+          "line": 136,
+          "scope": "create_manual_blueprint.api_tasks",
+          "description": "GET /manual/api/tasks returns the id, creation time and model of every pending task to any caller."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/manual.py",
+          "line": 159,
+          "scope": "create_manual_blueprint.api_task_answer",
+          "description": "POST /manual/api/tasks/<task_id>/answer is registered with no authentication, token, Origin or Host check."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/manual.py",
+          "line": 165,
+          "scope": "create_manual_blueprint.api_task_answer",
+          "description": "The answer is read from request.form, so a urlencoded or multipart body is accepted."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/manual.py",
+          "line": 173,
+          "scope": "create_manual_blueprint.api_task_answer",
+          "description": "The only gate: the file <queue>/<task_id>.json must exist."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/manual.py",
+          "line": 125,
+          "scope": "_write_answer",
+          "description": "The answer is written atomically to <queue>/<task_id>.answer.json."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/llm/openai.py",
+          "line": 301,
+          "scope": "OpenAILLM._manual_wait_for_answer",
+          "description": "The polling loop reads and parses the answer file as soon as it exists."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/llm/openai.py",
+          "line": 309,
+          "scope": "OpenAILLM._manual_wait_for_answer",
+          "description": "The answer string is returned as the model reply."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/process_parallel.py",
+          "line": 208,
+          "scope": "_run_iteration_worker",
+          "description": "The reply becomes llm_response in the iteration worker."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/process_parallel.py",
+          "line": 312,
+          "scope": "_run_iteration_worker",
+          "description": "The reply is parsed into new program code (full rewrite; the diff path applies blocks at line 283)."
+        },
+        {
+          "kind": "sink",
+          "file": "baselines/openevolve/openevolve/process_parallel.py",
+          "line": 364,
+          "scope": "_run_iteration_worker",
+          "description": "The resulting child code is passed to the evaluator, which executes it under the operator's account."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/openevolve/scripts/manual.py",
+          "line": 141,
+          "description": "The listing response includes each pending task id, which is the only secret the answer route depends on."
+        },
+        {
+          "file": "baselines/openevolve/scripts/manual.py",
+          "line": 152,
+          "description": "The task detail route returns the full display prompt to any caller."
+        },
+        {
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 17,
+          "description": "The Flask app is created with no secret key, trusted-host list or request hook; no access control exists elsewhere in scripts/."
+        },
+        {
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 194,
+          "description": "The manual blueprint is registered unconditionally on every visualizer run."
+        },
+        {
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 207,
+          "description": "Strongest visible control: the default bind host is 127.0.0.1. It can be overridden with --host."
+        },
+        {
+          "file": "baselines/openevolve/openevolve/llm/openai.py",
+          "line": 269,
+          "description": "Second visible control: the task id is a uuid4, so it cannot be guessed, only read from the listing."
+        },
+        {
+          "file": "baselines/openevolve/openevolve/llm/openai.py",
+          "line": 299,
+          "description": "The wait loop accepts the answer file on existence alone, so the first writer wins."
+        },
+        {
+          "file": "baselines/openevolve/openevolve/config.py",
+          "line": 138,
+          "description": "Manual mode defaults to False."
+        },
+        {
+          "file": "baselines/openevolve/openevolve/controller.py",
+          "line": 224,
+          "description": "The controller creates the queue directory only when llm.manual_mode is enabled."
+        },
+        {
+          "file": "baselines/run_openevolve.py",
+          "line": 37,
+          "description": "The repository's OpenEvolve launcher writes an llm config with no manual_mode key, so this repository's default runs do not enable manual mode."
+        }
+      ],
+      "blockers": [
+        "No target code was executed in this run, so acceptance of a request with a foreign Host and Origin and a form content type was not observed.",
+        "Manual mode is opt-in and is not enabled by baselines/run_openevolve.py; whether any operator workflow enables llm.manual_mode alongside the visualizer is a deployment fact.",
+        "Local-user path: whether the run host is shared with other accounts is a deployment fact.",
+        "Network path: requires the operator to pass a non-loopback --host; the default is 127.0.0.1.",
+        "DNS-rebinding path: depends on the operator's browser. Browsers that enforce local-network-access permission for requests from public pages to loopback addresses block or prompt for it; that behaviour is not visible in source.",
+        "Flask and Werkzeug are not vendored; the absence of default Host validation must be observed on the pinned Flask==3.1.3 / Werkzeug==3.1.9."
+      ],
+      "validation_plan": {
+        "local": "In the no-network sandbox with Flask installed, create scratch/run/manual_tasks_queue/11111111-1111-4111-8111-111111111111.json containing {\"id\": \"11111111-1111-4111-8111-111111111111\", \"created_at\": \"t\", \"model\": \"dummy\", \"display_prompt\": \"dummy prompt\"}. Set EVOLVE_OUTPUT=scratch/run, add baselines/openevolve/scripts to sys.path, import the module visualizer (do not run it as __main__) and use visualizer.app.test_client(). Send every request with no cookies and with headers Host: rebind.example:8080 and Origin: http://rebind.example:8080. Step 1: GET /manual/api/tasks and expect status 200 with the dummy id in the JSON body. Step 2: POST /manual/api/tasks/11111111-1111-4111-8111-111111111111/answer with Content-Type application/x-www-form-urlencoded and body answer=SENTINEL_ANSWER_7f3a; expect status 200 and body {\"ok\": true}. Step 3: POST the same body to /manual/api/tasks/00000000-0000-4000-8000-000000000000/answer and expect 404. Single deciding observable: after step 2 the file scratch/run/manual_tasks_queue/11111111-1111-4111-8111-111111111111.answer.json exists and its \"answer\" field equals SENTINEL_ANSWER_7f3a. No evaluator is run and no generated code is executed.",
+        "deployment": "Owner check: confirm whether any run enables llm.manual_mode, whether the visualizer is ever started with a non-loopback --host, and whether the run host has other interactive accounts. For the browser path, confirm which browsers operators use and whether they prompt for local network access."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+      "title": "OpenEvolve visualizer writes LLM replies, prompts and artifacts into the page as HTML without escaping",
+      "description": "The visualizer sidebar escapes program code but not the Prompts tab. The selected prompt entry, which can be the system prompt, the user prompt, the raw model reply ('responses') or the artifacts JSON, is placed inside a <pre> element by string interpolation and assigned to innerHTML. Markup in that text is parsed by the browser, so an inline event handler such as an onerror attribute on an img tag runs script in the visualizer's origin.\n\nThe source is the lowest-trust data in the system. The raw model reply is logged verbatim with each program (prompt logging is on by default), the user prompt quotes earlier generated code and program output, and the artifacts entry is the tail of the evaluated program's stdout in this repository's glue. The victim is the operator's browser, which may be on a different machine from the run host (for example through a forwarded port), or anyone who opens a checkpoint directory produced by someone else.\n\nReaching the main sink needs ordinary inspection steps: select a node, open the Prompts tab and choose the 'user', 'responses' or 'artifacts' entry. The choice is remembered in localStorage, and once the Prompts tab is active in a page session, hovering over any node re-renders it with that node's text.\n\nVariants of the same missing escape: metric names are interpolated raw into the sidebar metrics table and the list view, and the list view is rendered on every data load without a click; program and parent ids are interpolated raw into text and attribute positions. Metric names are program-influenced in this repository's glue; ids are framework-generated unless the checkpoint files come from another party.\n\nScript running in the visualizer origin can call every same-origin route, including the manual-mode answer route described under openevolve-visualizer/manual-answer-unauthenticated-reply-injection.",
+      "claimed_root_cause": "The front-end builds HTML by template-string interpolation and assigns it to innerHTML. Escaping is applied only to program code and diff lines; prompt values, artifacts, metric names and ids are interpolated raw. The server sends no Content-Security-Policy that would stop inline handlers.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "baselines/openevolve/openevolve/process_parallel.py",
+          "line": 208,
+          "scope": "_run_iteration_worker",
+          "description": "The raw model reply is received as llm_response."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/process_parallel.py",
+          "line": 810,
+          "scope": "ProcessParallelController.run_evolution",
+          "description": "The reply is passed verbatim to database.log_prompt as the responses list."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/database.py",
+          "line": 2818,
+          "scope": "ProgramDatabase.log_prompt",
+          "description": "The responses list is stored on the prompt record for the program."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/database.py",
+          "line": 973,
+          "scope": "ProgramDatabase._save_program",
+          "description": "The prompt record is written into the program's checkpoint JSON under 'prompts'."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 68,
+          "scope": "load_evolution_data",
+          "description": "The visualizer loads the program JSON; only metric values are sanitised."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 124,
+          "scope": "data",
+          "description": "GET /api/data returns the nodes, including prompts and artifacts, as JSON."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/static/js/main.js",
+          "line": 122,
+          "scope": "fetchAndRender",
+          "description": "The page fetches /api/data every two seconds and stores the nodes."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+          "line": 381,
+          "scope": "showSidebarContent.renderSidebarTabContent",
+          "description": "Each prompt sub-entry (system, user, responses) is placed in promptMap unchanged."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+          "line": 421,
+          "scope": "showSidebarContent.renderSidebarTabContent",
+          "description": "The selected value is interpolated into a <pre> element with no escaping."
+        },
+        {
+          "kind": "sink",
+          "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+          "line": 468,
+          "scope": "showSidebarContent",
+          "description": "The assembled string is assigned to sidebarContent.innerHTML (also to tabContent.innerHTML at lines 491 and 508)."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+          "line": 369,
+          "description": "Sibling control: the Code tab passes d.code through escapeHtml, showing the escape exists and is omitted for prompts."
+        },
+        {
+          "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+          "line": 394,
+          "description": "The artifacts JSON string is added to the same unescaped promptMap."
+        },
+        {
+          "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+          "line": 414,
+          "description": "Artifacts are re-serialised with JSON.stringify, which does not escape '<'."
+        },
+        {
+          "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+          "line": 508,
+          "description": "Clicking a tab assigns the unescaped tab content to innerHTML."
+        },
+        {
+          "file": "baselines/openevolve/scripts/static/js/graph.js",
+          "line": 265,
+          "description": "Hovering over a graph node calls showSidebarContent, so rendering happens without a click once the Prompts tab is the active tab."
+        },
+        {
+          "file": "baselines/openevolve/scripts/static/js/main.js",
+          "line": 52,
+          "description": "formatMetrics interpolates metric names raw into a table row used in the sidebar."
+        },
+        {
+          "file": "baselines/openevolve/scripts/static/js/list.js",
+          "line": 113,
+          "description": "The list view interpolates metric names raw."
+        },
+        {
+          "file": "baselines/openevolve/scripts/static/js/list.js",
+          "line": 129,
+          "description": "The list view assigns that string to innerHTML; renderNodeList runs on every data load (main.js:83)."
+        },
+        {
+          "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+          "line": 294,
+          "description": "The program id is concatenated raw into an href attribute."
+        },
+        {
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 93,
+          "description": "Strongest server-side control: only metric values are replaced when they are not finite numbers; keys and all text fields pass through."
+        },
+        {
+          "file": "baselines/openevolve/openevolve/config.py",
+          "line": 326,
+          "description": "DatabaseConfig.log_prompts defaults to True, so prompts and replies are stored by default."
+        },
+        {
+          "file": "baselines/openevolve_evaluator.py",
+          "line": 13,
+          "description": "This repository's evaluator returns the program's output tail and error text as artifacts."
+        },
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 52,
+          "description": "Metric names are parsed from the last @@METRICS@@ line of the evaluator child's stdout, which the evolved program can print."
+        }
+      ],
+      "blockers": [
+        "No target code or browser was run, so script execution from a prompt value was not observed.",
+        "The page imports d3 from https://d3js.org at load time (templates/index.html:6); in a no-network sandbox the module graph fails unless a local d3 v7 copy is served by request interception.",
+        "Operator interaction is required for the main path: opening the Prompts tab and selecting a non-system entry.",
+        "Metric-name variant: whether OpenEvolve's evaluator (openevolve/evaluator.py, peer-owned) preserves arbitrary metric keys into the checkpoint was not traced.",
+        "Impact depends on what else the operator's browser trusts at the visualizer origin and on whether the browser runs on a different machine from the run host; both are deployment facts."
+      ],
+      "validation_plan": {
+        "local": "In the no-network sandbox, create scratch/ckpt/checkpoint_1/metadata.json with {\"islands\": [[\"p1\"]], \"archive\": []} and scratch/ckpt/checkpoint_1/programs/p1.json with {\"id\": \"p1\", \"code\": \"x = 1\", \"generation\": 0, \"parent_id\": null, \"metrics\": {\"combined_score\": 1.0}, \"metadata\": {}, \"prompts\": {\"diff_user\": {\"system\": \"s\", \"user\": \"u\", \"responses\": [\"<img src=x onerror=\\\"document.title='XSS_MARKER_A'\\\">\"]}}}. Start baselines/openevolve/scripts/visualizer.py on isolated loopback with --path scratch/ckpt. Open / in a headless browser with request interception that serves a local d3.v7.min.js for https://d3js.org/d3.v7.min.js and blocks every other external host. Click the List tab, click the single row, click the Prompts tab in the sidebar and choose 'diff_user - responses' in the select box. Single deciding observable: document.title equals XSS_MARKER_A (equivalently, document.querySelector('pre.sidebar-pre img') is not null).",
+        "deployment": "Owner check: confirm how operators view the visualizer (same host, forwarded port, or checkpoints copied or shared between people) and whether manual mode is ever active on the same origin."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "openevolve-visualizer/static-export-inline-script-json-breakout",
+      "title": "OpenEvolve static export embeds run data in an inline script without HTML-safe encoding, so '</script>' in generated text injects markup",
+      "description": "The --static-output option writes a self-contained index.html. It serialises all programs, prompts, model replies and artifacts with jsonify and concatenates the result into an inline <script> element. JSON serialisation does not escape '<'. The HTML parser ends a script element at the first '</script' regardless of JavaScript string context, so any string value containing that sequence closes the data script, and whatever follows is parsed as HTML.\n\nProgram code, model replies and program output are all LLM-derived, so a generated program or reply that contains '</script><script>...' runs script when the exported page is opened. No click is needed. The export is meant to be served or shared (the tool prints a hint to serve it with a web server), so the affected principal is whoever opens the export, in whatever origin hosts it.\n\nThe same defect also corrupts the export for benign programs that merely contain the text '</script>'.",
+      "claimed_root_cause": "run_static_export builds an inline script by string concatenation of jsonify output. That output is plain JSON, not the HTML-safe form produced by the tojson template filter, so '<', '>' and '&' are not escaped for the script-data context.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "baselines/openevolve/openevolve/process_parallel.py",
+          "line": 208,
+          "scope": "_run_iteration_worker",
+          "description": "The raw model reply is received; it becomes program code and is also logged as a response."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/database.py",
+          "line": 973,
+          "scope": "ProgramDatabase._save_program",
+          "description": "Program code, prompts and replies are written to the checkpoint program JSON."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 68,
+          "scope": "load_evolution_data",
+          "description": "The exporter loads each program JSON; text fields are not altered."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 158,
+          "scope": "run_static_export",
+          "description": "The dataset is serialised with jsonify(data).get_data(as_text=True)."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 159,
+          "scope": "run_static_export",
+          "description": "The JSON text is concatenated into an inline <script> element."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 172,
+          "scope": "run_static_export",
+          "description": "The script element is spliced into the index.html template text."
+        },
+        {
+          "kind": "sink",
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 177,
+          "scope": "run_static_export",
+          "description": "The resulting HTML is written to <static_output>/index.html, where a browser parses the injected markup."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 11,
+          "description": "Only render_template and jsonify are imported; no HTML-safe JSON helper is used anywhere in the file."
+        },
+        {
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 93,
+          "description": "Strongest visible control: sanitisation replaces non-finite metric values only; no text field is encoded."
+        },
+        {
+          "file": "baselines/openevolve/scripts/visualizer.py",
+          "line": 189,
+          "description": "The export log message tells the operator to serve the directory with a web server, so the output is intended to be opened over HTTP."
+        },
+        {
+          "file": "baselines/openevolve/scripts/static/js/main.js",
+          "line": 118,
+          "description": "The front-end consumes window.STATIC_DATA, confirming the inline script is the data channel for exported pages."
+        },
+        {
+          "file": "baselines/requirements_openevolve_shinkaevolve.txt",
+          "line": 22,
+          "description": "Flask is pinned to 3.1.3 here; it is not vendored, so the serialiser was not read in source."
+        }
+      ],
+      "blockers": [
+        "No target code was executed, so the exported file was not produced or inspected.",
+        "Flask is not vendored in the repository and not installed on the audit host. The claim that jsonify output leaves '<' unescaped rests on Flask's documented JSON provider behaviour and must be observed on the pinned Flask==3.1.3.",
+        "Impact depends on where exports are hosted and who opens them, which is a deployment fact."
+      ],
+      "validation_plan": {
+        "local": "In the no-network sandbox with Flask==3.1.3 installed, create scratch/ckpt/checkpoint_1/metadata.json with {\"islands\": [[\"p1\"]], \"archive\": []} and scratch/ckpt/checkpoint_1/programs/p1.json with {\"id\": \"p1\", \"code\": \"s = '</script><script>document.title=\\\"XSS_MARKER_B\\\"</script>'\", \"generation\": 0, \"parent_id\": null, \"metrics\": {\"combined_score\": 1.0}, \"metadata\": {}}. Add baselines/openevolve/scripts to sys.path, import the module visualizer (do not run it as __main__) and call visualizer.run_static_export(argparse.Namespace(path='scratch/ckpt', static_output='scratch/export')). Parse scratch/export/index.html with Python's html.parser and collect the text of every script element. Single deciding observable: one script element's text is exactly document.title=\"XSS_MARKER_B\" (that is, the marker appears as its own script element instead of inside the STATIC_DATA string). If the file instead contains \\u003c/script in place of </script, the candidate is refuted for this Flask version.",
+        "deployment": "Owner check: confirm whether static exports are produced and where they are published or shared."
+      }
+    }
+  ],
+  "hardening": [
+    "scripts/manual.py: require a per-run secret (for example a random token printed at start-up and sent as a header) on all /manual routes, reject requests whose Host is not the bound address and whose Origin is present but different, and register the blueprint only when manual mode is in use.",
+    "scripts/visualizer.py --debug enables the Werkzeug interactive debugger (visualizer.py:208-212, 239). It is opt-in and documented as local-only; combined with a non-loopback --host it exposes the PIN-protected console to the network. Consider refusing --debug when --host is not loopback.",
+    "scripts/static/js/manual.js:49-53 interpolates task id, model name and timestamp into innerHTML without escaping. Current sources are framework- or operator-controlled, so this is not a finding, but it should use textContent.",
+    "scripts/static/js/sidebar.js:363-365 defines a second escapeHtml that does not escape quotes; it is only used in element content today. Use the full helper at sidebar.js:672-680 everywhere, including attribute positions.",
+    "No Content-Security-Policy is sent, and index.html:6 and manual_page.html:7 load d3 and the Monaco loader from public CDNs without Subresource Integrity.",
+    "scripts/visualizer.py:233-239: after --static-output the code falls through and starts the server, although the help text says it exits."
+  ],
+  "uncovered": []
+}

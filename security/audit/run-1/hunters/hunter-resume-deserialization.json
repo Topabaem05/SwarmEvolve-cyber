@@ -1,0 +1,523 @@
+{
+ "units": [
+  {
+   "coverage_id": "baselines%2FShinkaEvolve%2Fshinka%2Fcore%2Fasync_runner.py%23bandit_state.pkl::baselines%2FShinkaEvolve%2Fshinka%2Fllm%2Fprioritization.py%23load_state::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+   "disposition": "candidate",
+   "reviewed_paths": [
+    "baselines/ShinkaEvolve/shinka/llm/prioritization.py",
+    "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+    "baselines/ShinkaEvolve/shinka/core/config.py",
+    "baselines/ShinkaEvolve/shinka/launch/local.py",
+    "baselines/ShinkaEvolve/shinka/launch/scheduler.py",
+    "baselines/ShinkaEvolve/shinka/launch/slurm.py",
+    "baselines/run_shinkaevolve.py",
+    "baselines/shinka_evaluate.py",
+    "baselines/run_baseline.sh",
+    "baselines/ShinkaEvolve/shinka/core/wrap_eval.py",
+    "baselines/ShinkaEvolve/shinka/utils/utils_hydra.py",
+    "baselines/ShinkaEvolve/shinka/eval_hydra.py",
+    "baselines/ShinkaEvolve/shinka/launch_hydra.py",
+    "baselines/CodeEvolve/src/codeevolve/utils/ckpt.py",
+    "baselines/CodeEvolve/src/codeevolve/utils/cli_setup.py",
+    "baselines/CodeEvolve/src/codeevolve/cli.py",
+    "baselines/CodeEvolve/src/codeevolve/evolution.py",
+    "baselines/CodeEvolve/src/codeevolve/evaluator.py",
+    "baselines/run_codeevolve.py",
+    "baselines/codeevolve_evaluate.py",
+    "baselines/openevolve/openevolve/api.py",
+    "baselines/openevolve/openevolve/evaluator.py",
+    "baselines/openevolve/openevolve/controller.py",
+    "baselines/openevolve/openevolve/process_parallel.py",
+    "baselines/run_openevolve.py",
+    "baselines/openevolve_entry.py",
+    "baselines/openevolve_evaluator.py",
+    "benchmarks/evaluation.py",
+    "benchmarks/run_evaluator.py",
+    "benchmarks/problems/min_max_distance_14_3d/evaluator.py",
+    "baselines/openevolve/openevolve/database.py",
+    "baselines/openevolve/openevolve/cli.py"
+   ],
+   "checks": [
+    {
+     "agent_id": "hunter-resume-deserialization",
+     "reviewed_paths": [
+      "baselines/ShinkaEvolve/shinka/llm/prioritization.py",
+      "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+      "baselines/ShinkaEvolve/shinka/core/config.py",
+      "baselines/ShinkaEvolve/shinka/launch/local.py",
+      "baselines/ShinkaEvolve/shinka/launch/scheduler.py",
+      "baselines/ShinkaEvolve/shinka/launch/slurm.py",
+      "baselines/run_shinkaevolve.py",
+      "baselines/shinka_evaluate.py",
+      "baselines/run_baseline.sh"
+     ],
+     "invariant": "ShinkaEvolve: a file writable by the evaluated program must not be deserialized as code by the runner process (bandit_state.pkl).",
+     "method": "source",
+     "result": "BanditBase.load_state does a bare pickle.load (prioritization.py:220) with no integrity or type check. It is reached only from _load_bandit_state (async_runner.py:626-643), called once at startup and only when resuming (programs.sqlite exists and last_iteration > 0, async_runner.py:1223-1240) and only when llm_selection is not None. It is never loaded periodically; the runner only re-saves it every 5 completed generations and at normal end (async_runner.py:5190, 1166). The evaluated program lives at <results_dir>/gen_N/main.py and its job is a plain Popen with a copy of the parent environment and no filesystem isolation (local.py:98-113), so the path <results_dir>/bandit_state.pkl is predictable and writable by it. Framework default is llm_dynamic_selection='ucb' (config.py:30), but the repo glue sets it to None (run_shinkaevolve.py:46) and run_baseline.sh:18 creates a fresh timestamped run directory, so the load is unreachable through the repo's own launch scripts. Reachable with the vendored framework's default configuration on resume: candidate shinka-bandit-state/pickle-load-on-resume.",
+     "artifact": null
+    },
+    {
+     "agent_id": "hunter-resume-deserialization",
+     "reviewed_paths": [
+      "baselines/ShinkaEvolve/shinka/core/wrap_eval.py",
+      "baselines/ShinkaEvolve/shinka/core/async_runner.py"
+     ],
+     "invariant": "ShinkaEvolve: no other pickle / np.load(allow_pickle=True) / marshal consumer of results-dir files in non-example code.",
+     "method": "source",
+     "result": "grep over shinka/ (excluding tests and examples): the only pickle.load is prioritization.py:220. wrap_eval.py:467 only writes extra.pkl (pickle.dump) and nothing in shinka/ reads *.pkl, *.npy or *.npz back. Other resume-time readers (programs.sqlite, pricing snapshot, meta JSON) are sqlite/JSON parsers, not code-executing deserializers.",
+     "artifact": null
+    },
+    {
+     "agent_id": "hunter-resume-deserialization",
+     "reviewed_paths": [
+      "baselines/ShinkaEvolve/shinka/utils/utils_hydra.py",
+      "baselines/ShinkaEvolve/shinka/eval_hydra.py",
+      "baselines/ShinkaEvolve/shinka/launch_hydra.py",
+      "baselines/run_shinkaevolve.py"
+     ],
+     "invariant": "ShinkaEvolve: hydra _target_ instantiation must not take its target from a config file writable by the evaluated program in the runner (parent) process.",
+     "method": "source",
+     "result": "The parent-side instantiate calls (launch_hydra.py:14-16, utils_hydra.py:73-75) use a config composed from the packaged shinka/configs tree and CLI overrides, not a file discovered in the results directory. load_hydra_config (utils_hydra.py:16-32), which walks up to two parents from --results_dir to find .hydra/config.yaml, is used only by eval_hydra.py:59-68, i.e. inside the per-generation evaluation job process, which is the same process that then runs the evolved program. A program of generation N can rewrite <results_dir>/.hydra/config.yaml and so choose the _target_ instantiated by later evaluation jobs, but that stays inside the evaluation-job trust level (no parent-process effect) and the glue does not use the hydra path at all (eval_program_path is baselines/shinka_evaluate.py, run_shinkaevolve.py:57). Not a candidate; hardening note recorded.",
+     "artifact": null
+    },
+    {
+     "agent_id": "hunter-resume-deserialization",
+     "reviewed_paths": [
+      "baselines/CodeEvolve/src/codeevolve/utils/ckpt.py",
+      "baselines/CodeEvolve/src/codeevolve/utils/cli_setup.py",
+      "baselines/CodeEvolve/src/codeevolve/cli.py",
+      "baselines/CodeEvolve/src/codeevolve/evolution.py",
+      "baselines/CodeEvolve/src/codeevolve/evaluator.py",
+      "baselines/run_codeevolve.py",
+      "baselines/codeevolve_evaluate.py",
+      "baselines/run_baseline.sh"
+     ],
+     "invariant": "CodeEvolve: checkpoint files in a directory writable by the evaluated program must not be deserialized as code by the island processes.",
+     "method": "source",
+     "result": "load_ckpt does a bare pickle.load of <out_dir>/island_<i>/ckpt/ckpt_<epoch>.pkl (ckpt.py:114-115), reached from _initialize_from_checkpoint (evolution.py:1196) only when --load_ckpt is non-zero (cli.py:125, evolution.py:1380) and a checkpoint name is common to all island ckpt dirs (cli_setup.py:146-165). The epoch is chosen from a directory listing: for -1, or for a requested epoch that is not present, the highest-numbered ckpt_<n>.pkl wins (cli_setup.py:178-189), so a planted high-numbered file is selected and is never overwritten by the framework. The evaluated program is a plain Popen that inherits the full environment and has no filesystem isolation (evaluator.py:298-305); run_baseline.sh:55 exports EVAL_LOG=<run dir>/eval_log.jsonl, which reveals the run directory to it. No signature, MAC or restricted unpickler exists. The glue always passes --load_ckpt 0 (run_codeevolve.py:69) while writing a checkpoint every epoch (run_codeevolve.py:52), so the load happens only when an operator later resumes that output directory by hand: candidate codeevolve-ckpt/pickle-load-on-resume.",
+     "artifact": null
+    },
+    {
+     "agent_id": "hunter-resume-deserialization",
+     "reviewed_paths": [
+      "baselines/openevolve/openevolve/api.py",
+      "baselines/openevolve/openevolve/evaluator.py",
+      "baselines/openevolve/openevolve/controller.py",
+      "baselines/openevolve/openevolve/process_parallel.py",
+      "baselines/run_openevolve.py",
+      "baselines/openevolve_entry.py",
+      "baselines/openevolve_evaluator.py"
+     ],
+     "invariant": "OpenEvolve library API: the evaluator pickle and wrapper module must not be replaceable or shadowable by another principal between write and load.",
+     "method": "source",
+     "result": "api.py is not used by the repo glue (run_openevolve.py:49-52 drives the CLI with a file evaluator). In the API, when output_dir is given or cleanup=False, temp_dir stays None (api.py:157-162) and the evaluator pickle, the wrapper module and the initial program are written straight into tempfile.gettempdir() with open(..., 'w') and default umask (api.py:255-259, 329-333, 360-364). The names carry uuid4().hex[:8], so they cannot be predicted and pre-created, and in a sticky temp dir another user cannot replace the operator-owned files; they are world-readable under a default umask. The pickle is loaded lazily once per process and cached (api.py:345-347). The evolved program has the operator's uid and can overwrite the pickle, but in this API flow it already runs inside the same worker process, so that is not an escalation. The cross-principal problem is different: Evaluator._load_evaluation_function inserts the evaluator file's directory, here the shared temp dir, at sys.path[0] of the controller and of every worker and imports the module from it, caching bytecode under <tempdir>/__pycache__ (evaluator.py:87-98, controller.py:138, process_parallel.py:131). Candidate openevolve-api/shared-tempdir-module-path.",
+     "artifact": null
+    },
+    {
+     "agent_id": "hunter-resume-deserialization",
+     "reviewed_paths": [
+      "baselines/openevolve/openevolve/evaluator.py",
+      "baselines/openevolve_evaluator.py",
+      "benchmarks/evaluation.py",
+      "benchmarks/run_evaluator.py",
+      "benchmarks/problems/min_max_distance_14_3d/evaluator.py",
+      "baselines/CodeEvolve/src/codeevolve/evaluator.py",
+      "baselines/ShinkaEvolve/shinka/core/async_runner.py"
+     ],
+     "invariant": "Temp-file handling of candidate programs: the directory that holds a program handed to the scorer must not be writable by another local principal when the scorer adds that directory to its import path.",
+     "method": "source",
+     "result": "OpenEvolve writes every candidate program with tempfile.NamedTemporaryFile(suffix='.py', delete=False) and no dir argument, i.e. directly into the shared system temp dir (evaluator.py:259). The glue evaluator passes that path to the shared harness (openevolve_evaluator.py:11; evaluation.py:36-46; run_evaluator.py:12), and the in-process problem evaluators insert dirname(program_path) at sys.path[0] before importing and running the program (15 evaluators share the pattern; read: min_max_distance_14_3d/evaluator.py:30-45). In the OpenEvolve flow that directory is the shared temp dir. Sibling frameworks do not have this: CodeEvolve writes the program into a private TemporaryDirectory (evaluator.py:269-281) and ShinkaEvolve into <results_dir>/gen_N (async_runner.py:2605-2606). Candidate openevolve-evaluator/shared-tmp-program-import-path. The sink is in a peer-owned path (benchmarks/); only the lines needed to close the trace were read.",
+     "artifact": null
+    },
+    {
+     "agent_id": "hunter-resume-deserialization",
+     "reviewed_paths": [
+      "baselines/openevolve/openevolve/database.py",
+      "baselines/openevolve/openevolve/controller.py",
+      "baselines/openevolve/openevolve/cli.py",
+      "baselines/openevolve/openevolve/process_parallel.py",
+      "baselines/run_openevolve.py"
+     ],
+     "invariant": "OpenEvolve checkpoint JSON: restored Program fields (id, artifact_dir) must not give code execution or out-of-tree file access in the controller.",
+     "method": "source",
+     "result": "Checkpoints are loaded only with an explicit --checkpoint / checkpoint_path (cli.py:177-182, controller.py:268-269, 503-509); the glue never passes one. Loading is json.load plus Program.from_dict (database.py:790-827), with no pickle and no code execution. from_dict restores artifact_dir and id verbatim: get_artifacts reads every regular file of the restored artifact_dir (database.py:2664-2665, 2768-2787) and the result is placed in worker snapshots for prompts (process_parallel.py:598); program.id is joined into the per-program save path (database.py:974). _write_artifact_file strips path separators from the key (database.py:2747-2752) and is only called for a directory built from a freshly generated child id (database.py:2633, 2701). The only writers of a checkpoint are the operator and same-uid code that can already read those files, and a third-party checkpoint already carries program code that is evolved and executed, so no additional boundary is crossed. Not a candidate; hardening note recorded.",
+     "artifact": null
+    }
+   ],
+   "candidate_fingerprints": [
+    "shinka-bandit-state/pickle-load-on-resume",
+    "codeevolve-ckpt/pickle-load-on-resume",
+    "openevolve-evaluator/shared-tmp-program-import-path",
+    "openevolve-api/shared-tempdir-module-path"
+   ],
+   "unresolved": []
+  }
+ ],
+ "candidates": [
+  {
+   "proposed_verdict": "needs_validation",
+   "fingerprint": "shinka-bandit-state/pickle-load-on-resume",
+   "title": "ShinkaEvolve runner unpickles results_dir/bandit_state.pkl on resume, a file the evaluated program can write",
+   "description": "When a ShinkaEvolve run is resumed (same results_dir, programs.sqlite with last_iteration > 0) and LLM bandit selection is enabled (framework default 'ucb'), the runner process loads <results_dir>/bandit_state.pkl with pickle.load. Evaluated programs are stored and executed under the same results_dir (<results_dir>/gen_N/main.py) as plain subprocesses, so LLM-generated code can write that file; whatever it pickles is executed inside the runner process at the next resume, after the evaluation job that wrote it has ended or been killed, and on whatever host or account performs the resume. Load failures are swallowed with a warning, so the run continues normally. Scope limits established from source: the load happens once at resume start-up, never periodically; the runner overwrites the file every 5 completed generations and at normal end, so a planted file survives only if it is the last write; the repo glue disables the bandit (llm_dynamic_selection: None) and uses a fresh timestamped directory, so this is reachable with the vendored framework's own defaults or examples, not through baselines/run_baseline.sh. With the local job backend the evaluated program already has the operator's uid and full filesystem access, so the pickle adds a boundary crossing only where the program's writes are otherwise confined to the results tree (the slurm_docker backend with the results directory mounted) or where a results directory is resumed on another host or account.",
+   "claimed_root_cause": "BanditBase.load_state deserializes run state with pickle from the results directory, which is also the working tree of untrusted evaluated programs, with no integrity check; the state itself is only arrays and scalars and does not need pickle.",
+   "trace": [
+    {
+     "kind": "entrypoint",
+     "file": "baselines/ShinkaEvolve/shinka/launch/local.py",
+     "line": 105,
+     "scope": "submit",
+     "description": "Evaluation job for an LLM-generated program is started as a plain subprocess with a copy of the parent environment and no filesystem isolation; the program file is <results_dir>/gen_N/main.py, so it can locate and write <results_dir>/bandit_state.pkl."
+    },
+    {
+     "kind": "propagation",
+     "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+     "line": 1223,
+     "scope": "ShinkaEvolveRunner._setup_async",
+     "description": "A later start with the same results_dir is treated as a resume when programs.sqlite exists and last_iteration > 0."
+    },
+    {
+     "kind": "propagation",
+     "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+     "line": 1240,
+     "scope": "ShinkaEvolveRunner._setup_async",
+     "description": "The resume branch calls _load_bandit_state()."
+    },
+    {
+     "kind": "propagation",
+     "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+     "line": 633,
+     "scope": "ShinkaEvolveRunner._load_bandit_state",
+     "description": "If llm_selection is not None and <results_dir>/bandit_state.pkl exists, load_state is called on that path."
+    },
+    {
+     "kind": "sink",
+     "file": "baselines/ShinkaEvolve/shinka/llm/prioritization.py",
+     "line": 220,
+     "scope": "BanditBase.load_state",
+     "description": "pickle.load on the file content in the runner process."
+    }
+   ],
+   "evidence": [
+    {
+     "file": "baselines/ShinkaEvolve/shinka/llm/prioritization.py",
+     "line": 220,
+     "description": "Bare pickle.load; no signature, type restriction or ownership check precedes it."
+    },
+    {
+     "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+     "line": 631,
+     "description": "The path is the fixed name bandit_state.pkl directly under results_dir."
+    },
+    {
+     "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+     "line": 643,
+     "description": "Any exception from the load is caught and only logged as a warning, so a payload that breaks set_state does not stop the run."
+    },
+    {
+     "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+     "line": 2606,
+     "description": "Evaluated program path is <results_dir>/gen_<generation>/main.<ext>, i.e. inside the same tree as the state file."
+    },
+    {
+     "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+     "line": 5190,
+     "description": "The runner rewrites the state file every 5 completed generations (and at line 1166 on normal end); a planted file must be written after the last save."
+    },
+    {
+     "file": "baselines/ShinkaEvolve/shinka/core/config.py",
+     "line": 30,
+     "description": "Framework default llm_dynamic_selection is 'ucb', so the load path is active by default."
+    },
+    {
+     "file": "baselines/run_shinkaevolve.py",
+     "line": 46,
+     "description": "The repo glue sets llm_dynamic_selection to None, which makes _load_bandit_state return early; the path is not reachable through the glue."
+    },
+    {
+     "file": "baselines/ShinkaEvolve/shinka/launch/slurm.py",
+     "line": 152,
+     "description": "The slurm_docker backend runs the evaluation in a container with operator-supplied flags; the mount layout that would make the results tree the only shared writable path is not source-visible."
+    }
+   ],
+   "blockers": [
+    "No target code was executed in this run; the marker-file observation for the pickle sink has not been made.",
+    "Deployment fact not in source: whether ShinkaEvolve is run with bandit selection enabled and resumed from a results directory that evaluated programs could write (the repo glue disables the bandit and never reuses a run directory).",
+    "Deployment fact not in source: whether the evaluated program is confined relative to the runner (slurm_docker with only the results tree mounted, or a results directory resumed on another host or account). With the local backend and one uid the program already has equivalent write access to the runner's code and home directory.",
+    "Timing fact: the planted file must be the last write before the resume, since the runner re-saves the file every 5 completed generations and at normal completion."
+   ],
+   "validation_plan": {
+    "local": "In the no-network sandbox with baselines/ShinkaEvolve on PYTHONPATH and numpy available: create scratch/results/bandit_state.pkl by pickling {'x': Obj()} where Obj.__reduce__ returns (open, ('scratch/poc_marker_shinka', 'w')). Then call shinka.llm.prioritization.AsymmetricUCB(arm_names=['a']).load_state('scratch/results/bandit_state.pkl'), the same call ShinkaEvolveRunner._load_bandit_state makes. Single observable: the file scratch/poc_marker_shinka exists afterwards (a later exception from set_state is expected and irrelevant).",
+    "deployment": "Owner check: confirm whether any ShinkaEvolve run uses llm_dynamic_selection other than null and is ever restarted on an existing results_dir, and whether evaluation jobs (local, slurm_docker, slurm_conda) can write to the top level of that results_dir."
+   }
+  },
+  {
+   "proposed_verdict": "needs_validation",
+   "fingerprint": "codeevolve-ckpt/pickle-load-on-resume",
+   "title": "CodeEvolve unpickles the highest-numbered ckpt_N.pkl found in an output directory that evaluated programs can write",
+   "description": "CodeEvolve checkpoints are pickles under <out_dir>/island_<i>/ckpt/. On a resume (--load_ckpt -1 or a positive epoch) each island process calls pickle.load on ckpt_<epoch>.pkl. The epoch is taken from a directory listing: for -1, and also when a requested epoch is missing, the highest-numbered file name common to all island directories is used. An evaluated program (a plain subprocess with the full parent environment, which in this repo includes EVAL_LOG pointing into the run directory) can write a file such as ckpt_99999999.pkl into every island's ckpt directory; the framework never overwrites it, and the next resume executes its content inside the CodeEvolve island processes, after the evaluation that wrote it has timed out or been killed. Scope limits established from source: the load occurs only on an explicit resume; the repo glue always starts with --load_ckpt 0 (while writing a checkpoint every epoch), so the path is reached only when an operator later resumes a codeevolve_output directory by hand or uses CodeEvolve directly. CodeEvolve's README describes evaluation as sandboxed, but the evaluator applies only a timeout and a psutil monitor, so the program has the operator's uid and full filesystem access; the pickle adds a boundary crossing where the output directory is resumed on another host or account, or where the operator relies on the documented sandbox.",
+   "claimed_root_cause": "load_ckpt deserializes checkpoints with pickle from a directory shared with untrusted evaluated programs, with no integrity check, and checkpoint selection trusts file names found in that directory.",
+   "trace": [
+    {
+     "kind": "entrypoint",
+     "file": "baselines/CodeEvolve/src/codeevolve/evaluator.py",
+     "line": 298,
+     "scope": "Evaluator.execute",
+     "description": "The evaluated program runs as a plain subprocess that inherits the environment and has no filesystem isolation, so it can write <out_dir>/island_<i>/ckpt/ckpt_<n>.pkl."
+    },
+    {
+     "kind": "propagation",
+     "file": "baselines/CodeEvolve/src/codeevolve/utils/cli_setup.py",
+     "line": 162,
+     "scope": "find_common_checkpoints",
+     "description": "On start-up the checkpoint candidates are whatever file names matching ckpt_(\\d+)\\.pkl exist in every island ckpt directory."
+    },
+    {
+     "kind": "propagation",
+     "file": "baselines/CodeEvolve/src/codeevolve/utils/cli_setup.py",
+     "line": 189,
+     "scope": "determine_checkpoint_to_load",
+     "description": "For --load_ckpt -1, or a requested epoch that is absent, the maximum epoch number found is selected."
+    },
+    {
+     "kind": "propagation",
+     "file": "baselines/CodeEvolve/src/codeevolve/evolution.py",
+     "line": 1196,
+     "scope": "_initialize_from_checkpoint",
+     "description": "Each island process calls load_ckpt(args['load_ckpt'], args['ckpt_dir']) when load_ckpt is non-zero."
+    },
+    {
+     "kind": "sink",
+     "file": "baselines/CodeEvolve/src/codeevolve/utils/ckpt.py",
+     "line": 115,
+     "scope": "load_ckpt",
+     "description": "pickle.load on the selected checkpoint file in the island process."
+    }
+   ],
+   "evidence": [
+    {
+     "file": "baselines/CodeEvolve/src/codeevolve/utils/ckpt.py",
+     "line": 115,
+     "description": "Bare pickle.load; no signature, MAC, ownership check or restricted unpickler."
+    },
+    {
+     "file": "baselines/CodeEvolve/src/codeevolve/utils/cli_setup.py",
+     "line": 287,
+     "description": "Checkpoint directory is the fixed path <out_dir>/island_<id>/ckpt."
+    },
+    {
+     "file": "baselines/CodeEvolve/src/codeevolve/cli.py",
+     "line": 125,
+     "description": "Checkpoint loading is active only when --load_ckpt is non-zero."
+    },
+    {
+     "file": "baselines/run_codeevolve.py",
+     "line": 69,
+     "description": "The repo glue always passes --load_ckpt 0, so the glue itself never loads a checkpoint."
+    },
+    {
+     "file": "baselines/run_codeevolve.py",
+     "line": 52,
+     "description": "The glue sets ckpt: 1, so pickled checkpoints are written every epoch into the run directory for later use."
+    },
+    {
+     "file": "baselines/run_baseline.sh",
+     "line": 55,
+     "description": "EVAL_LOG=<run dir>/eval_log.jsonl is exported and inherited by evaluated programs, disclosing the run directory that contains codeevolve_output."
+    },
+    {
+     "file": "baselines/CodeEvolve/README.md",
+     "line": 200,
+     "description": "Documentation claims sandboxed program execution; source shows only time and memory limits."
+    }
+   ],
+   "blockers": [
+    "No target code was executed in this run; the marker-file observation for the pickle sink and the epoch-selection result have not been observed.",
+    "Deployment fact not in source: whether any CodeEvolve output directory produced by this repo is ever resumed with a non-zero --load_ckpt (the glue never does).",
+    "Deployment fact not in source: whether the resume happens under a different host, account or isolation level than the evaluation that could write the file. On one host and one uid the evaluated program already has equivalent write access to the framework's code."
+   ],
+   "validation_plan": {
+    "local": "In the no-network sandbox with baselines/CodeEvolve/src on PYTHONPATH and its dependencies present: (1) call codeevolve.utils.cli_setup.determine_checkpoint_to_load({'ckpt_3.pkl', 'ckpt_99999999.pkl'}, -1) and record the return value (expected 99999999). (2) Create scratch/ckpt/ckpt_99999999.pkl by pickling {'x': Obj()} where Obj.__reduce__ returns (open, ('scratch/poc_marker_codeevolve', 'w')), then call codeevolve.utils.ckpt.load_ckpt(99999999, 'scratch/ckpt'). Single observable: scratch/poc_marker_codeevolve exists after the call.",
+    "deployment": "Owner check: confirm whether codeevolve_output directories are ever resumed (--load_ckpt -1 or N), on which host and account, and whether evaluated programs could write to island_*/ckpt during the original run."
+   }
+  },
+  {
+   "proposed_verdict": "needs_validation",
+   "fingerprint": "openevolve-evaluator/shared-tmp-program-import-path",
+   "title": "OpenEvolve places candidate programs in the shared temp dir, which the benchmark evaluators then put first on sys.path",
+   "description": "In the repo's OpenEvolve flow every candidate program is written to the system temp directory itself (tempfile.NamedTemporaryFile with no dir, e.g. /tmp/tmpXXXXXXXX.py). The glue evaluator hands that path to the shared scoring harness, and the in-process problem evaluators insert the program's directory at sys.path[0], import the program and call its entry function while that entry is still present. The directory is therefore the world-writable temp dir: any top-level module the program imports that is not already loaded in the scorer process (the evaluator pre-imports numpy and scipy; other stdlib or third-party names are not) is resolved from the temp dir before the standard library and site-packages. Another local user of the host can pre-place files such as /tmp/<module>.py and have them executed as the operator inside the scorer process, which carries the operator's full environment. This needs no cooperation from the LLM beyond importing a common module. CodeEvolve and ShinkaEvolve do not share the problem because they place the program in a private temporary directory or under the results directory.",
+   "claimed_root_cause": "OpenEvolve's Evaluator.evaluate_program creates the importable program file directly in the shared system temp directory instead of a private directory, and the consumer adds the file's directory to the import path.",
+   "trace": [
+    {
+     "kind": "entrypoint",
+     "file": "baselines/openevolve/openevolve/evaluator.py",
+     "line": 259,
+     "scope": "Evaluator.evaluate_program",
+     "description": "Candidate program is written with tempfile.NamedTemporaryFile(suffix=..., delete=False) and no dir argument, so it lands directly in tempfile.gettempdir()."
+    },
+    {
+     "kind": "propagation",
+     "file": "baselines/openevolve/openevolve/evaluator.py",
+     "line": 270,
+     "scope": "Evaluator.evaluate_program",
+     "description": "The temp file path is passed to the configured evaluate function."
+    },
+    {
+     "kind": "propagation",
+     "file": "baselines/openevolve_evaluator.py",
+     "line": 11,
+     "scope": "evaluate",
+     "description": "The glue evaluator forwards the path to the shared harness."
+    },
+    {
+     "kind": "propagation",
+     "file": "benchmarks/evaluation.py",
+     "line": 44,
+     "scope": "evaluate",
+     "description": "The harness starts run_evaluator.py with the resolved program path and the full parent environment."
+    },
+    {
+     "kind": "propagation",
+     "file": "benchmarks/run_evaluator.py",
+     "line": 12,
+     "scope": "module",
+     "description": "The problem evaluator's evaluate(program_path) is called in the scorer process."
+    },
+    {
+     "kind": "sink",
+     "file": "benchmarks/problems/min_max_distance_14_3d/evaluator.py",
+     "line": 34,
+     "scope": "evaluate",
+     "description": "sys.path.insert(0, dirname(program_path)) followed by __import__ and the entry-function call; with an OpenEvolve program this puts the shared temp dir first on the import path while program imports are resolved."
+    }
+   ],
+   "evidence": [
+    {
+     "file": "baselines/openevolve/openevolve/evaluator.py",
+     "line": 259,
+     "description": "No dir= argument and no private directory: the program file is created in the shared temp dir."
+    },
+    {
+     "file": "benchmarks/problems/min_max_distance_14_3d/evaluator.py",
+     "line": 35,
+     "description": "The program is imported and (line 37) executed while its directory is at sys.path[0]; removal happens only in the finally block at line 43-45."
+    },
+    {
+     "file": "benchmarks/evaluation.py",
+     "line": 46,
+     "description": "The scorer process inherits the operator's whole environment (env={**os.environ, ...}), so code loaded from the temp dir runs with it."
+    },
+    {
+     "file": "baselines/CodeEvolve/src/codeevolve/evaluator.py",
+     "line": 269,
+     "description": "Sibling control: CodeEvolve creates a private TemporaryDirectory and writes the program inside it (lines 276-278)."
+    },
+    {
+     "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+     "line": 2606,
+     "description": "Sibling control: ShinkaEvolve stores the program under <results_dir>/gen_N, not in a shared directory."
+    }
+   ],
+   "blockers": [
+    "No target code was executed in this run; the import-resolution observation has not been made.",
+    "Deployment fact not in source: whether the benchmark host has other local users (or other lower-trust processes) able to create files in the temp directory used by the run, and whether TMPDIR points at a shared directory.",
+    "Runtime fact: which top-level modules are not yet in sys.modules of the scorer process when the program is imported depends on the installed numpy/scipy versions and on what the generated program imports."
+   ],
+   "validation_plan": {
+    "local": "In the no-network sandbox with numpy and scipy available, set TMPDIR=scratch/sharedtmp (stand-in for the shared temp dir). As the stand-in for the other user, create scratch/sharedtmp/colorsys.py containing only: open('<abs scratch>/poc_marker_tmp_import', 'w').close(). Create the program exactly as OpenEvolve does, with tempfile.NamedTemporaryFile(suffix='.py', delete=False), containing: 'import colorsys\\nimport numpy as np\\ndef min_max_dist_dim3_14():\\n    return np.zeros((14, 3))'. Run: python benchmarks/run_evaluator.py benchmarks/problems/min_max_distance_14_3d <that temp path>. Single observable: scratch/poc_marker_tmp_import exists. Control: the same run without colorsys.py in the temp dir creates no marker.",
+    "deployment": "Owner check: on the hosts used for baselines/run_baseline.sh openevolve runs, confirm whether other accounts can write to the directory returned by tempfile.gettempdir() for the run's user."
+   }
+  },
+  {
+   "proposed_verdict": "needs_validation",
+   "fingerprint": "openevolve-api/shared-tempdir-module-path",
+   "title": "OpenEvolve library API writes the evaluator module into the shared temp dir and adds that dir to sys.path of controller and workers",
+   "description": "run_evolution() uses a private mkdtemp directory only when output_dir is None and cleanup is True. When the caller passes output_dir or cleanup=False and supplies the evaluator as a callable or a code string, the evaluator pickle, the generated wrapper module and the initial program are written straight into tempfile.gettempdir(). The controller's Evaluator and every worker's Evaluator then insert the evaluator file's directory, which is now the world-writable temp dir, at sys.path[0] (never removed) and import the module from there, with its bytecode cache under <tempdir>/__pycache__. Consequences for another local user of the host: (1) any later import of a not-yet-loaded top-level module in the controller or a worker, including modules resolved while unpickling a cloudpickled evaluator and modules imported by evolved programs that the evaluator loads in-process, is resolved from the temp dir first; (2) if that user owns a pre-created <tempdir>/__pycache__, they can swap the cached .pyc of the evaluator module (source mtime and size are readable) before worker processes import it. Either way their code runs as the operator. The files themselves are created with default umask (world-readable) but cannot be replaced by another user in a sticky temp dir, and their names (uuid4 hex) cannot be pre-created; the evaluated program, which has the operator's uid, can overwrite the pickle, but in this flow it already runs in the worker, so that is not a separate escalation. The repo glue does not use this API (it drives the CLI with a file evaluator), so this affects direct users of the vendored library.",
+   "claimed_root_cause": "api._prepare_evaluator/_prepare_program fall back to the shared system temp directory for executable module files when no private temp_dir was created, and Evaluator._load_evaluation_function unconditionally prepends the evaluator file's directory to sys.path.",
+   "trace": [
+    {
+     "kind": "entrypoint",
+     "file": "baselines/openevolve/openevolve/api.py",
+     "line": 157,
+     "scope": "_run_evolution_async",
+     "description": "A private mkdtemp directory is created only when output_dir is None and cleanup is true; otherwise temp_dir stays None."
+    },
+    {
+     "kind": "propagation",
+     "file": "baselines/openevolve/openevolve/api.py",
+     "line": 360,
+     "scope": "_prepare_evaluator",
+     "description": "With temp_dir None the wrapper/evaluator module is written as <gettempdir()>/evaluator_<8 hex>.py (the pickle likewise at lines 329-333)."
+    },
+    {
+     "kind": "propagation",
+     "file": "baselines/openevolve/openevolve/controller.py",
+     "line": 138,
+     "scope": "OpenEvolve.__init__",
+     "description": "The controller builds an Evaluator for that file; workers do the same lazily (process_parallel.py:131)."
+    },
+    {
+     "kind": "sink",
+     "file": "baselines/openevolve/openevolve/evaluator.py",
+     "line": 89,
+     "scope": "Evaluator._load_evaluation_function",
+     "description": "sys.path.insert(0, eval_dir) with eval_dir equal to the shared temp dir, followed by exec_module at line 98 which reads/writes the bytecode cache under <tempdir>/__pycache__."
+    }
+   ],
+   "evidence": [
+    {
+     "file": "baselines/openevolve/openevolve/api.py",
+     "line": 329,
+     "description": "temp_dir falls back to tempfile.gettempdir() for the evaluator pickle."
+    },
+    {
+     "file": "baselines/openevolve/openevolve/api.py",
+     "line": 332,
+     "description": "Pickle is created with open(path, 'wb') and default permissions in that directory."
+    },
+    {
+     "file": "baselines/openevolve/openevolve/api.py",
+     "line": 255,
+     "description": "Same fallback for the initial program file."
+    },
+    {
+     "file": "baselines/openevolve/openevolve/api.py",
+     "line": 347,
+     "description": "The wrapper unpickles the evaluator once per process, after the temp dir is already first on sys.path."
+    },
+    {
+     "file": "baselines/openevolve/openevolve/evaluator.py",
+     "line": 88,
+     "description": "The directory is added whenever it is not yet on sys.path and is never removed."
+    },
+    {
+     "file": "baselines/openevolve/openevolve/process_parallel.py",
+     "line": 131,
+     "description": "Each worker process constructs its own Evaluator from the same file path, re-importing the module (and its cached bytecode) later than the controller."
+    },
+    {
+     "file": "baselines/run_openevolve.py",
+     "line": 49,
+     "description": "The repo glue runs the CLI entry point with a file evaluator and does not call openevolve.api."
+    }
+   ],
+   "blockers": [
+    "No target code was executed in this run; neither the sys.path state nor a shadowed import has been observed.",
+    "Deployment fact not in source: whether the vendored openevolve.api is used at all with a callable or code-string evaluator together with output_dir or cleanup=False, on a host where another account can write to the temp directory.",
+    "Runtime fact: which modules are imported after the insertion in the controller and workers, and whether bytecode caching is enabled (PYTHONDONTWRITEBYTECODE / PYTHONPYCACHEPREFIX), are not source-visible."
+   ],
+   "validation_plan": {
+    "local": "In the no-network sandbox with baselines/openevolve on PYTHONPATH and its dependencies present, set TMPDIR=scratch/sharedtmp and create scratch/sharedtmp/colorsys.py containing only: open('<abs scratch>/poc_marker_api_path', 'w').close(). In one Python process: p = openevolve.api._prepare_evaluator(\"def evaluate(program_path):\\n    return {'score': 1.0}\\n\", None, []); from openevolve.config import EvaluatorConfig; from openevolve.evaluator import Evaluator; Evaluator(EvaluatorConfig(), p); then 'import colorsys'. Observables: os.path.dirname(p) == tempfile.gettempdir(), sys.path[0] == tempfile.gettempdir(), and the single decisive one: scratch/poc_marker_api_path exists. Also record whether scratch/sharedtmp/__pycache__/evaluator_*.pyc was created.",
+    "deployment": "Owner check: confirm whether any workflow calls openevolve.api.run_evolution / evolve_function / evolve_algorithm / evolve_code with output_dir set or cleanup=False on a multi-user host."
+   }
+  }
+ ],
+ "hardening": [
+  "ShinkaEvolve bandit state (prioritization.py get_state/set_state) is only numpy arrays, scalars and arm names; storing it as JSON or npz with allow_pickle=False removes the pickle sink. save_state also writes with open(path, 'wb') through any existing symlink and non-atomically.",
+  "CodeEvolve determine_checkpoint_to_load silently falls back to the highest-numbered checkpoint when the requested epoch is missing and prints no warning for --load_ckpt -1; checkpoints should be bound to the run (e.g. recorded epoch list plus digest in a file outside the evaluated program's reach) or stored in a non-executable format.",
+  "ShinkaEvolve eval_hydra.py loads .hydra/config.yaml found by walking up from --results_dir and instantiates evaluate_function._target_ in every evaluation job; a program evaluated earlier can rewrite <results_dir>/.hydra/config.yaml and thereby choose the callable used to score all later programs (evaluation-job process only, hydra launch path only, not used by the repo glue). Passing the evaluation target from the launcher instead of re-reading it from the results tree would remove this.",
+  "OpenEvolve Program.from_dict restores artifact_dir and id from checkpoint JSON without validation: get_artifacts reads every regular file in the restored artifact_dir into prompt snapshots (database.py:2664, process_parallel.py:598) and program.id is joined into the save path (database.py:974). Constrain artifact_dir to the checkpoint's artifacts directory and validate ids as UUIDs on load.",
+  "OpenEvolve api.py writes the evaluator pickle, wrapper and initial program with default umask into the shared temp dir when temp_dir is None; they are world-readable and the cloudpickled evaluator can embed captured data. Always create a private mkdtemp directory for these files.",
+  "All three baselines pass the full operator environment and an unrestricted filesystem to evaluated programs while keeping resumable state (pickles, sqlite, JSON, hydra config) in the same tree; if resume is ever used, keep run state in a directory the evaluation jobs cannot write."
+ ],
+ "uncovered": []
+}

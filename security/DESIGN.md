@@ -73,7 +73,7 @@ python3 security/pipeline/verify.py run --all-approved
 
 ### 이 워크플로에 넣으면 안 되는 것
 
-`pull_request`, `pull_request_target`, `issue_comment`, `workflow_run` 트리거. 이 워크플로는 PoC 코드를 실행하므로 쓰기 권한이 없는 사람이 시작할 수 있는 이벤트가 하나라도 있으면 안 된다. (조사 대상인 벤더링된 OpenEvolve의 `claude.yml`이 바로 이 유형의 문제로 후보에 올랐다.)
+`pull_request`, `pull_request_target`, `issue_comment`, `workflow_run` 트리거. 이 워크플로는 PoC 코드를 실행하므로 쓰기 권한이 없는 사람이 시작할 수 있는 이벤트가 하나라도 있으면 안 된다. (조사 중 벤더링된 OpenEvolve의 `claude.yml`이 바로 이 유형으로 검토됐다. 이 리포에서는 비활성이라 기각했다.)
 
 ## 3. 샌드박스
 
@@ -82,7 +82,7 @@ python3 security/pipeline/verify.py run --all-approved
 | 통제 | docker 백엔드 (CI) | unshare 백엔드 (로컬, Docker 없을 때) |
 |---|---|---|
 | 외부 네트워크 없음 | `--network none` | 새 네트워크 네임스페이스. `/proc/net/dev`에 `lo` 외 인터페이스가 있으면 중단 |
-| 빈 허용목록 환경 | `-e`로 6개 변수만 | `env -i` + 같은 6개 변수 |
+| 빈 허용목록 환경 | `-e`로 7개 변수만 | `env -i` + 같은 7개 변수 |
 | 대상 읽기 전용 | `-v repo:/target:ro`, `--read-only` 루트 | 모든 마운트를 ro로 재마운트한 뒤 대상·`/tmp`·홈 등에 쓰기 프로브. 하나라도 써지면 중단 |
 | scratch에만 쓰기 | `-v scratch:/scratch:rw`, `/tmp`는 64 MB tmpfs | scratch만 rw 바인드 |
 | 권한 축소 | uid 65534, `--cap-drop ALL`, `no-new-privileges` | `setpriv --bounding-set=-all --no-new-privs` |

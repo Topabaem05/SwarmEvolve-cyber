@@ -1,0 +1,9 @@
+{
+  "fingerprint": "benchmarks-evaluation/inband-metrics-marker-forgery",
+  "title": "Evaluated program can set its own recorded score through the in-band metrics marker",
+  "status": "draft, never executed",
+  "observable": "benchmarks/evaluation.py evaluate() returns combined_score 424242.0 for a program that only prints a metrics line and exits 0",
+  "control": true,
+  "requires": ["numpy"],
+  "limits": {"wall_s": 150, "cpu_s": 90}
+}

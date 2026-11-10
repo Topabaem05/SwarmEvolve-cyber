@@ -1,0 +1,26 @@
+Multi-skill directory detected: 4 skills found
+
+  [1/4] Scanning shinka-convert (shinka-convert/)
+         Score: 14/100 (LOW)
+
+  [2/4] Scanning shinka-inspect (shinka-inspect/)
+         Score: 7/100 (LOW)
+
+  [3/4] Scanning shinka-run (shinka-run/)
+         Score: 0/100 (LOW)
+
+  [4/4] Scanning shinka-setup (shinka-setup/)
+         Score: 14/100 (LOW)
+
+
+═══ Multi-Skill Summary ═══
+
+  Skill                          Score    Severity     Findings   Execution 
+  ────────────────────────────── ──────── ──────────── ────────── ──────────
+  shinka-convert                 14       LOW          2          successful
+  shinka-inspect                 7        LOW          1          successful
+  shinka-run                     0        LOW          0          successful
+  shinka-setup                   14       LOW          2          successful
+Combined report saved to: 
+/root/security-audit-skill/SwarmEvolve-cyber/run-1/tool-logs/skillspector/shinka
+-skills.json

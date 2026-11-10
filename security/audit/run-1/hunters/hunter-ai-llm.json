@@ -1,0 +1,370 @@
+{
+  "units": [
+    {
+      "coverage_id": "baselines%2FShinkaEvolve%2Fskills%2Fshinka-inspect%2Fscripts%2Finspect_best_programs.py%23main::baselines%2FShinkaEvolve%2Fskills%2Fshinka-inspect%2FSKILL.md%23frontmatter::profile%2Fquick%2Fall-in-scope-subsystems::AI-AND-LLM.md%23Indirect%20injection%20through%20retrieved%20or%20ingested%20content",
+      "disposition": "candidate",
+      "reviewed_paths": [
+        "baselines/CodeEvolve/src/codeevolve/prompt/sampler.py",
+        "baselines/ShinkaEvolve/docs/agentic_usage.md",
+        "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "baselines/ShinkaEvolve/shinka/core/async_summarizer.py",
+        "baselines/ShinkaEvolve/shinka/core/prompt_evolver.py",
+        "baselines/ShinkaEvolve/shinka/core/sampler.py",
+        "baselines/ShinkaEvolve/shinka/core/summarizer.py",
+        "baselines/ShinkaEvolve/shinka/llm/providers/headless.py",
+        "baselines/ShinkaEvolve/shinka/prompts/prompts_base.py",
+        "baselines/ShinkaEvolve/shinka/utils/general.py",
+        "baselines/ShinkaEvolve/shinka/utils/load_df.py",
+        "baselines/ShinkaEvolve/skills/shinka-convert/SKILL.md",
+        "baselines/ShinkaEvolve/skills/shinka-convert/scripts/run_evo.py",
+        "baselines/ShinkaEvolve/skills/shinka-convert/scripts/shinka.yaml",
+        "baselines/ShinkaEvolve/skills/shinka-inspect/SKILL.md",
+        "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+        "baselines/ShinkaEvolve/skills/shinka-run/SKILL.md",
+        "baselines/ShinkaEvolve/skills/shinka-setup/SKILL.md",
+        "baselines/ShinkaEvolve/skills/shinka-setup/scripts/run_evo.py",
+        "baselines/ShinkaEvolve/skills/shinka-setup/scripts/shinka.yaml",
+        "baselines/codeevolve_evaluate.py",
+        "baselines/openevolve/openevolve/llm/claude_code.py",
+        "baselines/openevolve/openevolve/llm/codex_app_server.py",
+        "baselines/openevolve/openevolve/llm/copilot_cli.py",
+        "baselines/openevolve/openevolve/process_parallel.py",
+        "baselines/openevolve/openevolve/prompt/sampler.py",
+        "baselines/openevolve/openevolve/prompt/templates.py",
+        "baselines/openevolve_evaluator.py",
+        "baselines/run_shinkaevolve.py",
+        "baselines/shinka_evaluate.py",
+        "benchmarks/evaluation.py"
+      ],
+      "checks": [
+        {
+          "agent_id": "hunter-ai-llm",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/skills/shinka-inspect/SKILL.md",
+            "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+            "baselines/ShinkaEvolve/skills/shinka-run/SKILL.md",
+            "baselines/ShinkaEvolve/docs/agentic_usage.md",
+            "baselines/ShinkaEvolve/shinka/utils/load_df.py",
+            "baselines/ShinkaEvolve/shinka/utils/general.py",
+            "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+            "baselines/shinka_evaluate.py",
+            "baselines/run_shinkaevolve.py",
+            "benchmarks/evaluation.py"
+          ],
+          "invariant": "Text authored by the lowest-trust principal (LLM-generated program code and the program's own stdout tail stored as text_feedback) must stay delimited as inert data when shinka-inspect packages it into the context file that a coding agent with shell/file tools is told to load; the fenced block is the only delimiter.",
+          "method": "source",
+          "result": "Invariant not enforced. _render_markdown wraps row['text_feedback'] in a fixed ```text fence (inspect_best_programs.py:274-276) and row['code'] in a fixed ```<language> fence (280-282) with no neutralisation of backtick runs, no fence sized to the content, and no provenance/untrusted marker; _truncate only caps length. A program whose source or stdout contains a line of three backticks therefore closes the fence and the remainder is emitted as top-level Markdown (headings, lists, text) at the same level as the framework-authored 'Run Metadata' and 'Ranking' sections. Both fields are attacker-reachable from source: stdout tail -> benchmarks/evaluation.py:77 -> shinka_evaluate.py:24-29 -> metrics.json -> general.py:76 -> async_runner.py:4130/4171 -> programs.text_feedback; generated file -> async_runner.py:4165 -> programs.code; load_df.py:108/123 passes both through unchanged. SKILL.md:48-50 and docs/agentic_usage.md:180 direct loading the file straight into agent context for planning, and SKILL.md has no caveat. The same skill set gives that agent shell workflows (shinka-run SKILL.md:62-79) and an autonomous multi-batch mode (113). --results-dir also accepts any directory or DB path (script 110-127), so a results DB produced on another host, in a container backend, or by another person reaches the same sink. Returned as a needs_validation candidate: the deterministic defect is the delimiter failure; whether an agent acts on escaped text is runtime behaviour, and where generation ran unsandboxed on the same host the generated program already had operator-level execution, which bounds the added authority to what the agent session alone holds.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ai-llm",
+          "reviewed_paths": [
+            "baselines/openevolve_evaluator.py",
+            "baselines/shinka_evaluate.py",
+            "baselines/codeevolve_evaluate.py",
+            "benchmarks/evaluation.py",
+            "baselines/openevolve/openevolve/prompt/sampler.py",
+            "baselines/openevolve/openevolve/prompt/templates.py",
+            "baselines/openevolve/openevolve/process_parallel.py",
+            "baselines/ShinkaEvolve/shinka/core/sampler.py",
+            "baselines/ShinkaEvolve/shinka/prompts/prompts_base.py",
+            "baselines/CodeEvolve/src/codeevolve/prompt/sampler.py"
+          ],
+          "invariant": "Program-controlled text (stdout tail, error text, prior program bodies) re-entering next-generation prompts must not reach another principal's context or drive a deterministic framework decision.",
+          "method": "source",
+          "result": "No boundary crossed. output_tail (benchmarks/evaluation.py:77, last 1500 chars) is forwarded as OpenEvolve artifacts (openevolve_evaluator.py:13 -> sampler._render_artifacts 657-689, inserted via user_template.format at 162-173), as ShinkaEvolve text_feedback (shinka_evaluate.py:23-27 -> core/sampler.py:162-194, prompts_base.py:23-36 and 74-79) and as CodeEvolve stderr (codeevolve_evaluate.py:19-23 -> Program.error/warning -> prompt/sampler.py:63-70). In every path the consumer is the same mutation LLM whose output is already executed as the product's core action; the text is passed as a str.format argument to a constant template, never as the template, and no framework branch is keyed on its content. This is prompt injection without a code-level boundary failure (LLM-output -> LLM-context, same trust level, same operator), so it is not a candidate. ShinkaEvolve only includes text_feedback in prompts when evo_config.use_text_feedback is set (core/config.py default False); it is stored in the DB regardless, which is what feeds the shinka-inspect candidate. Remaining ShinkaEvolve prompt modules (prompts_diff/full/cross/fix/meta/novelty/prompt_evo) were grep-reviewed for template use only.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ai-llm",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/core/summarizer.py",
+            "baselines/ShinkaEvolve/shinka/core/async_summarizer.py",
+            "baselines/ShinkaEvolve/shinka/core/prompt_evolver.py",
+            "baselines/ShinkaEvolve/shinka/core/sampler.py"
+          ],
+          "invariant": "LLM-authored summaries, meta recommendations and evolved system prompts that are persisted and later appended to system messages must not be consumed by a different principal or a more privileged session.",
+          "method": "source",
+          "result": "Covered, no finding. Meta recommendations are appended to the mutation system prompt (core/sampler.py:118-124) and persisted to results_dir/meta/meta_<int>.txt and the meta memory JSON (summarizer.py:512-531, 755-760; async_summarizer.py:409-422); evolved prompts are parsed from <NAME>/<DESCRIPTION>/<PROMPT> tags (prompt_evolver.py:88-90) and stored in the prompt DB. Writers and readers are the same run and operator; file names are framework-derived integers; no cross-tenant or cross-session reader exists in source. Durable model-authored 'instructions' are an intended feature of the method, not a cross-boundary memory write.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ai-llm",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/skills/shinka-convert/SKILL.md",
+            "baselines/ShinkaEvolve/skills/shinka-convert/scripts/run_evo.py",
+            "baselines/ShinkaEvolve/skills/shinka-convert/scripts/shinka.yaml",
+            "baselines/ShinkaEvolve/skills/shinka-setup/SKILL.md",
+            "baselines/ShinkaEvolve/skills/shinka-setup/scripts/run_evo.py",
+            "baselines/ShinkaEvolve/skills/shinka-setup/scripts/shinka.yaml",
+            "baselines/ShinkaEvolve/skills/shinka-run/SKILL.md",
+            "baselines/ShinkaEvolve/skills/shinka-inspect/SKILL.md"
+          ],
+          "invariant": "SkillSpector triage: each flagged line (LP3 x3, EA2 x2) either grants or assumes authority beyond what the invoking user intends, or it does not; skill instructions must not turn ingested content into unapproved side effects.",
+          "method": "source",
+          "result": "EA2 shinka-convert SKILL.md:59 and EA2 shinka-setup SKILL.md:25: FALSE POSITIVES. The matched phrase is 'without consent' inside 'Avoid overwriting an existing task dir without consent' / 'Avoid overwriting existing evaluate.py or initial.<ext> without consent' - the lines impose a human-consent requirement before an overwrite; the pattern matched the words with inverted polarity. LP3 shinka-convert SKILL.md:1 and LP3 shinka-setup SKILL.md:1 (capability file_read): HARDENING NOTES, not boundary issues. The detected capability is the bundled run_evo.py opening shinka.yaml with yaml.safe_load (run_evo.py:14-15 / 16-17); both skills act only on the user's own working directory at the user's explicit request, ask follow-ups, and end by asking the user for the next step, so no lower-trust content is granted authority. A missing allowed-tools key is not a permission ceiling in the Agent Skills format (the scanner's own remediation text says so), so its absence neither grants nor removes authority. LP3 shinka-inspect SKILL.md:1 (capability file_write): the write itself is the single Markdown bundle (script line 315) and is benign; the missing scope declaration is a HARDENING NOTE, but it is relevant context for the candidate because nothing in the skill narrows what the consuming agent may do after loading untrusted program text. shinka-run (no SkillSpector issues): reviewed anyway - it requires user confirmation before every batch (lines 56-60, 105-111) and allows autonomous continuation only on explicit user request (113); model names and overrides come from the user. No separate finding.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ai-llm",
+          "reviewed_paths": [
+            "baselines/openevolve/openevolve/llm/claude_code.py",
+            "baselines/openevolve/openevolve/llm/copilot_cli.py",
+            "baselines/openevolve/openevolve/llm/codex_app_server.py",
+            "baselines/ShinkaEvolve/shinka/llm/providers/headless.py"
+          ],
+          "invariant": "When a coding-agent CLI is used as the 'LLM', the prompt that carries program-controlled text (prior programs, stdout artifacts) must not be able to exercise agent tools with authority beyond what the generated program already has.",
+          "method": "source",
+          "result": "Covered as hardening, not a candidate. Codex backend pins approvalPolicy 'never' with sandbox read-only and networkAccess false (codex_app_server.py:284-288). Copilot backend passes --no-ask-user --no-custom-instructions --disable-builtin-mcps and adds --allow-all-tools only when the operator sets allow_all_tools (copilot_cli.py:118-145). ShinkaEvolve headless passes a fixed '--allow read-only' (headless.py:162-172; only the command builder was read, shell construction in that file is peer-owned). The outlier is ClaudeCodeLLM: 'claude -p' is started with only --model, --no-session-persistence, --output-format text, --system-prompt and --max-budget-usd (claude_code.py:67-80) in the operator's cwd (124), with no tool, permission-mode, MCP or settings restriction, so tool availability is whatever the operator's ambient Claude Code configuration pre-approves. No affected second principal is source-visible: the only writers of the prompt are the operator's task files and LLM output whose programs OpenEvolve already executes locally as the operator, so injected text gains no authority it lacks; the benchmark glue uses the OpenAI-compatible provider, not these backends. Recorded under hardening.",
+          "artifact": null
+        }
+      ],
+      "candidate_fingerprints": [
+        "shinka-inspect/context-bundle-fence-breakout"
+      ],
+      "unresolved": []
+    },
+    {
+      "coverage_id": "baselines%2Fopenevolve%2Fopenevolve%2Futils%2Fcode_utils.py%23parse_full_rewrite::baselines%2FShinkaEvolve%2Fshinka%2Fedit%2Fapply_diff.py%23apply_diff_patch::profile%2Fquick%2Fall-in-scope-subsystems::AI-AND-LLM.md%23Tool-argument%20injection%20into%20a%20downstream%20sink",
+      "disposition": "covered",
+      "reviewed_paths": [
+        "baselines/CodeEvolve/src/codeevolve/evaluator.py",
+        "baselines/CodeEvolve/src/codeevolve/evolution.py",
+        "baselines/CodeEvolve/src/codeevolve/prompt/sampler.py",
+        "baselines/CodeEvolve/src/codeevolve/utils/parsing.py",
+        "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "baselines/ShinkaEvolve/shinka/core/prompt_evolver.py",
+        "baselines/ShinkaEvolve/shinka/core/sampler.py",
+        "baselines/ShinkaEvolve/shinka/core/summarizer.py",
+        "baselines/ShinkaEvolve/shinka/database/display.py",
+        "baselines/ShinkaEvolve/shinka/edit/apply_diff.py",
+        "baselines/ShinkaEvolve/shinka/edit/apply_full.py",
+        "baselines/ShinkaEvolve/shinka/edit/async_apply.py",
+        "baselines/ShinkaEvolve/shinka/edit/summary.py",
+        "baselines/ShinkaEvolve/shinka/llm/llm.py",
+        "baselines/openevolve/openevolve/controller.py",
+        "baselines/openevolve/openevolve/database.py",
+        "baselines/openevolve/openevolve/evaluator.py",
+        "baselines/openevolve/openevolve/llm/openai.py",
+        "baselines/openevolve/openevolve/process_parallel.py",
+        "baselines/openevolve/openevolve/prompt/sampler.py",
+        "baselines/openevolve/openevolve/prompt/templates.py",
+        "baselines/openevolve/openevolve/utils/code_utils.py"
+      ],
+      "checks": [
+        {
+          "agent_id": "hunter-ai-llm",
+          "reviewed_paths": [
+            "baselines/openevolve/openevolve/utils/code_utils.py",
+            "baselines/openevolve/openevolve/process_parallel.py",
+            "baselines/openevolve/openevolve/evaluator.py",
+            "baselines/openevolve/openevolve/database.py",
+            "baselines/openevolve/openevolve/controller.py",
+            "baselines/openevolve/openevolve/llm/openai.py"
+          ],
+          "invariant": "OpenEvolve: no string taken from an LLM response may select a file path, directory name, command, import target or serialized-state key on the framework side.",
+          "method": "source",
+          "result": "Holds; no sink. The response is consumed only by extract_diffs/apply_diff_blocks (code_utils.py:193-227, 378-394) or parse_full_rewrite (230-255), which are pure string operations producing child_code (process_parallel.py:235, 283, 312). The child id is uuid4 (process_parallel.py:363); the program is written to tempfile.NamedTemporaryFile with a config-derived suffix (evaluator.py:259-261); checkpoint files are <uuid>.json (database.py:974); the best-program file name is 'best_program' plus the initial program's extension (controller.py:108-115, 562-563); manual-mode task files are <uuid>.json (llm/openai.py:269-290). The one model-derived name that reaches a path is the LLM-judge JSON key (evaluator.py:731-733, only with use_llm_feedback, default False) stored as an artifact key; _write_artifact_file strips it to alphanumerics plus '._-' (database.py:2748-2752), so no separator survives and the residual values '.'/'..' only make open() fail inside the try block. Judge metric names are prefixed 'llm_' (evaluator.py:297-299) so they cannot overwrite combined_score. diff_pattern, language and paths are configuration, not model output.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ai-llm",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/edit/apply_diff.py",
+            "baselines/ShinkaEvolve/shinka/edit/apply_full.py",
+            "baselines/ShinkaEvolve/shinka/edit/async_apply.py",
+            "baselines/ShinkaEvolve/shinka/edit/summary.py",
+            "baselines/ShinkaEvolve/shinka/llm/llm.py",
+            "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+            "baselines/ShinkaEvolve/shinka/core/prompt_evolver.py",
+            "baselines/ShinkaEvolve/shinka/core/summarizer.py"
+          ],
+          "invariant": "ShinkaEvolve: patch_name, patch_description, extracted code and other response-derived values must not be used to build file names, directories, commands or import targets in the runner or edit layer.",
+          "method": "source",
+          "result": "Holds; no sink. patch_name/patch_description are taken with extract_between(<NAME>/<DESCRIPTION>) (async_runner.py:1938-1943, 3488-3493, 3714-3717; llm.py:868-900) and flow only into metadata dicts, the attempt metadata.json body (3103-3125), DB rows via bound parameters, console tables and later meta-summary prompts (async_summarizer.py:166/201). Every path is framework-derived: patch_dir = results_dir/gen_<int> (3495, 3722), attempt_dir = gen_<int>/attempts/novelty_<int>/resample_<int>/patch_<int> (3066-3073), and the edit layer writes fixed names rewrite.txt, search_replace.txt, original<ext>, main<ext>, edit.diff with <ext> from the configured language (apply_full.py:75, 295-303; apply_diff.py:765, 794-806). headless_prompt_path copied at 3087-3095 is set by the provider from a uuid, not by the model. summarize_diff parses the framework-written edit.diff only into dict keys. extract_between builds its regex from constant tags plus the configured language. validate_code_async, the only place generated source would be handed to host toolchains (g++/gfortran/iverilog/swiftc), has no production call site (tests only), so it is not reachable; recorded under hardening. No LLM tool/function-calling surface exists in any of the three frameworks.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ai-llm",
+          "reviewed_paths": [
+            "baselines/CodeEvolve/src/codeevolve/utils/parsing.py",
+            "baselines/CodeEvolve/src/codeevolve/evaluator.py",
+            "baselines/CodeEvolve/src/codeevolve/evolution.py",
+            "baselines/CodeEvolve/src/codeevolve/prompt/sampler.py"
+          ],
+          "invariant": "CodeEvolve: SEARCH/REPLACE output and meta-prompt output must only alter program or prompt text, never an evaluator path, command line or file name.",
+          "method": "source",
+          "result": "Holds; no sink. apply_diff (parsing.py:248-311) uses re.findall with a configured diff regex and str.replace inside evolve-block spans only; markers are re.escape'd configuration. Results become Program.code / prompt text (evolution.py:301, 439). Evaluator.execute writes the code to a NamedTemporaryFile in a fresh TemporaryDirectory with an extension looked up from a fixed language map (evaluator.py:248, 276-286) and runs a fixed argv [sys.executable, eval_path, code_file, result_file] without a shell (298-305). The best-solution file name is a constant plus a mapped extension (evolution.py:712-714). Program ids are uuid4. Prompt templates are constants formatted with program text as arguments (prompt/sampler.py:63-70, 182).",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ai-llm",
+          "reviewed_paths": [
+            "baselines/openevolve/openevolve/prompt/sampler.py",
+            "baselines/openevolve/openevolve/prompt/templates.py",
+            "baselines/openevolve/openevolve/database.py",
+            "baselines/ShinkaEvolve/shinka/core/sampler.py",
+            "baselines/CodeEvolve/src/codeevolve/prompt/sampler.py"
+          ],
+          "invariant": "Model-controlled text must never be used as a format string or template (only as an argument), and must not be re-formatted after insertion.",
+          "method": "source",
+          "result": "Holds. Every str.format call site in the three prompt layers uses a constant or operator-supplied template with model text as a keyword argument: OpenEvolve sampler.py:129, 162-173, 176-181, 332, 381, 440, 469, 518, 529, 587 and templates.get_fragment (templates.py:223-230), database.py:1144; ShinkaEvolve core/sampler.py:71, 169-194, 236, 266 and prompts_prompt_evo.py:252/285 (fixed context keys); CodeEvolve prompt/sampler.py:63, 182, 237-259. Formatted output is concatenated, not formatted again, so braces in program text or stdout are inert. OpenEvolve's _apply_template_variations substitutes configuration values into the template before formatting, not model text.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ai-llm",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/database/display.py",
+            "baselines/ShinkaEvolve/shinka/core/async_runner.py"
+          ],
+          "invariant": "Insecure output rendering outside the peer-owned web UIs: model output must not reach an executing HTML/template/command renderer on the framework side.",
+          "method": "source",
+          "result": "No executing sink in the non-web paths. The only renderer reached is the Rich console: the LLM-chosen patch_name is passed as a table cell without rich.markup.escape (display.py:162, also 488 and 644), which permits console markup and hyperlink spoofing in the operator's terminal and can raise a markup error on an unbalanced closing tag; that is a display-integrity hardening note with no code execution or cross-principal effect. HTML/Markdown rendering of the same fields in the two web UIs is owned by peer units and was not investigated.",
+          "artifact": null
+        }
+      ],
+      "candidate_fingerprints": [],
+      "unresolved": []
+    }
+  ],
+  "candidates": [
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "shinka-inspect/context-bundle-fence-breakout",
+      "title": "shinka-inspect context bundle lets generated program text and program stdout escape their code fences in the file a coding agent is told to load",
+      "description": "The shinka-inspect skill builds a Markdown 'context bundle' from a ShinkaEvolve results database and instructs the coding agent to load it as its planning context. Two fields in that bundle are authored by the lowest-trust principal in the system: `code` (the LLM-generated program) and `text_feedback` (in this repository's glue, the last 1500 characters the generated program printed). The renderer places each inside a fixed three-backtick fence and does nothing else: no escaping of backtick runs, no fence sized to the content, no marker that the content is untrusted. A program that contains or prints a line of three backticks ends the fence, and everything after it is emitted as ordinary top-level Markdown next to the framework-authored 'Run Metadata' and 'Ranking' sections, so it is indistinguishable from bundle structure or operator notes. The consumer is a different principal with different authority: the operator's coding agent (Claude Code/Codex per the docs), which the sibling shinka-run skill drives through shell commands and, on request, an autonomous multi-batch loop. The script also accepts any results directory or SQLite path, so a database produced in a contained backend, on another machine, or by another person reaches the same agent context. Attacker: whoever controls generated program text or its stdout (a mutation model endpoint, including the documented local/<model>@http(s)://host form, or the author of a shared results DB). Affected principal: the operator, through the agent session's tool authority. This is reported as needs_validation because only the delimiter failure is deterministic and source-visible; whether an agent acts on the escaped text is runtime behaviour, and when generation ran unsandboxed on the same host the generated program already executed as the operator, which limits the added authority to what only the agent session holds.",
+      "claimed_root_cause": "inspect_best_programs.py:_render_markdown interpolates untrusted database text (text_feedback and code) between fixed ``` fences without neutralising embedded fence delimiters or labelling provenance, and SKILL.md directs the resulting file to be loaded into a tool-capable agent's context as trusted planning material.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "benchmarks/evaluation.py",
+          "line": 77,
+          "scope": "evaluate",
+          "description": "The generated program's combined stdout/stderr tail (last 1500 characters) is stored verbatim in metrics['output_tail']; the program body itself is the second attacker-authored value."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/shinka_evaluate.py",
+          "line": 27,
+          "scope": "module",
+          "description": "The output tail is embedded in `feedback` (lines 23-25) and written as metrics.json text_feedback (line 29) with no filtering."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/utils/general.py",
+          "line": 76,
+          "scope": "load_results",
+          "description": "The runner loads metrics.json from the evaluation results directory."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+          "line": 4130,
+          "scope": "ShinkaEvolveRunner (completed-job persistence)",
+          "description": "text_feedback is taken from the loaded metrics and stored on the Program row (line 4171) regardless of evo_config.use_text_feedback."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+          "line": 4165,
+          "scope": "ShinkaEvolveRunner (completed-job persistence)",
+          "description": "The LLM-generated source file is read back and stored as Program.code in the programs table."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/utils/load_df.py",
+          "line": 108,
+          "scope": "load_programs_to_df",
+          "description": "code (line 108) and text_feedback (line 123) are copied unchanged from the SQLite row into the DataFrame returned to the skill script."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+          "line": 275,
+          "scope": "_render_markdown",
+          "description": "text_feedback is appended between a fixed ```text opener (274) and ``` closer (276) with only .strip() applied."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+          "line": 281,
+          "scope": "_render_markdown",
+          "description": "The program code (length-truncated only, line 256) is appended between a fixed ```<language> opener (280) and ``` closer (282); an embedded fence line ends the block early."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+          "line": 315,
+          "scope": "main",
+          "description": "The assembled Markdown is written to <results_dir>/shinka_inspect_context.md (or --out)."
+        },
+        {
+          "kind": "sink",
+          "file": "baselines/ShinkaEvolve/skills/shinka-inspect/SKILL.md",
+          "line": 48,
+          "scope": "Workflow step 4",
+          "description": "The skill instructs the coding agent to load the output file into its context and use it as the artifact for next-step mutation planning (lines 48-50)."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+          "line": 280,
+          "description": "Strongest control present: a fixed three-backtick fence around the code (280-282) and around feedback (274-276). No escaping, no adaptive fence length, no untrusted-content label anywhere in _render_markdown (198-285)."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+          "line": 153,
+          "description": "_truncate is the only transformation applied to code; it limits length and appends a marker but does not alter fence characters."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+          "line": 110,
+          "description": "_resolve_db_path accepts any directory or .sqlite/.db path, so a results database not produced by the current operator or host is rendered the same way."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/skills/shinka-inspect/SKILL.md",
+          "line": 3,
+          "description": "Skill description: 'Load top-performing Shinka programs into agent context'; the file contains no statement that the bundled program text is untrusted data, and no tool scope."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/docs/agentic_usage.md",
+          "line": 180,
+          "description": "Documentation states the bundle is 'designed to be loaded directly into coding-agent context'."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/skills/shinka-run/SKILL.md",
+          "line": 113,
+          "description": "Capability side: the companion skill has the same agent launch shell commands (lines 62-79) and permits continuing across batches without re-asking when the user requested autonomous execution."
+        },
+        {
+          "file": "baselines/shinka_evaluate.py",
+          "line": 24,
+          "description": "This repository's ShinkaEvolve evaluator copies the generated program's output tail into text_feedback, making the feedback block program-controlled."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation was permitted in this run (no approved sandbox), so the fence breakout in a rendered bundle is established from source only.",
+        "Whether the consuming coding agent treats Markdown that escaped the fence as instructions, and which tools it may use without approval at that moment, is agent runtime and model behaviour that is not observable from the repository; the repository contains no deterministic control either way.",
+        "Deployment fact: whether the results database being inspected was produced by generated code that already ran unsandboxed under the same uid and host as the agent session (added authority is then limited to what only the agent session holds), or came from a contained backend, another host or another person."
+      ],
+      "validation_plan": {
+        "local": "Inside the no-network sandbox, with ShinkaEvolve importable and pandas present, create a temporary directory containing programs.sqlite with a `programs` table (columns id, code, language, parent_id, generation, timestamp, combined_score, correct, text_feedback, metadata, public_metrics, private_metrics, archive_inspiration_ids, top_k_inspiration_ids, embedding, complexity, code_diff) and two dummy rows with correct=1: row A code = 'x = 1' followed by a newline, a line of three backticks, a blank line, the line '## SHINKA-INSPECT-POC-CODE', a line '```python' and 'y = 2'; row A text_feedback = 'ok', newline, a line of three backticks, blank line, the line '## SHINKA-INSPECT-POC-FEEDBACK', and a line '```text'; row B is a control with code 'z = 3' and empty feedback. JSON columns hold '{}' or '[]'. Run `python baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py --results-dir <tmp> --out <scratch>/bundle.md`. Then scan bundle.md line by line with a fence tracker that toggles on every line beginning with three backticks. Single observable: the lines '## SHINKA-INSPECT-POC-CODE' and '## SHINKA-INSPECT-POC-FEEDBACK' are reached while the tracker state is 'outside fence', while the control row's 'z = 3' is inside a fence. No agent, credential or network is involved.",
+        "deployment": "Owner-observed: confirm which agent runtime and permission mode load shinka_inspect_context.md in practice, whether shell commands are pre-approved or an autonomous shinka-run loop is used in that session, and whether results directories from other hosts, container/Slurm backends or other people are ever passed to --results-dir."
+      }
+    }
+  ],
+  "hardening": [
+    "OpenEvolve ClaudeCodeLLM (baselines/openevolve/openevolve/llm/claude_code.py:67-80) starts `claude -p` with no tool, permission-mode, MCP or settings restriction, unlike the sibling Codex backend (read-only sandbox, no network, codex_app_server.py:284-288) and ShinkaEvolve headless ('--allow read-only'). The prompt it receives contains prior program bodies and program stdout. Pin an empty or read-only tool set and isolate from ambient user/project settings so the backend behaves as a text completer regardless of the operator's Claude Code configuration.",
+    "OpenEvolve CopilotCLILLM forwards `--allow-all-tools` when model config sets allow_all_tools (copilot_cli.py:144-145); document that this hands tool authority to a prompt containing program-controlled text, or remove the option.",
+    "ShinkaEvolve validate_code_async (shinka/edit/async_apply.py:127-269) has no production caller today. Its Rust branch documents the invariant that validation must not let generated code read host files, but the C++ (g++ -fsyntax-only), Fortran, Verilog and Swift branches run host toolchains that resolve include directives (and swiftc emits a binary). If it is ever wired in ahead of a contained evaluation backend, compiler diagnostics could carry host file content back into prompts; bring the sibling branches to the Rust standard or delete the dead code.",
+    "shinka/utils/load_df.py:105-125 builds each row with **metadata, **public_metrics, **private_metrics and metrics spread after the canonical columns, so an evaluator-emitted key named correct, combined_score, generation, id or code silently replaces the database column in every DataFrame consumer (shinka-inspect ranking, plots). Namespace or reject colliding keys.",
+    "OpenEvolve _write_artifact_file (database.py:2748-2752) sanitises artifact keys by character filtering only; names '.'/'..' and collisions after filtering are possible (the write just fails inside the try). With use_llm_feedback the keys come from the judge model's JSON (evaluator.py:731-733). Prefer a fixed allow-list or hashed file names.",
+    "ShinkaEvolve passes the LLM-chosen patch_name to Rich tables unescaped (shinka/database/display.py:162, 488, 644): console markup/hyperlink spoofing and a possible markup error on unbalanced tags. Apply rich.markup.escape.",
+    "Prompt assembly in all three frameworks places program bodies and stdout inside fixed ``` fences (e.g. OpenEvolve sampler.py:679, ShinkaEvolve prompts_base.py:61). This is LLM-to-LLM and not a boundary by itself, but with OpenEvolve use_llm_feedback=True the judged program can address the judge model and influence llm_* metrics and the 30% weight on combined_score (evaluator.py:289-316). Keep LLM-judge scoring off for any result that is compared across systems.",
+    "OpenEvolve's artifact_security_filter (sampler.py:717-746) is a best-effort regex redaction; generated programs run with the full parent environment and their output tail is forwarded to the configured LLM endpoint, so secrets that are short or contain punctuation pass through. Do not rely on it as a secrecy control; scrub the evaluation environment instead.",
+    "Skill frontmatter (LP3 x3): none of the four Shinka skills declares a tool scope. In the Agent Skills format this is not a permission ceiling, so the notes are not findings, but stating in each SKILL.md which tools are needed and that results-derived text is data would help hosts and reviewers. The two EA2 notes ('without consent') are false positives: the flagged lines require consent before overwriting.",
+    "shinka-setup SKILL.md:73-79 has the agent run an unpinned `pip install shinka-evolve`, and docs/agentic_usage.md:58 installs skills with `npx skills add ... -y` from the default branch; pin versions/commits (supply-chain detail is owned by a peer unit)."
+  ],
+  "uncovered": []
+}

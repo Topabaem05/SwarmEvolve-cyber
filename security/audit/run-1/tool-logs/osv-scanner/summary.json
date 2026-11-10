@@ -1,0 +1,1412 @@
+{
+ "tool": "osv-scanner 2.7.1 (built from google/osv-scanner@02f96a4)",
+ "commands": [
+  "osv-scanner scan source -r --format json .",
+  "osv-scanner scan source --no-resolve --all-packages --format json -L requirements.txt:baselines/requirements_codeevolve.txt -L requirements.txt:baselines/requirements_openevolve_shinkaevolve.txt"
+ ],
+ "note": "Transitive resolution failed for baselines/requirements_openevolve_shinkaevolve.txt (aiohttp: \"==3.14.5,<3.14.0,>=3.9.1\"), so the pinned files were rescanned with --no-resolve; every pinned package was checked directly.",
+ "pinned_files_packages_scanned": {
+  "baselines/requirements_codeevolve.txt": 20,
+  "baselines/requirements_openevolve_shinkaevolve.txt": 71
+ },
+ "pinned_files": [
+  {
+   "source": "baselines/requirements_openevolve_shinkaevolve.txt",
+   "package": "pillow",
+   "version": "11.3.0",
+   "ecosystem": "PyPI",
+   "advisory_groups": 58,
+   "by_cvss_band": {
+    "medium": 15,
+    "high": 38,
+    "critical": 5
+   },
+   "fixed_versions_seen": [
+    "12.1.1",
+    "12.2.0",
+    "12.3.0",
+    "13.0.0"
+   ],
+   "groups": [
+    {
+     "ids": [
+      "PYSEC-2026-165",
+      "GHSA-wjx4-4jcj-g98j"
+     ],
+     "max_severity": "5.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2249",
+      "GHSA-cfh3-3jmp-rvhc"
+     ],
+     "max_severity": "8.6"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2250",
+      "GHSA-whj4-6x5x-4v2j"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2251",
+      "GHSA-5xmw-vc9v-4wf2"
+     ],
+     "max_severity": "5.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2252",
+      "GHSA-pwv6-vv43-88gr"
+     ],
+     "max_severity": "8.6"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2253",
+      "GHSA-8v84-f9pq-wr9x"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2254",
+      "GHSA-5x94-69rx-g8h2"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2255",
+      "GHSA-45hq-cxwh-f6vc"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2256",
+      "GHSA-phj9-mv4w-65pm"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2257",
+      "GHSA-4x4j-2g7c-83w6"
+     ],
+     "max_severity": "4.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2874",
+      "GHSA-r73j-pqj5-w3x7"
+     ],
+     "max_severity": "5.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3451",
+      "GHSA-6r8x-57c9-28j4"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3453",
+      "GHSA-9hw9-ch79-4vh6"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3454",
+      "GHSA-xj96-63gp-2gmr"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3493",
+      "GHSA-62p4-gmf7-7g93"
+     ],
+     "max_severity": "8.3"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3494",
+      "GHSA-fj7v-r99m-22gq"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3495",
+      "GHSA-jjj6-mw9f-p565"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3496",
+      "GHSA-vjc4-5qp5-m44j"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4326",
+      "GHSA-27h8-gf7j-v5hc"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4327",
+      "GHSA-4558-3h8r-v8xp"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4328",
+      "GHSA-4rr5-89j8-mwwm"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4329",
+      "GHSA-58r4-6rv3-gfh8"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4330",
+      "GHSA-5x8w-8jj5-q52h"
+     ],
+     "max_severity": "9.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4331",
+      "GHSA-7mwm-ghpf-9vrm"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4332",
+      "GHSA-8g5g-8vmr-9782"
+     ],
+     "max_severity": "9.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4334",
+      "GHSA-pchr-8j38-3x4p"
+     ],
+     "max_severity": "8.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4335",
+      "GHSA-xgh8-jp6q-p5x8"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4336",
+      "GHSA-654x-cwwv-5j9c"
+     ],
+     "max_severity": "6.3"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4337",
+      "GHSA-p8hx-v2p6-rp84"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4338",
+      "GHSA-g842-9rc4-69pw"
+     ],
+     "max_severity": "7.1"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4339",
+      "GHSA-v9pv-5gc8-w2m6"
+     ],
+     "max_severity": "9.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4340",
+      "GHSA-4rm8-3hmm-39fg"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4341",
+      "GHSA-3j72-p6qg-6xp7"
+     ],
+     "max_severity": "7.1"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4342",
+      "GHSA-g4qv-2jxx-769h"
+     ],
+     "max_severity": "7.1"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4343",
+      "GHSA-9v9v-9qvf-h2hj"
+     ],
+     "max_severity": "8.1"
+    },
+    {
+     "ids": [
+      "GHSA-22hg-r758-rrw9"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "GHSA-24rc-8hj2-v98c"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "GHSA-254f-3936-288h"
+     ],
+     "max_severity": "6.3"
+    },
+    {
+     "ids": [
+      "GHSA-332p-7hrc-92wf"
+     ],
+     "max_severity": "9.2"
+    },
+    {
+     "ids": [
+      "GHSA-462x-pgg6-55fp"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "GHSA-5xm2-6676-qcp9"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-65qm-jvmh-6pqg"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-74r2-7ff9-mjj2"
+     ],
+     "max_severity": "6.9"
+    },
+    {
+     "ids": [
+      "GHSA-78g4-xqwv-q3g8"
+     ],
+     "max_severity": "8.1"
+    },
+    {
+     "ids": [
+      "GHSA-c6hw-5grf-ff96"
+     ],
+     "max_severity": "8.8"
+    },
+    {
+     "ids": [
+      "GHSA-f2g6-542v-9j58"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-fc9g-5qg7-mf45"
+     ],
+     "max_severity": "6.9"
+    },
+    {
+     "ids": [
+      "GHSA-g7cr-3p24-7wf7"
+     ],
+     "max_severity": "7.7"
+    },
+    {
+     "ids": [
+      "GHSA-gg2r-wvfm-q9rx"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-j4m9-6w36-pw47"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "GHSA-jg86-v3jv-hrpm"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-mrfp-p49p-3hf2"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "GHSA-p4wg-p73j-c528"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-q45j-58j2-45rg"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-rfgq-q3w2-pmv2"
+     ],
+     "max_severity": "6.9"
+    },
+    {
+     "ids": [
+      "GHSA-vx6w-vv9f-6gvg"
+     ],
+     "max_severity": "6.9"
+    },
+    {
+     "ids": [
+      "GHSA-w889-685w-c8fh"
+     ],
+     "max_severity": "9.2"
+    },
+    {
+     "ids": [
+      "GHSA-xvh5-g6gv-559v"
+     ],
+     "max_severity": "8.8"
+    }
+   ]
+  }
+ ],
+ "recursive": [
+  {
+   "source": "baselines/openevolve/examples/algotune/requirements.txt",
+   "package": "torch",
+   "version": "2.9.1",
+   "ecosystem": "PyPI",
+   "advisory_groups": 4,
+   "by_cvss_band": {
+    "high": 2,
+    "medium": 2
+   },
+   "fixed_versions_seen": [
+    "2.10.0",
+    "2.13.0"
+   ],
+   "groups": [
+    {
+     "ids": [
+      "PYSEC-2026-139"
+     ],
+     "max_severity": "7.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2286",
+      "GHSA-63cw-57p8-fm3p"
+     ],
+     "max_severity": "8.8"
+    },
+    {
+     "ids": [
+      "GHSA-qfhq-4f3w-5fph"
+     ],
+     "max_severity": "5.3"
+    },
+    {
+     "ids": [
+      "GHSA-rrmf-rvhw-rf47"
+     ],
+     "max_severity": "5.3"
+    }
+   ]
+  },
+  {
+   "source": "baselines/openevolve/examples/mlx_metal_kernel_opt/requirements.txt",
+   "package": "scipy",
+   "version": "1.9.3",
+   "ecosystem": "PyPI",
+   "advisory_groups": 1,
+   "by_cvss_band": {
+    "unscored": 1
+   },
+   "fixed_versions_seen": [
+    "1.10.0"
+   ],
+   "groups": [
+    {
+     "ids": [
+      "PYSEC-2023-102"
+     ],
+     "max_severity": ""
+    }
+   ]
+  },
+  {
+   "source": "baselines/openevolve/examples/mlx_metal_kernel_opt/requirements.txt",
+   "package": "anyio",
+   "version": "4.9.0",
+   "ecosystem": "PyPI",
+   "advisory_groups": 2,
+   "by_cvss_band": {
+    "medium": 1,
+    "critical": 1
+   },
+   "fixed_versions_seen": [
+    "4.14.2"
+   ],
+   "groups": [
+    {
+     "ids": [
+      "PYSEC-2026-4024",
+      "GHSA-5p39-cfhj-2xmp"
+     ],
+     "max_severity": "6.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4025",
+      "GHSA-82r6-8w77-94w6"
+     ],
+     "max_severity": "9.3"
+    }
+   ]
+  },
+  {
+   "source": "baselines/openevolve/examples/mlx_metal_kernel_opt/requirements.txt",
+   "package": "certifi",
+   "version": "2026.7.22",
+   "ecosystem": "PyPI",
+   "advisory_groups": 1,
+   "by_cvss_band": {
+    "critical": 1
+   },
+   "fixed_versions_seen": [
+    "2026.10.18"
+   ],
+   "groups": [
+    {
+     "ids": [
+      "PYSEC-2026-4320",
+      "GHSA-6q48-6c7w-9gw2"
+     ],
+     "max_severity": "9.1"
+    }
+   ]
+  },
+  {
+   "source": "baselines/openevolve/examples/mlx_metal_kernel_opt/requirements.txt",
+   "package": "idna",
+   "version": "3.9.0",
+   "ecosystem": "PyPI",
+   "advisory_groups": 1,
+   "by_cvss_band": {
+    "medium": 1
+   },
+   "fixed_versions_seen": [
+    "3.15"
+   ],
+   "groups": [
+    {
+     "ids": [
+      "PYSEC-2026-215",
+      "GHSA-65pc-fj4g-8rjx"
+     ],
+     "max_severity": "6.9"
+    }
+   ]
+  },
+  {
+   "source": "baselines/openevolve/examples/mlx_metal_kernel_opt/requirements.txt",
+   "package": "transformers",
+   "version": "5.9.0",
+   "ecosystem": "PyPI",
+   "advisory_groups": 1,
+   "by_cvss_band": {
+    "high": 1
+   },
+   "fixed_versions_seen": [
+    "5.10.0"
+   ],
+   "groups": [
+    {
+     "ids": [
+      "PYSEC-2026-3929",
+      "GHSA-xrqw-3rrv-vx5w"
+     ],
+     "max_severity": "7.1"
+    }
+   ]
+  },
+  {
+   "source": "baselines/openevolve/examples/signal_processing/requirements.txt",
+   "package": "pillow",
+   "version": "9.5.0",
+   "ecosystem": "PyPI",
+   "advisory_groups": 53,
+   "by_cvss_band": {
+    "unscored": 1,
+    "high": 34,
+    "medium": 13,
+    "critical": 5
+   },
+   "fixed_versions_seen": [
+    "0.0.0-20250406010349-76805d5a8860",
+    "0.1.8",
+    "0.2.6",
+    "0.9.3",
+    "1.1.2-0.20250406010349-76805d5a8860",
+    "1.4.0",
+    "10.0.0",
+    "10.0.1",
+    "10.2.0",
+    "10.3.0",
+    "12.2.0",
+    "12.3.0",
+    "13.0.0",
+    "13.3.0",
+    "1fe1bb49c452b0318cad12ea9d97c3bef188e9a7",
+    "2.88.6",
+    "22.3.24",
+    "24.8.3",
+    "25.8.1",
+    "26.2.1",
+    "27.0.0-beta.2"
+   ],
+   "groups": [
+    {
+     "ids": [
+      "PYSEC-2023-175"
+     ],
+     "max_severity": ""
+    },
+    {
+     "ids": [
+      "PYSEC-2023-227",
+      "GHSA-8ghj-p4vj-mr35"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-165",
+      "GHSA-wjx4-4jcj-g98j"
+     ],
+     "max_severity": "5.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-1793",
+      "GHSA-44wm-f244-xhp3"
+     ],
+     "max_severity": "7.3"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-1794",
+      "GHSA-j7hp-h8jx-5ppr"
+     ],
+     "max_severity": "8.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2253",
+      "GHSA-8v84-f9pq-wr9x"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2254",
+      "GHSA-5x94-69rx-g8h2"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2255",
+      "GHSA-45hq-cxwh-f6vc"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2256",
+      "GHSA-phj9-mv4w-65pm"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2257",
+      "GHSA-4x4j-2g7c-83w6"
+     ],
+     "max_severity": "4.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2874",
+      "GHSA-r73j-pqj5-w3x7"
+     ],
+     "max_severity": "5.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3451",
+      "GHSA-6r8x-57c9-28j4"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3453",
+      "GHSA-9hw9-ch79-4vh6"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3454",
+      "GHSA-xj96-63gp-2gmr"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3493",
+      "GHSA-62p4-gmf7-7g93"
+     ],
+     "max_severity": "8.3"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3494",
+      "GHSA-fj7v-r99m-22gq"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3495",
+      "GHSA-jjj6-mw9f-p565"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3496",
+      "GHSA-vjc4-5qp5-m44j"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4326",
+      "GHSA-27h8-gf7j-v5hc"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4327",
+      "GHSA-4558-3h8r-v8xp"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4329",
+      "GHSA-58r4-6rv3-gfh8"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4330",
+      "GHSA-5x8w-8jj5-q52h"
+     ],
+     "max_severity": "9.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4331",
+      "GHSA-7mwm-ghpf-9vrm"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4332",
+      "GHSA-8g5g-8vmr-9782"
+     ],
+     "max_severity": "9.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4334",
+      "GHSA-pchr-8j38-3x4p"
+     ],
+     "max_severity": "8.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4335",
+      "GHSA-xgh8-jp6q-p5x8"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4337",
+      "GHSA-p8hx-v2p6-rp84"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4338",
+      "GHSA-g842-9rc4-69pw"
+     ],
+     "max_severity": "7.1"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4340",
+      "GHSA-4rm8-3hmm-39fg"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4341",
+      "GHSA-3j72-p6qg-6xp7"
+     ],
+     "max_severity": "7.1"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4343",
+      "GHSA-9v9v-9qvf-h2hj"
+     ],
+     "max_severity": "8.1"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-457",
+      "GHSA-3f63-hfp8-52jq"
+     ],
+     "max_severity": "9.3"
+    },
+    {
+     "ids": [
+      "GHSA-22hg-r758-rrw9"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "GHSA-24rc-8hj2-v98c"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "GHSA-254f-3936-288h"
+     ],
+     "max_severity": "6.3"
+    },
+    {
+     "ids": [
+      "GHSA-332p-7hrc-92wf"
+     ],
+     "max_severity": "9.2"
+    },
+    {
+     "ids": [
+      "GHSA-462x-pgg6-55fp"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "GHSA-5xm2-6676-qcp9"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-65qm-jvmh-6pqg"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-74r2-7ff9-mjj2"
+     ],
+     "max_severity": "6.9"
+    },
+    {
+     "ids": [
+      "GHSA-c6hw-5grf-ff96"
+     ],
+     "max_severity": "8.8"
+    },
+    {
+     "ids": [
+      "GHSA-f2g6-542v-9j58"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-fc9g-5qg7-mf45"
+     ],
+     "max_severity": "6.9"
+    },
+    {
+     "ids": [
+      "GHSA-g7cr-3p24-7wf7"
+     ],
+     "max_severity": "7.7"
+    },
+    {
+     "ids": [
+      "GHSA-gg2r-wvfm-q9rx"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-jg86-v3jv-hrpm"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-mrfp-p49p-3hf2"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "GHSA-p4wg-p73j-c528"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-q45j-58j2-45rg"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-rfgq-q3w2-pmv2"
+     ],
+     "max_severity": "6.9"
+    },
+    {
+     "ids": [
+      "GHSA-vx6w-vv9f-6gvg"
+     ],
+     "max_severity": "6.9"
+    },
+    {
+     "ids": [
+      "GHSA-w889-685w-c8fh"
+     ],
+     "max_severity": "9.2"
+    },
+    {
+     "ids": [
+      "GHSA-xvh5-g6gv-559v"
+     ],
+     "max_severity": "8.8"
+    }
+   ]
+  },
+  {
+   "source": "baselines/openevolve/examples/web_scraper_optillm/requirements.txt",
+   "package": "certifi",
+   "version": "2026.7.22",
+   "ecosystem": "PyPI",
+   "advisory_groups": 1,
+   "by_cvss_band": {
+    "critical": 1
+   },
+   "fixed_versions_seen": [
+    "2026.10.18"
+   ],
+   "groups": [
+    {
+     "ids": [
+      "PYSEC-2026-4320",
+      "GHSA-6q48-6c7w-9gw2"
+     ],
+     "max_severity": "9.1"
+    }
+   ]
+  },
+  {
+   "source": "baselines/openevolve/examples/web_scraper_optillm/requirements.txt",
+   "package": "idna",
+   "version": "3.9.0",
+   "ecosystem": "PyPI",
+   "advisory_groups": 1,
+   "by_cvss_band": {
+    "medium": 1
+   },
+   "fixed_versions_seen": [
+    "3.15"
+   ],
+   "groups": [
+    {
+     "ids": [
+      "PYSEC-2026-215",
+      "GHSA-65pc-fj4g-8rjx"
+     ],
+     "max_severity": "6.9"
+    }
+   ]
+  },
+  {
+   "source": "baselines/requirements_openevolve_shinkaevolve.txt",
+   "package": "pillow",
+   "version": "11.3.0",
+   "ecosystem": "PyPI",
+   "advisory_groups": 58,
+   "by_cvss_band": {
+    "medium": 15,
+    "high": 38,
+    "critical": 5
+   },
+   "fixed_versions_seen": [
+    "12.1.1",
+    "12.2.0",
+    "12.3.0",
+    "13.0.0"
+   ],
+   "groups": [
+    {
+     "ids": [
+      "PYSEC-2026-165",
+      "GHSA-wjx4-4jcj-g98j"
+     ],
+     "max_severity": "5.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2249",
+      "GHSA-cfh3-3jmp-rvhc"
+     ],
+     "max_severity": "8.6"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2250",
+      "GHSA-whj4-6x5x-4v2j"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2251",
+      "GHSA-5xmw-vc9v-4wf2"
+     ],
+     "max_severity": "5.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2252",
+      "GHSA-pwv6-vv43-88gr"
+     ],
+     "max_severity": "8.6"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2253",
+      "GHSA-8v84-f9pq-wr9x"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2254",
+      "GHSA-5x94-69rx-g8h2"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2255",
+      "GHSA-45hq-cxwh-f6vc"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2256",
+      "GHSA-phj9-mv4w-65pm"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2257",
+      "GHSA-4x4j-2g7c-83w6"
+     ],
+     "max_severity": "4.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-2874",
+      "GHSA-r73j-pqj5-w3x7"
+     ],
+     "max_severity": "5.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3451",
+      "GHSA-6r8x-57c9-28j4"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3453",
+      "GHSA-9hw9-ch79-4vh6"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3454",
+      "GHSA-xj96-63gp-2gmr"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3493",
+      "GHSA-62p4-gmf7-7g93"
+     ],
+     "max_severity": "8.3"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3494",
+      "GHSA-fj7v-r99m-22gq"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3495",
+      "GHSA-jjj6-mw9f-p565"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-3496",
+      "GHSA-vjc4-5qp5-m44j"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4326",
+      "GHSA-27h8-gf7j-v5hc"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4327",
+      "GHSA-4558-3h8r-v8xp"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4328",
+      "GHSA-4rr5-89j8-mwwm"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4329",
+      "GHSA-58r4-6rv3-gfh8"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4330",
+      "GHSA-5x8w-8jj5-q52h"
+     ],
+     "max_severity": "9.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4331",
+      "GHSA-7mwm-ghpf-9vrm"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4332",
+      "GHSA-8g5g-8vmr-9782"
+     ],
+     "max_severity": "9.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4334",
+      "GHSA-pchr-8j38-3x4p"
+     ],
+     "max_severity": "8.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4335",
+      "GHSA-xgh8-jp6q-p5x8"
+     ],
+     "max_severity": "7.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4336",
+      "GHSA-654x-cwwv-5j9c"
+     ],
+     "max_severity": "6.3"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4337",
+      "GHSA-p8hx-v2p6-rp84"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4338",
+      "GHSA-g842-9rc4-69pw"
+     ],
+     "max_severity": "7.1"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4339",
+      "GHSA-v9pv-5gc8-w2m6"
+     ],
+     "max_severity": "9.8"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4340",
+      "GHSA-4rm8-3hmm-39fg"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4341",
+      "GHSA-3j72-p6qg-6xp7"
+     ],
+     "max_severity": "7.1"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4342",
+      "GHSA-g4qv-2jxx-769h"
+     ],
+     "max_severity": "7.1"
+    },
+    {
+     "ids": [
+      "PYSEC-2026-4343",
+      "GHSA-9v9v-9qvf-h2hj"
+     ],
+     "max_severity": "8.1"
+    },
+    {
+     "ids": [
+      "GHSA-22hg-r758-rrw9"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "GHSA-24rc-8hj2-v98c"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "GHSA-254f-3936-288h"
+     ],
+     "max_severity": "6.3"
+    },
+    {
+     "ids": [
+      "GHSA-332p-7hrc-92wf"
+     ],
+     "max_severity": "9.2"
+    },
+    {
+     "ids": [
+      "GHSA-462x-pgg6-55fp"
+     ],
+     "max_severity": "6.5"
+    },
+    {
+     "ids": [
+      "GHSA-5xm2-6676-qcp9"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-65qm-jvmh-6pqg"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-74r2-7ff9-mjj2"
+     ],
+     "max_severity": "6.9"
+    },
+    {
+     "ids": [
+      "GHSA-78g4-xqwv-q3g8"
+     ],
+     "max_severity": "8.1"
+    },
+    {
+     "ids": [
+      "GHSA-c6hw-5grf-ff96"
+     ],
+     "max_severity": "8.8"
+    },
+    {
+     "ids": [
+      "GHSA-f2g6-542v-9j58"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-fc9g-5qg7-mf45"
+     ],
+     "max_severity": "6.9"
+    },
+    {
+     "ids": [
+      "GHSA-g7cr-3p24-7wf7"
+     ],
+     "max_severity": "7.7"
+    },
+    {
+     "ids": [
+      "GHSA-gg2r-wvfm-q9rx"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-j4m9-6w36-pw47"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "GHSA-jg86-v3jv-hrpm"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-mrfp-p49p-3hf2"
+     ],
+     "max_severity": "8.2"
+    },
+    {
+     "ids": [
+      "GHSA-p4wg-p73j-c528"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-q45j-58j2-45rg"
+     ],
+     "max_severity": "8.7"
+    },
+    {
+     "ids": [
+      "GHSA-rfgq-q3w2-pmv2"
+     ],
+     "max_severity": "6.9"
+    },
+    {
+     "ids": [
+      "GHSA-vx6w-vv9f-6gvg"
+     ],
+     "max_severity": "6.9"
+    },
+    {
+     "ids": [
+      "GHSA-w889-685w-c8fh"
+     ],
+     "max_severity": "9.2"
+    },
+    {
+     "ids": [
+      "GHSA-xvh5-g6gv-559v"
+     ],
+     "max_severity": "8.8"
+    }
+   ]
+  }
+ ]
+}

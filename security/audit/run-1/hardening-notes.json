@@ -1,0 +1,254 @@
+[
+ {
+  "hunter": "hunter-resume-deserialization",
+  "note": "ShinkaEvolve bandit state (prioritization.py get_state/set_state) is only numpy arrays, scalars and arm names; storing it as JSON or npz with allow_pickle=False removes the pickle sink. save_state also writes with open(path, 'wb') through any existing symlink and non-atomically."
+ },
+ {
+  "hunter": "hunter-resume-deserialization",
+  "note": "CodeEvolve determine_checkpoint_to_load silently falls back to the highest-numbered checkpoint when the requested epoch is missing and prints no warning for --load_ckpt -1; checkpoints should be bound to the run (e.g. recorded epoch list plus digest in a file outside the evaluated program's reach) or stored in a non-executable format."
+ },
+ {
+  "hunter": "hunter-resume-deserialization",
+  "note": "ShinkaEvolve eval_hydra.py loads .hydra/config.yaml found by walking up from --results_dir and instantiates evaluate_function._target_ in every evaluation job; a program evaluated earlier can rewrite <results_dir>/.hydra/config.yaml and thereby choose the callable used to score all later programs (evaluation-job process only, hydra launch path only, not used by the repo glue). Passing the evaluation target from the launcher instead of re-reading it from the results tree would remove this."
+ },
+ {
+  "hunter": "hunter-resume-deserialization",
+  "note": "OpenEvolve Program.from_dict restores artifact_dir and id from checkpoint JSON without validation: get_artifacts reads every regular file in the restored artifact_dir into prompt snapshots (database.py:2664, process_parallel.py:598) and program.id is joined into the save path (database.py:974). Constrain artifact_dir to the checkpoint's artifacts directory and validate ids as UUIDs on load."
+ },
+ {
+  "hunter": "hunter-resume-deserialization",
+  "note": "OpenEvolve api.py writes the evaluator pickle, wrapper and initial program with default umask into the shared temp dir when temp_dir is None; they are world-readable and the cloudpickled evaluator can embed captured data. Always create a private mkdtemp directory for these files."
+ },
+ {
+  "hunter": "hunter-resume-deserialization",
+  "note": "All three baselines pass the full operator environment and an unrestricted filesystem to evaluated programs while keeping resumable state (pickles, sqlite, JSON, hydra config) in the same tree; if resume is ever used, keep run state in a directory the evaluation jobs cannot write."
+ },
+ {
+  "hunter": "hunter-command-construction",
+  "note": "baselines/run_baseline.sh:34,47,50 - `vllm serve` is started without --host and without --api-key, and the clients use the key 'EMPTY'. Whether the port is reachable from other machines depends on vLLM's default bind when --host is omitted (not source-visible; vLLM is unpinned and unvendored). No source path lets a remote API client alter completions served to the framework, so this is exposure of GPU capacity and of /v1/models and /metrics, not a candidate. Pass `--host 127.0.0.1` and a per-run random `--api-key`, hand that key to the three drivers instead of 'EMPTY', and use 127.0.0.1 instead of `localhost` in run_openevolve.py:37, run_shinkaevolve.py:33,45 and run_codeevolve.py:60."
+ },
+ {
+  "hunter": "hunter-command-construction",
+  "note": "baselines/run_baseline.sh:36 - make the readiness check fail closed: test `kill -0 $server` before accepting the probe, use `curl -sf`, and after the loop confirm the child is still alive (or have vLLM listen on a unix socket / a pre-bound inherited socket instead of a released port from free_port at line 29)."
+ },
+ {
+  "hunter": "hunter-command-construction",
+  "note": "baselines/run_baseline.sh:17-19,26,43,50,55-60 - positional arguments are expanded unquoted (`mkdir -p $out`, `basename $model`, `[ $framework = ... ]`, `--problem $problem --model $model --output $out`) and `$((budget * 60))` performs bash arithmetic evaluation on a raw argument. Only the operator supplies these values (same principal), so this is robustness: quote every expansion, validate framework against the three names, require problem to match a directory name under benchmarks/problems, and require budget/seed to match ^[0-9]+$."
+ },
+ {
+  "hunter": "hunter-command-construction",
+  "note": "baselines/run_baseline.sh:56,64 - run.json/end.json are assembled with echo and raw interpolation of problem, model, budget, seed and the nvidia-smi GPU name; a quote or backslash in any of them yields invalid or restructured JSON. No code in the repository reads these files today; write them with `python -c 'json.dump(...)'` so later analysis tooling can rely on them."
+ },
+ {
+  "hunter": "hunter-command-construction",
+  "note": "baselines/ShinkaEvolve/shinka/launch/slurm.py:20,27,133-134,155,183,228-250,259,271,329,340,352,441-447,475,481,489 - env exports, `\" \".join(cmd)`, log_dir, image, docker_flags, image_tar_path, modules and sbatch kwargs are formatted into shell text without shlex.quote. All values are operator job/evolution config (same principal; results_dir with a space or metacharacter breaks the job or self-injects). Use shlex.join(cmd) and shlex.quote for each interpolated value, as scheduler.py:200 already does for the local activate_script path."
+ },
+ {
+  "hunter": "hunter-command-construction",
+  "note": "baselines/ShinkaEvolve/shinka/launch/slurm.py:49-50,64-68 and scheduler.py:196-200 - _escape_double_quotes only escapes `\"`; inside the resulting double-quoted `source \"...\"` string `$(...)`, backticks and `\\` are still interpreted. Operator-controlled today; prefer shlex.quote. Also slurm.py:259 and 340 append `#SBATCH --k=v` entries without a newline, so more than one extra sbatch kwarg produces a single malformed directive (correctness)."
+ },
+ {
+  "hunter": "hunter-command-construction",
+  "note": "baselines/ShinkaEvolve/shinka/llm/providers/headless.py:212-219,247-252 - `shell=True` / create_subprocess_shell is used only for the claude agent and only with shlex.join output; it adds nothing over list argv and should be dropped so a future edit cannot introduce an unquoted token."
+ },
+ {
+  "hunter": "hunter-command-construction",
+  "note": "baselines/ShinkaEvolve/shinka/env.py:17-26 - `<cwd>/.env` and `<package root>/.env` are loaded with override=True at `import shinka`. They can replace PATH, PYTHONPATH, SHINKA_HEADLESS_COMMAND (headless.py:40) and WOLFRAMSCRIPT_BIN (utils/wolfram.py:20), which select the executables that later subprocess calls run. Consider override=False and an allowlist of keys (provider API keys) for the cwd file. See the `uncovered` entry."
+ },
+ {
+  "hunter": "hunter-command-construction",
+  "note": "baselines/openevolve/openevolve/llm/copilot_cli.py:118-121 - the whole prompt (system message plus prior programs and program output) is passed as one argv element: it is visible to other local users in the process list and is subject to the per-argument size limit that claude_code.py:82-83 already avoids by using stdin."
+ },
+ {
+  "hunter": "hunter-command-construction",
+  "note": "baselines/openevolve/openevolve/llm/claude_code.py:67-80,118-125 - `claude -p` is launched with no tool/permission restriction flags and with cwd defaulting to the framework's working directory, while the prompt contains program output fed back from evaluations; ShinkaEvolve's headless path passes `--allow read-only` (headless.py:169-170) and the codex backend sets a read-only sandbox (codex_app_server.py:286-287). Not used by this repository's glue (which uses the OpenAI-compatible provider); align the claude and copilot backends with an explicit read-only/no-tools setting and a dedicated empty cwd."
+ },
+ {
+  "hunter": "hunter-shinka-webui",
+  "note": "visualization.py: add a --host option defaulting to 127.0.0.1 and reject requests whose Host header is not an expected loopback/host name; this also closes DNS rebinding against the loopback listener."
+ },
+ {
+  "hunter": "hunter-shinka-webui",
+  "note": "visualization.py:1681: drop Access-Control-Allow-Origin: * (the bundled front end is same-origin) or restrict it to an explicit origin."
+ },
+ {
+  "hunter": "hunter-shinka-webui",
+  "note": "visualization.py: replace the no-op _get_actual_db_path with one resolver that realpath()s the joined path and requires os.path.commonpath([root, path]) == root, and use it for db_path, failure_json_path, generated_code_path and /plot_file/; validate generation and processed_count as integers at the dispatch layer (do_GET) for /get_plots, /get_meta_content and /download_meta_pdf."
+ },
+ {
+  "hunter": "hunter-shinka-webui",
+  "note": "visualization.py:981-1025: restrict /plot_file/ to the image extensions that /get_plots lists and to gen_*/results/plots directories, and perform the containment test before the existence test."
+ },
+ {
+  "hunter": "hunter-shinka-webui",
+  "note": "visualization.py:235, :1145, :1253: open sqlite files with a 'file:...?mode=ro' URI as ProgramDatabase does, so an unauthenticated GET never holds a writable handle (WAL/journal side files, hot-journal recovery) on a path chosen by the client."
+ },
+ {
+  "hunter": "hunter-shinka-webui",
+  "note": "visualization.py:815: return meta file names relative to the run directory instead of absolute server paths; error responses (:453, :525, :797, :830) should not echo server paths or raw exception text."
+ },
+ {
+  "hunter": "hunter-shinka-webui",
+  "note": "visualization.py:36, :441-484: db_cache is keyed by the raw client string with no size bound, so distinct spellings of the same path each retain a full program list in memory."
+ },
+ {
+  "hunter": "hunter-shinka-webui",
+  "note": "visualization.py:1510-1529: pass --disable-javascript and --disable-local-file-access (and avoid external fetches) to wkhtmltopdf, and escape or sanitise the markdown output and the generation string before building the document."
+ },
+ {
+  "hunter": "hunter-shinka-webui",
+  "note": "viz_tree.html:2075-2084 and compare.html:8: third-party scripts are loaded from CDNs without Subresource Integrity, and marked, Chart.js (compare.html) and 'plotly-latest' are unpinned; pin versions, add integrity attributes or vendor the files, and add a Content-Security-Policy."
+ },
+ {
+  "hunter": "hunter-shinka-webui",
+  "note": "viz_tree.html: use textContent or a single escaping template helper for every interpolated field, and pass marked.parse output through a sanitiser before assigning to innerHTML; ids interpolated into inline onclick attributes (:5900, :5917, :5934, :10595, :10682) should be bound with addEventListener instead."
+ },
+ {
+  "hunter": "hunter-shinka-webui",
+  "note": "index.html:854: statistics cells are filled with innerHTML; formatBestGeneration and formatGenerations would pass a non-numeric MAX(generation) from a hand-crafted sqlite file through unescaped. Use textContent or coerce to Number."
+ },
+ {
+  "hunter": "hunter-shinka-webui",
+  "note": "viz_tree.html defines escapeHtml three times with different behaviour (:3204, :6194, :18006); the later definitions override the earlier one for the whole script. Keep one implementation."
+ },
+ {
+  "hunter": "hunter-ai-llm",
+  "note": "OpenEvolve ClaudeCodeLLM (baselines/openevolve/openevolve/llm/claude_code.py:67-80) starts `claude -p` with no tool, permission-mode, MCP or settings restriction, unlike the sibling Codex backend (read-only sandbox, no network, codex_app_server.py:284-288) and ShinkaEvolve headless ('--allow read-only'). The prompt it receives contains prior program bodies and program stdout. Pin an empty or read-only tool set and isolate from ambient user/project settings so the backend behaves as a text completer regardless of the operator's Claude Code configuration."
+ },
+ {
+  "hunter": "hunter-ai-llm",
+  "note": "OpenEvolve CopilotCLILLM forwards `--allow-all-tools` when model config sets allow_all_tools (copilot_cli.py:144-145); document that this hands tool authority to a prompt containing program-controlled text, or remove the option."
+ },
+ {
+  "hunter": "hunter-ai-llm",
+  "note": "ShinkaEvolve validate_code_async (shinka/edit/async_apply.py:127-269) has no production caller today. Its Rust branch documents the invariant that validation must not let generated code read host files, but the C++ (g++ -fsyntax-only), Fortran, Verilog and Swift branches run host toolchains that resolve include directives (and swiftc emits a binary). If it is ever wired in ahead of a contained evaluation backend, compiler diagnostics could carry host file content back into prompts; bring the sibling branches to the Rust standard or delete the dead code."
+ },
+ {
+  "hunter": "hunter-ai-llm",
+  "note": "shinka/utils/load_df.py:105-125 builds each row with **metadata, **public_metrics, **private_metrics and metrics spread after the canonical columns, so an evaluator-emitted key named correct, combined_score, generation, id or code silently replaces the database column in every DataFrame consumer (shinka-inspect ranking, plots). Namespace or reject colliding keys."
+ },
+ {
+  "hunter": "hunter-ai-llm",
+  "note": "OpenEvolve _write_artifact_file (database.py:2748-2752) sanitises artifact keys by character filtering only; names '.'/'..' and collisions after filtering are possible (the write just fails inside the try). With use_llm_feedback the keys come from the judge model's JSON (evaluator.py:731-733). Prefer a fixed allow-list or hashed file names."
+ },
+ {
+  "hunter": "hunter-ai-llm",
+  "note": "ShinkaEvolve passes the LLM-chosen patch_name to Rich tables unescaped (shinka/database/display.py:162, 488, 644): console markup/hyperlink spoofing and a possible markup error on unbalanced tags. Apply rich.markup.escape."
+ },
+ {
+  "hunter": "hunter-ai-llm",
+  "note": "Prompt assembly in all three frameworks places program bodies and stdout inside fixed ``` fences (e.g. OpenEvolve sampler.py:679, ShinkaEvolve prompts_base.py:61). This is LLM-to-LLM and not a boundary by itself, but with OpenEvolve use_llm_feedback=True the judged program can address the judge model and influence llm_* metrics and the 30% weight on combined_score (evaluator.py:289-316). Keep LLM-judge scoring off for any result that is compared across systems."
+ },
+ {
+  "hunter": "hunter-ai-llm",
+  "note": "OpenEvolve's artifact_security_filter (sampler.py:717-746) is a best-effort regex redaction; generated programs run with the full parent environment and their output tail is forwarded to the configured LLM endpoint, so secrets that are short or contain punctuation pass through. Do not rely on it as a secrecy control; scrub the evaluation environment instead."
+ },
+ {
+  "hunter": "hunter-ai-llm",
+  "note": "Skill frontmatter (LP3 x3): none of the four Shinka skills declares a tool scope. In the Agent Skills format this is not a permission ceiling, so the notes are not findings, but stating in each SKILL.md which tools are needed and that results-derived text is data would help hosts and reviewers. The two EA2 notes ('without consent') are false positives: the flagged lines require consent before overwriting."
+ },
+ {
+  "hunter": "hunter-ai-llm",
+  "note": "shinka-setup SKILL.md:73-79 has the agent run an unpinned `pip install shinka-evolve`, and docs/agentic_usage.md:58 installs skills with `npx skills add ... -y` from the default branch; pin versions/commits (supply-chain detail is owned by a peer unit)."
+ },
+ {
+  "hunter": "hunter-ci-supply-chain",
+  "note": "Vendored workflows are inert here (no root .github/). If any are ever activated, pin every 'uses:' to a commit SHA: all refs except those in ShinkaEvolve claude.yml are mutable (actions/*@v3-v5, astral-sh/setup-uv@v5, docker/*@v3-v5, stefanzweifel/git-auto-commit-action@v5, pypa/gh-action-pypi-publish@release/v1, anthropics/claude-code-action@beta), and several run in jobs holding contents: write, packages: write, id-token: write or provider secrets."
+ },
+ {
+  "hunter": "hunter-ci-supply-chain",
+  "note": "openevolve python-test.yml runs PR code in the job that references secrets.HF_TOKEN. This is safe only because GitHub withholds secrets from fork pull_request runs; it would expose the token in a private repository with 'send secrets to fork pull requests' enabled, or if the trigger were changed to pull_request_target. Split the secret-backed integration job onto push/schedule as ShinkaEvolve integration.yml does. The same file installs optillm and math-verify unpinned (line 65) and declares no permissions block."
+ },
+ {
+  "hunter": "hunter-ci-supply-chain",
+  "note": "CodeEvolve ci.yml 'format' job: add persist-credentials: false to the test job and limit the write-token job to the minimum; pip install -e '.[dev]' and the auto-commit action run unpinned third-party code while a contents: write token is in .git/config."
+ },
+ {
+  "hunter": "hunter-ci-supply-chain",
+  "note": "ShinkaEvolve pypi-release.yml publishes on any v* tag push with no protected environment, and runs unpinned 'uv run --with build/twine/python-dotenv' in the job that holds id-token: write; integration.yml exposes eleven provider secrets at job level to every step, including mutable-tag actions, and installs without a lock file (no uv.lock is vendored)."
+ },
+ {
+  "hunter": "hunter-ci-supply-chain",
+  "note": "pillow==11.3.0 (baselines/requirements_openevolve_shinkaevolve.txt line 46) matches 58 OSV advisory groups (fixed in 12.1.1 through 13.0.0). No in-scope code decodes untrusted images or fonts with Pillow, so this is not reachable today; raise the pin to >= 13.0.0 when the paper environment can be re-validated, since any later use of Image.open on run data would make the decoder advisories reachable."
+ },
+ {
+  "hunter": "hunter-ci-supply-chain",
+  "note": "Both installed manifests are '==' pinned and installed with --no-deps but without hashes (setup_baselines.sh lines 21, 26); add --require-hashes. They pin 'httpx2' and 'httpcore2' (requirements_openevolve_shinkaevolve.txt lines 26-27, requirements_codeevolve.txt lines 6, 8), names that no source file or pyproject in this repository references; I could not verify their provenance offline, so the owner should confirm they are the intended transitive dependencies of the pinned openai/google-genai releases and not look-alike packages. osv-scanner also reports that the first manifest cannot be resolved (aiohttp==3.14.5 against a '<3.14.0' requirement), which --no-deps hides."
+ },
+ {
+  "hunter": "hunter-ci-supply-chain",
+  "note": "The example-only OSV hits (torch, scipy, pillow 9.5.0, transformers, anyio, certifi, idna, orjson, mlx, numpy, scikit-learn, lxml, requests) come from '>=' lower bounds in baselines/openevolve/examples/*/requirements.txt that setup_baselines.sh never installs; no action needed beyond not installing those files into the benchmark environment."
+ },
+ {
+  "hunter": "hunter-ci-supply-chain",
+  "note": "OpenEvolve visualizer: --debug is correctly opt-in and cannot be enabled by FLASK_DEBUG, but nothing rejects --debug together with a non-loopback --host; refuse that combination so the Werkzeug debugger is never offered on a network interface."
+ },
+ {
+  "hunter": "hunter-ci-supply-chain",
+  "note": "CodeEvolve OpenAILM/OpenAIEmbedding default verify_ssl to None and pass it to httpx.AsyncClient(verify=None); make the default an explicit True and log a warning whenever a configuration sets it to False."
+ },
+ {
+  "hunter": "hunter-ci-supply-chain",
+  "note": ".gitignore coverage: baselines/openevolve/.gitignore does not list .env, and the root allow-list does not ignore baselines/.env or benchmarks/.env; add '.env' and '.env.*' at the root. baselines/openevolve has no .dockerignore while its Dockerfile does 'COPY . /app' from a mutable base tag (python:3.12-slim) and runs as root, so a local docker build would bake any untracked secrets.yaml or .env into the image."
+ },
+ {
+  "hunter": "hunter-ci-supply-chain",
+  "note": "baselines/CodeEvolve/problems/eoh-problems/tsp_gls/input/TrainingData/TSPAEL64.pkl is a tracked pickle loaded by that example's evaluator; it is repository-shipped data, but replacing it with a non-executable format (npz/JSON) removes a code-execution-on-load file from the tree."
+ },
+ {
+  "hunter": "hunter-openevolve-visualizer",
+  "note": "scripts/manual.py: require a per-run secret (for example a random token printed at start-up and sent as a header) on all /manual routes, reject requests whose Host is not the bound address and whose Origin is present but different, and register the blueprint only when manual mode is in use."
+ },
+ {
+  "hunter": "hunter-openevolve-visualizer",
+  "note": "scripts/visualizer.py --debug enables the Werkzeug interactive debugger (visualizer.py:208-212, 239). It is opt-in and documented as local-only; combined with a non-loopback --host it exposes the PIN-protected console to the network. Consider refusing --debug when --host is not loopback."
+ },
+ {
+  "hunter": "hunter-openevolve-visualizer",
+  "note": "scripts/static/js/manual.js:49-53 interpolates task id, model name and timestamp into innerHTML without escaping. Current sources are framework- or operator-controlled, so this is not a finding, but it should use textContent."
+ },
+ {
+  "hunter": "hunter-openevolve-visualizer",
+  "note": "scripts/static/js/sidebar.js:363-365 defines a second escapeHtml that does not escape quotes; it is only used in element content today. Use the full helper at sidebar.js:672-680 everywhere, including attribute positions."
+ },
+ {
+  "hunter": "hunter-openevolve-visualizer",
+  "note": "No Content-Security-Policy is sent, and index.html:6 and manual_page.html:7 load d3 and the Monaco loader from public CDNs without Subresource Integrity."
+ },
+ {
+  "hunter": "hunter-openevolve-visualizer",
+  "note": "scripts/visualizer.py:233-239: after --static-output the code falls through and starts the server, although the help text says it exits."
+ },
+ {
+  "hunter": "hunter-benchmark-harness",
+  "note": "benchmarks/problems/circle_packing_26/evaluator.py:105-139 interpolates program_path and temp_file.name unquoted into generated Python source (inside quotes and inside an f-string). No lower-trust value reaches these today, but an operator path containing a quote, backslash or brace breaks or changes the wrapper; pass the paths through sys.argv or repr()."
+ },
+ {
+  "hunter": "hunter-benchmark-harness",
+  "note": "benchmarks/problems/circle_packing_26/evaluator.py:208-210 uses a 600 s inner limit under a 60 s outer limit, so its timeout branch is unreachable in the shared harness, and the outer SIGKILL skips the finally block (184-189): the wrapper script and results file stay in the temp directory after every timed-out evaluation. Use a private temporary directory owned by evaluation.py's work directory."
+ },
+ {
+  "hunter": "hunter-benchmark-harness",
+  "note": "benchmarks/evaluation.py:57 and benchmarks/scientific_cases.py:49 call communicate() without a timeout after the group kill; a descendant that left the group and still holds the pipe keeps evaluate() from returning."
+ },
+ {
+  "hunter": "hunter-benchmark-harness",
+  "note": "benchmarks/evaluation.py:52 does not validate the marker payload: invalid JSON or a non-object raises out of evaluate() and the evaluation is never logged; Infinity and booleans pass the score test at 62 and json.dumps then writes non-standard JSON to the log."
+ },
+ {
+  "hunter": "hunter-benchmark-harness",
+  "note": "benchmarks/evaluation.py:28-30 enforces the documented single CPU core only through advisory environment variables; nothing pins affinity or limits process count, so a program can start several worker processes."
+ },
+ {
+  "hunter": "hunter-benchmark-harness",
+  "note": "benchmarks/problems/kissing_number_11/evaluator.py:46 and 53-55 validate the packing with assert statements, which are removed when the evaluating interpreter runs with PYTHONOPTIMIZE or -O; the environment is inherited unchanged from the operator's shell."
+ },
+ {
+  "hunter": "hunter-benchmark-harness",
+  "note": "benchmarks/problems/circle_packing_26/evaluator.py:20 reads the score scale from the ambient variable CIRCLE_PACKING_TARGET_VALUE, which evaluation.py:46 passes through; a stray value in the operator's shell silently rescales every score of that problem."
+ },
+ {
+  "hunter": "hunter-benchmark-harness",
+  "note": "benchmarks/evaluation.py:46 places the evaluator in its own session without installing a termination handler, so in-flight evaluations are not stopped when the framework receives the end-of-budget SIGTERM (baselines/run_baseline.sh:54) and then run with no time limit."
+ }
+]
