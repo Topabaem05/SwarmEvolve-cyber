@@ -1,0 +1,571 @@
+{
+  "schema_version": "1.0",
+  "source": "security/audit/run-1/findings.json",
+  "note": "Capability view of the 21 run-1 leads, written by the coordinating reviewer. Every node is needs_validation: a capability listed here is what the lead would give IF it is confirmed. Scopes are exact-match identifiers local to this file. terminal_impact is the expected direct impact, not a severity.",
+  "entry_profiles": {
+    "adjacent-network-client": {
+      "description": "A client on a network that can reach the ShinkaEvolve viewer port.",
+      "capabilities": [
+        {
+          "kind": "controlled_request",
+          "scope": "network-to-shinka-viewer-port"
+        }
+      ]
+    },
+    "cross-site-page": {
+      "description": "A web page open in the browser of an operator who runs a web UI.",
+      "capabilities": [
+        {
+          "kind": "controlled_request",
+          "scope": "operator-browser"
+        }
+      ]
+    },
+    "evaluated-program": {
+      "description": "An LLM-generated program during its own evaluation. Running it is the design; its entry capabilities are what that design already grants.",
+      "capabilities": [
+        {
+          "kind": "code_execution",
+          "scope": "evaluated-program"
+        },
+        {
+          "kind": "relative_file_write",
+          "scope": "shared-tmp"
+        },
+        {
+          "kind": "relative_file_write",
+          "scope": "shinka-results-content"
+        },
+        {
+          "kind": "relative_file_write",
+          "scope": "openevolve-checkpoint-content"
+        }
+      ]
+    },
+    "other-local-user": {
+      "description": "Another account on the host that runs the benchmark.",
+      "capabilities": [
+        {
+          "kind": "relative_file_write",
+          "scope": "shared-tmp"
+        },
+        {
+          "kind": "controlled_request",
+          "scope": "localhost-listener"
+        },
+        {
+          "kind": "controlled_request",
+          "scope": "openevolve-visualizer-port"
+        }
+      ]
+    },
+    "artifact-supplier": {
+      "description": "Someone who gives the operator a results directory, checkpoint or database to open or resume.",
+      "capabilities": [
+        {
+          "kind": "relative_file_write",
+          "scope": "shinka-results-content"
+        },
+        {
+          "kind": "relative_file_write",
+          "scope": "shinka-results-dir-files"
+        },
+        {
+          "kind": "relative_file_write",
+          "scope": "codeevolve-ckpt-dir-files"
+        },
+        {
+          "kind": "relative_file_write",
+          "scope": "openevolve-checkpoint-content"
+        }
+      ]
+    },
+    "network-path-attacker": {
+      "description": "An attacker on the network path between a framework and a remote model endpoint.",
+      "capabilities": [
+        {
+          "kind": "controlled_request",
+          "scope": "tls-path-to-model-endpoint"
+        }
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "baselines-glue/vllm-localhost-endpoint-impersonation",
+      "status": "needs_validation",
+      "title": "run_baseline.sh accepts any listener on localhost:<port> as the model server, so another local user can supply the programs the operator executes",
+      "required_capabilities": [
+        {
+          "kind": "controlled_request",
+          "scope": "localhost-listener"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "code_execution",
+          "scope": "evaluated-program"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "high",
+        "availability": "high",
+        "what": "every generated program of the run, executed as the operator"
+      }
+    },
+    {
+      "id": "benchmarks-evaluation/eval-log-writable-by-evaluated-program",
+      "status": "needs_validation",
+      "title": "Evaluated program receives the path of the shared score log and can write records to it directly",
+      "required_capabilities": [
+        {
+          "kind": "code_execution",
+          "scope": "evaluated-program"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "security_boundary_bypass",
+          "scope": "benchmark-score-log"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "any record in the shared score log"
+      }
+    },
+    {
+      "id": "benchmarks-evaluation/inband-metrics-marker-forgery",
+      "status": "needs_validation",
+      "title": "Evaluated program can set its own recorded score through the in-band metrics marker",
+      "required_capabilities": [
+        {
+          "kind": "code_execution",
+          "scope": "evaluated-program"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "security_boundary_bypass",
+          "scope": "benchmark-recorded-score"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "the score recorded for the program"
+      }
+    },
+    {
+      "id": "benchmarks-evaluation/time-limit-process-escape",
+      "status": "needs_validation",
+      "title": "Processes started by an evaluated program outlive the evaluation and its time limit",
+      "required_capabilities": [
+        {
+          "kind": "code_execution",
+          "scope": "evaluated-program"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "code_execution",
+          "scope": "operator-host-after-time-limit"
+        }
+      ],
+      "terminal_impact": null
+    },
+    {
+      "id": "benchmarks-scientific-cases/reference-answers-readable-by-program",
+      "status": "needs_validation",
+      "title": "Scientific-problem programs can read the reference answers they are scored against",
+      "required_capabilities": [
+        {
+          "kind": "code_execution",
+          "scope": "evaluated-program"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "relative_file_read",
+          "scope": "benchmark-reference-answers"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "the score of a scientific-computing problem"
+      }
+    },
+    {
+      "id": "circle-packing-26-evaluator/results-pickle-load",
+      "status": "needs_validation",
+      "title": "circle_packing_26 evaluator unpickles a results file controlled by the evaluated program",
+      "required_capabilities": [
+        {
+          "kind": "code_execution",
+          "scope": "evaluated-program"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "code_execution",
+          "scope": "circle-packing-evaluator-process"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "the score recorded for circle_packing_26"
+      }
+    },
+    {
+      "id": "circle-packing-26-evaluator/shared-tempdir-on-module-search-path",
+      "status": "needs_validation",
+      "title": "Evaluation runs Python with the shared temp directory first on the module search path",
+      "required_capabilities": [
+        {
+          "kind": "relative_file_write",
+          "scope": "shared-tmp"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "code_execution",
+          "scope": "circle-packing-wrapper-of-any-run"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "high",
+        "availability": "high",
+        "what": "code execution in other evaluations under the operator account"
+      }
+    },
+    {
+      "id": "codeevolve-ckpt/pickle-load-on-resume",
+      "status": "needs_validation",
+      "title": "CodeEvolve unpickles the highest-numbered ckpt_N.pkl found in an output directory that evaluated programs can write",
+      "required_capabilities": [
+        {
+          "kind": "relative_file_write",
+          "scope": "codeevolve-ckpt-dir-files"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "code_execution",
+          "scope": "codeevolve-runner-process"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "high",
+        "availability": "high",
+        "what": "code execution in the runner of whoever resumes the checkpoint"
+      }
+    },
+    {
+      "id": "codeevolve/config-template-verify-ssl-false",
+      "status": "needs_validation",
+      "title": "CodeEvolve's shipped model templates disable TLS certificate verification for the client that carries the API key and returns code to execute",
+      "required_capabilities": [
+        {
+          "kind": "controlled_request",
+          "scope": "tls-path-to-model-endpoint"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "credential_access",
+          "scope": "model-provider-api-key"
+        },
+        {
+          "kind": "code_execution",
+          "scope": "evaluated-program"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "high",
+        "availability": "none",
+        "what": "the provider API key and the generated programs"
+      }
+    },
+    {
+      "id": "openevolve-api/shared-tempdir-module-path",
+      "status": "needs_validation",
+      "title": "OpenEvolve library API writes the evaluator module into the shared temp dir and adds that dir to sys.path of controller and workers",
+      "required_capabilities": [
+        {
+          "kind": "relative_file_write",
+          "scope": "shared-tmp"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "code_execution",
+          "scope": "openevolve-controller-process"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "high",
+        "availability": "high",
+        "what": "code execution in the OpenEvolve controller"
+      }
+    },
+    {
+      "id": "openevolve-evaluator/shared-tmp-program-import-path",
+      "status": "needs_validation",
+      "title": "OpenEvolve places candidate programs in the shared temp dir, which the benchmark evaluators then put first on sys.path",
+      "required_capabilities": [
+        {
+          "kind": "relative_file_write",
+          "scope": "shared-tmp"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "code_execution",
+          "scope": "scorer-process-of-openevolve-runs"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "high",
+        "availability": "high",
+        "what": "code execution in the scorer process under the operator account"
+      }
+    },
+    {
+      "id": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+      "status": "needs_validation",
+      "title": "OpenEvolve manual-mode endpoints let any client that can reach the visualizer port supply the LLM reply that is then executed",
+      "required_capabilities": [
+        {
+          "kind": "controlled_request",
+          "scope": "openevolve-visualizer-port"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "code_execution",
+          "scope": "evaluated-program"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "high",
+        "availability": "high",
+        "what": "an attacker-written program run as the operator (manual mode only)"
+      }
+    },
+    {
+      "id": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+      "status": "needs_validation",
+      "title": "OpenEvolve visualizer writes LLM replies, prompts and artifacts into the page as HTML without escaping",
+      "required_capabilities": [
+        {
+          "kind": "relative_file_write",
+          "scope": "openevolve-checkpoint-content"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "code_execution",
+          "scope": "openevolve-visualizer-browser-origin"
+        },
+        {
+          "kind": "controlled_request",
+          "scope": "openevolve-visualizer-port"
+        }
+      ],
+      "terminal_impact": null
+    },
+    {
+      "id": "openevolve-visualizer/static-export-inline-script-json-breakout",
+      "status": "needs_validation",
+      "title": "OpenEvolve static export embeds run data in an inline script without HTML-safe encoding, so '</script>' in generated text injects markup",
+      "required_capabilities": [
+        {
+          "kind": "relative_file_write",
+          "scope": "openevolve-checkpoint-content"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "code_execution",
+          "scope": "exported-html-origin"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "low",
+        "availability": "none",
+        "what": "script in the exported page"
+      }
+    },
+    {
+      "id": "shinka-bandit-state/pickle-load-on-resume",
+      "status": "needs_validation",
+      "title": "ShinkaEvolve runner unpickles results_dir/bandit_state.pkl on resume, a file the evaluated program can write",
+      "required_capabilities": [
+        {
+          "kind": "relative_file_write",
+          "scope": "shinka-results-dir-files"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "code_execution",
+          "scope": "shinka-runner-process"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "high",
+        "availability": "high",
+        "what": "code execution in the runner of whoever resumes the directory"
+      }
+    },
+    {
+      "id": "shinka-inspect/context-bundle-fence-breakout",
+      "status": "needs_validation",
+      "title": "shinka-inspect context bundle lets generated program text and program stdout escape their code fences in the file a coding agent is told to load",
+      "required_capabilities": [
+        {
+          "kind": "relative_file_write",
+          "scope": "shinka-results-content"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "custom",
+          "scope": "coding-agent-context",
+          "properties": [
+            "text outside the intended code fence in a file an agent loads"
+          ]
+        }
+      ],
+      "terminal_impact": null
+    },
+    {
+      "id": "shinka-webui/cors-wildcard-json-api",
+      "status": "needs_validation",
+      "title": "Every JSON endpoint answers with Access-Control-Allow-Origin: *, letting any web page the operator visits read run data through the operator's browser",
+      "required_capabilities": [
+        {
+          "kind": "controlled_request",
+          "scope": "operator-browser"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "controlled_request",
+          "scope": "shinka-viewer-json-api"
+        }
+      ],
+      "terminal_impact": null
+    },
+    {
+      "id": "shinka-webui/db-path-traversal",
+      "status": "needs_validation",
+      "title": "db_path query value is joined to search_root without containment, exposing Shinka databases, prompt databases and meta_*.txt files anywhere on the host",
+      "required_capabilities": [
+        {
+          "kind": "controlled_request",
+          "scope": "shinka-viewer-json-api"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "relative_file_read",
+          "scope": "shinka-databases-and-meta-files-anywhere"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "none",
+        "availability": "none",
+        "what": "programs, prompts and meta text of runs outside the served directory"
+      }
+    },
+    {
+      "id": "shinka-webui/dom-xss-llm-derived-fields",
+      "status": "needs_validation",
+      "title": "viz_tree.html writes model-derived patch names, descriptions, thoughts and meta summaries into innerHTML without escaping",
+      "required_capabilities": [
+        {
+          "kind": "relative_file_write",
+          "scope": "shinka-results-content"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "code_execution",
+          "scope": "shinka-viewer-browser-origin"
+        },
+        {
+          "kind": "controlled_request",
+          "scope": "shinka-viewer-file-api"
+        },
+        {
+          "kind": "controlled_request",
+          "scope": "shinka-viewer-json-api"
+        }
+      ],
+      "terminal_impact": null
+    },
+    {
+      "id": "shinka-webui/plot-file-unrestricted-read",
+      "status": "needs_validation",
+      "title": "/plot_file/ returns any file under the search root (by default the launch directory that holds .env) and its prefix check admits sibling directories and symlinks",
+      "required_capabilities": [
+        {
+          "kind": "controlled_request",
+          "scope": "shinka-viewer-file-api"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "relative_file_read",
+          "scope": "viewer-search-root-and-prefix-siblings"
+        }
+      ],
+      "terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "none",
+        "availability": "none",
+        "what": "operator files under the launch directory, such as .env"
+      }
+    },
+    {
+      "id": "shinka-webui/wildcard-bind-no-auth",
+      "status": "needs_validation",
+      "title": "Web UI listens on all interfaces with no authentication while the documentation describes access through an SSH tunnel to localhost",
+      "required_capabilities": [
+        {
+          "kind": "controlled_request",
+          "scope": "network-to-shinka-viewer-port"
+        }
+      ],
+      "capabilities_gained": [
+        {
+          "kind": "controlled_request",
+          "scope": "shinka-viewer-file-api"
+        },
+        {
+          "kind": "controlled_request",
+          "scope": "shinka-viewer-json-api"
+        }
+      ],
+      "terminal_impact": null
+    }
+  ]
+}

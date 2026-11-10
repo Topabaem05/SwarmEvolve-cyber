@@ -1,0 +1,1037 @@
+{
+  "schema_version": "1.0",
+  "target": "Topabaem05/SwarmEvolve-cyber@a944b3d",
+  "status": "partial",
+  "note": "Built from audit run-1. The registry is a shared vocabulary and an index of where to look. Membership is not proof: verify every source location before relying on an entry. Status is partial because six coverage units were deferred.",
+  "entities": [
+    {
+      "entity_id": "ENT-operator",
+      "kind": "principal",
+      "name": "Operator who runs the benchmark and the web UIs",
+      "trust_zone": "trusted",
+      "source_locations": [
+        "baselines/run_baseline.sh:22"
+      ]
+    },
+    {
+      "entity_id": "ENT-evolved-program",
+      "kind": "principal",
+      "name": "LLM-generated program under evaluation",
+      "trust_zone": "lowest",
+      "source_locations": [
+        "benchmarks/evaluation.py:43",
+        "benchmarks/run_evaluator.py:12"
+      ]
+    },
+    {
+      "entity_id": "ENT-network-client",
+      "kind": "principal",
+      "name": "Client that can reach a web UI port",
+      "trust_zone": "untrusted",
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:1740"
+      ]
+    },
+    {
+      "entity_id": "ENT-cross-site-page",
+      "kind": "principal",
+      "name": "Web page open in the operator browser",
+      "trust_zone": "untrusted",
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:1681"
+      ]
+    },
+    {
+      "entity_id": "ENT-local-user",
+      "kind": "principal",
+      "name": "Another account on the same host",
+      "trust_zone": "untrusted",
+      "source_locations": [
+        "benchmarks/problems/circle_packing_26/evaluator.py:95",
+        "baselines/run_baseline.sh:29"
+      ]
+    },
+    {
+      "entity_id": "ENT-artifact-supplier",
+      "kind": "principal",
+      "name": "Author of a results directory, checkpoint or database that someone else loads",
+      "trust_zone": "untrusted",
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/llm/prioritization.py:220",
+        "baselines/CodeEvolve/src/codeevolve/utils/ckpt.py:115"
+      ]
+    },
+    {
+      "entity_id": "ENT-scorer",
+      "kind": "component",
+      "name": "Shared scoring harness",
+      "trust_zone": "trusted",
+      "source_locations": [
+        "benchmarks/evaluation.py:33"
+      ],
+      "component": "benchmarks"
+    },
+    {
+      "entity_id": "ENT-problem-evaluator",
+      "kind": "component",
+      "name": "Per-problem evaluator loaded by run_evaluator.py",
+      "trust_zone": "trusted",
+      "source_locations": [
+        "benchmarks/run_evaluator.py:9"
+      ],
+      "component": "benchmarks"
+    },
+    {
+      "entity_id": "ENT-shinka-viewer",
+      "kind": "component",
+      "name": "ShinkaEvolve web viewer",
+      "trust_zone": "trusted",
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:274"
+      ],
+      "component": "baselines/ShinkaEvolve"
+    },
+    {
+      "entity_id": "ENT-openevolve-visualizer",
+      "kind": "component",
+      "name": "OpenEvolve Flask visualizer and manual-mode blueprint",
+      "trust_zone": "trusted",
+      "source_locations": [
+        "baselines/openevolve/scripts/visualizer.py:207",
+        "baselines/openevolve/scripts/manual.py:137"
+      ],
+      "component": "baselines/openevolve"
+    },
+    {
+      "entity_id": "ENT-framework-runner",
+      "kind": "component",
+      "name": "Framework parent process (OpenEvolve controller, ShinkaEvolve runner, CodeEvolve CLI)",
+      "trust_zone": "trusted",
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/core/async_runner.py:628",
+        "baselines/CodeEvolve/src/codeevolve/cli.py:125",
+        "baselines/openevolve/openevolve/evaluator.py:259"
+      ]
+    },
+    {
+      "entity_id": "ENT-model-server",
+      "kind": "component",
+      "name": "vLLM server started by the glue script",
+      "trust_zone": "trusted",
+      "source_locations": [
+        "baselines/run_baseline.sh:34"
+      ]
+    },
+    {
+      "entity_id": "ENT-coding-agent",
+      "kind": "component",
+      "name": "Coding agent that loads a ShinkaEvolve skill",
+      "trust_zone": "trusted",
+      "source_locations": [
+        "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py:274"
+      ]
+    }
+  ],
+  "representations": [
+    {
+      "representation_id": "REP-metrics-marker",
+      "entity_ids": [
+        "ENT-scorer",
+        "ENT-evolved-program"
+      ],
+      "kind": "stdout line",
+      "authoritative": true,
+      "mutators": [
+        "ENT-problem-evaluator",
+        "ENT-evolved-program"
+      ],
+      "consumers": [
+        "ENT-scorer"
+      ],
+      "attacker_controlled_fields": [
+        "whole line when the program shares the evaluator stdout"
+      ],
+      "source_locations": [
+        "benchmarks/evaluation.py:50",
+        "benchmarks/run_evaluator.py:16"
+      ]
+    },
+    {
+      "representation_id": "REP-eval-log",
+      "entity_ids": [
+        "ENT-scorer"
+      ],
+      "kind": "JSONL file",
+      "authoritative": true,
+      "mutators": [
+        "ENT-scorer",
+        "ENT-evolved-program"
+      ],
+      "consumers": [
+        "ENT-operator"
+      ],
+      "attacker_controlled_fields": [
+        "any record, by direct append"
+      ],
+      "source_locations": [
+        "benchmarks/evaluation.py:74",
+        "baselines/run_baseline.sh:55"
+      ]
+    },
+    {
+      "representation_id": "REP-program-file",
+      "entity_ids": [
+        "ENT-evolved-program"
+      ],
+      "kind": "Python source file",
+      "authoritative": false,
+      "mutators": [
+        "ENT-framework-runner"
+      ],
+      "consumers": [
+        "ENT-problem-evaluator"
+      ],
+      "attacker_controlled_fields": [
+        "file content"
+      ],
+      "source_locations": [
+        "baselines/openevolve/openevolve/evaluator.py:259"
+      ]
+    },
+    {
+      "representation_id": "REP-shared-tmp",
+      "entity_ids": [
+        "ENT-local-user",
+        "ENT-evolved-program"
+      ],
+      "kind": "directory on the module search path",
+      "authoritative": false,
+      "mutators": [
+        "ENT-local-user",
+        "ENT-evolved-program"
+      ],
+      "consumers": [
+        "ENT-problem-evaluator",
+        "ENT-framework-runner"
+      ],
+      "attacker_controlled_fields": [
+        "file names and contents"
+      ],
+      "source_locations": [
+        "benchmarks/problems/circle_packing_26/evaluator.py:95",
+        "benchmarks/problems/circle_packing_26/evaluator.py:148",
+        "baselines/openevolve/openevolve/evaluator.py:259",
+        "baselines/openevolve/openevolve/api.py:359"
+      ]
+    },
+    {
+      "representation_id": "REP-circle-results-pickle",
+      "entity_ids": [
+        "ENT-evolved-program"
+      ],
+      "kind": "pickle file",
+      "authoritative": false,
+      "mutators": [
+        "ENT-evolved-program"
+      ],
+      "consumers": [
+        "ENT-problem-evaluator"
+      ],
+      "attacker_controlled_fields": [
+        "whole file"
+      ],
+      "source_locations": [
+        "benchmarks/problems/circle_packing_26/evaluator.py:168"
+      ]
+    },
+    {
+      "representation_id": "REP-reference-answers",
+      "entity_ids": [
+        "ENT-problem-evaluator"
+      ],
+      "kind": "npz file and seeded generators",
+      "authoritative": true,
+      "mutators": [
+        "ENT-operator"
+      ],
+      "consumers": [
+        "ENT-problem-evaluator",
+        "ENT-evolved-program"
+      ],
+      "attacker_controlled_fields": [],
+      "source_locations": [
+        "benchmarks/scientific_cases.py:2"
+      ]
+    },
+    {
+      "representation_id": "REP-shinka-db",
+      "entity_ids": [
+        "ENT-framework-runner"
+      ],
+      "kind": "sqlite database and meta text files",
+      "authoritative": false,
+      "mutators": [
+        "ENT-framework-runner",
+        "ENT-artifact-supplier"
+      ],
+      "consumers": [
+        "ENT-shinka-viewer"
+      ],
+      "attacker_controlled_fields": [
+        "patch_name, patch_description, thought, meta text"
+      ],
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/core/async_runner.py:1938",
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:449"
+      ]
+    },
+    {
+      "representation_id": "REP-viewer-request",
+      "entity_ids": [
+        "ENT-network-client",
+        "ENT-cross-site-page"
+      ],
+      "kind": "HTTP GET path and query",
+      "authoritative": false,
+      "mutators": [
+        "ENT-network-client",
+        "ENT-cross-site-page"
+      ],
+      "consumers": [
+        "ENT-shinka-viewer"
+      ],
+      "attacker_controlled_fields": [
+        "db_path, /plot_file/ path, generation, program_id"
+      ],
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:284",
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:985"
+      ]
+    },
+    {
+      "representation_id": "REP-openevolve-checkpoint",
+      "entity_ids": [
+        "ENT-framework-runner"
+      ],
+      "kind": "checkpoint JSON",
+      "authoritative": false,
+      "mutators": [
+        "ENT-framework-runner",
+        "ENT-artifact-supplier"
+      ],
+      "consumers": [
+        "ENT-openevolve-visualizer"
+      ],
+      "attacker_controlled_fields": [
+        "prompts, LLM responses, artifacts, metric names"
+      ],
+      "source_locations": [
+        "baselines/openevolve/scripts/static/js/sidebar.js:421",
+        "baselines/openevolve/scripts/visualizer.py:159"
+      ]
+    },
+    {
+      "representation_id": "REP-manual-answer",
+      "entity_ids": [
+        "ENT-operator"
+      ],
+      "kind": "answer JSON file",
+      "authoritative": false,
+      "mutators": [
+        "ENT-openevolve-visualizer"
+      ],
+      "consumers": [
+        "ENT-framework-runner"
+      ],
+      "attacker_controlled_fields": [
+        "answer text, through an unauthenticated POST"
+      ],
+      "source_locations": [
+        "baselines/openevolve/scripts/manual.py:160"
+      ]
+    },
+    {
+      "representation_id": "REP-resume-state",
+      "entity_ids": [
+        "ENT-framework-runner"
+      ],
+      "kind": "pickle files",
+      "authoritative": false,
+      "mutators": [
+        "ENT-framework-runner",
+        "ENT-artifact-supplier",
+        "ENT-evolved-program"
+      ],
+      "consumers": [
+        "ENT-framework-runner"
+      ],
+      "attacker_controlled_fields": [
+        "whole file"
+      ],
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/llm/prioritization.py:220",
+        "baselines/CodeEvolve/src/codeevolve/utils/ckpt.py:115"
+      ]
+    },
+    {
+      "representation_id": "REP-model-endpoint",
+      "entity_ids": [
+        "ENT-model-server"
+      ],
+      "kind": "localhost TCP port",
+      "authoritative": false,
+      "mutators": [
+        "ENT-model-server",
+        "ENT-local-user"
+      ],
+      "consumers": [
+        "ENT-framework-runner"
+      ],
+      "attacker_controlled_fields": [
+        "every completion, if another process answers on the port"
+      ],
+      "source_locations": [
+        "baselines/run_baseline.sh:29",
+        "baselines/run_baseline.sh:36"
+      ]
+    },
+    {
+      "representation_id": "REP-context-bundle",
+      "entity_ids": [
+        "ENT-coding-agent"
+      ],
+      "kind": "Markdown file",
+      "authoritative": false,
+      "mutators": [
+        "ENT-evolved-program"
+      ],
+      "consumers": [
+        "ENT-coding-agent"
+      ],
+      "attacker_controlled_fields": [
+        "program code and program stdout placed in code fences"
+      ],
+      "source_locations": [
+        "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py:274"
+      ]
+    }
+  ],
+  "invariants": [
+    {
+      "invariant_id": "INV-score-origin",
+      "kind": "integrity",
+      "statement": "A recorded score is the value the problem evaluator computed for that program.",
+      "subject_entity_ids": [
+        "ENT-scorer"
+      ],
+      "representation_ids": [
+        "REP-metrics-marker"
+      ],
+      "enforcement_points": [],
+      "invalidating_transitions": [
+        "TR-evaluate"
+      ],
+      "source_locations": [
+        "benchmarks/evaluation.py:50",
+        "benchmarks/run_evaluator.py:16"
+      ]
+    },
+    {
+      "invariant_id": "INV-log-append-only-by-scorer",
+      "kind": "integrity",
+      "statement": "Only the scorer appends records to the score log.",
+      "subject_entity_ids": [
+        "ENT-scorer"
+      ],
+      "representation_ids": [
+        "REP-eval-log"
+      ],
+      "enforcement_points": [],
+      "invalidating_transitions": [
+        "TR-evaluate"
+      ],
+      "source_locations": [
+        "benchmarks/evaluation.py:46",
+        "benchmarks/evaluation.py:74"
+      ]
+    },
+    {
+      "invariant_id": "INV-eval-time-bound",
+      "kind": "availability",
+      "statement": "Nothing an evaluated program starts runs past its 60 s limit.",
+      "subject_entity_ids": [
+        "ENT-scorer"
+      ],
+      "representation_ids": [],
+      "enforcement_points": [
+        "benchmarks/evaluation.py:56"
+      ],
+      "invalidating_transitions": [
+        "TR-evaluate"
+      ],
+      "source_locations": [
+        "benchmarks/evaluation.py:41",
+        "benchmarks/evaluation.py:56"
+      ]
+    },
+    {
+      "invariant_id": "INV-reference-hidden",
+      "kind": "confidentiality",
+      "statement": "The evaluated program never obtains the reference answer.",
+      "subject_entity_ids": [
+        "ENT-problem-evaluator"
+      ],
+      "representation_ids": [
+        "REP-reference-answers"
+      ],
+      "enforcement_points": [],
+      "invalidating_transitions": [
+        "TR-evaluate"
+      ],
+      "source_locations": [
+        "benchmarks/scientific_cases.py:2"
+      ]
+    },
+    {
+      "invariant_id": "INV-import-path-trusted",
+      "kind": "integrity",
+      "statement": "Python resolves imports in trusted processes only from directories no other principal can write.",
+      "subject_entity_ids": [
+        "ENT-problem-evaluator",
+        "ENT-framework-runner"
+      ],
+      "representation_ids": [
+        "REP-shared-tmp",
+        "REP-program-file"
+      ],
+      "enforcement_points": [],
+      "invalidating_transitions": [
+        "TR-evaluate"
+      ],
+      "source_locations": [
+        "benchmarks/problems/circle_packing_26/evaluator.py:148",
+        "baselines/openevolve/openevolve/evaluator.py:259",
+        "baselines/openevolve/openevolve/evaluator.py:89"
+      ]
+    },
+    {
+      "invariant_id": "INV-deserialize-trusted-only",
+      "kind": "integrity",
+      "statement": "A trusted process unpickles only files written by itself.",
+      "subject_entity_ids": [
+        "ENT-problem-evaluator",
+        "ENT-framework-runner"
+      ],
+      "representation_ids": [
+        "REP-circle-results-pickle",
+        "REP-resume-state"
+      ],
+      "enforcement_points": [],
+      "invalidating_transitions": [
+        "TR-evaluate",
+        "TR-resume"
+      ],
+      "source_locations": [
+        "benchmarks/problems/circle_packing_26/evaluator.py:168",
+        "baselines/ShinkaEvolve/shinka/llm/prioritization.py:220",
+        "baselines/CodeEvolve/src/codeevolve/utils/ckpt.py:115"
+      ]
+    },
+    {
+      "invariant_id": "INV-viewer-root-containment",
+      "kind": "confidentiality",
+      "statement": "The viewer returns only files inside its search root.",
+      "subject_entity_ids": [
+        "ENT-shinka-viewer"
+      ],
+      "representation_ids": [
+        "REP-viewer-request"
+      ],
+      "enforcement_points": [
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:997"
+      ],
+      "invalidating_transitions": [
+        "TR-serve-viewer"
+      ],
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:430",
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:449",
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:997"
+      ]
+    },
+    {
+      "invariant_id": "INV-viewer-operator-only",
+      "kind": "confidentiality",
+      "statement": "Only the operator can query the viewer.",
+      "subject_entity_ids": [
+        "ENT-shinka-viewer"
+      ],
+      "representation_ids": [
+        "REP-viewer-request"
+      ],
+      "enforcement_points": [],
+      "invalidating_transitions": [
+        "TR-serve-viewer"
+      ],
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:1740",
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:1681"
+      ]
+    },
+    {
+      "invariant_id": "INV-ui-text-not-markup",
+      "kind": "integrity",
+      "statement": "Model-derived text is shown as text and is never interpreted as markup or script.",
+      "subject_entity_ids": [
+        "ENT-shinka-viewer",
+        "ENT-openevolve-visualizer"
+      ],
+      "representation_ids": [
+        "REP-shinka-db",
+        "REP-openevolve-checkpoint"
+      ],
+      "enforcement_points": [
+        "baselines/openevolve/scripts/static/js/sidebar.js:363"
+      ],
+      "invalidating_transitions": [
+        "TR-render"
+      ],
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/webui/viz_tree.html:5692",
+        "baselines/openevolve/scripts/static/js/sidebar.js:421",
+        "baselines/openevolve/scripts/visualizer.py:160"
+      ]
+    },
+    {
+      "invariant_id": "INV-llm-reply-origin",
+      "kind": "integrity",
+      "statement": "The reply the framework executes comes from the configured model or from the operator.",
+      "subject_entity_ids": [
+        "ENT-framework-runner"
+      ],
+      "representation_ids": [
+        "REP-manual-answer",
+        "REP-model-endpoint"
+      ],
+      "enforcement_points": [],
+      "invalidating_transitions": [
+        "TR-generate"
+      ],
+      "source_locations": [
+        "baselines/openevolve/scripts/manual.py:160",
+        "baselines/run_baseline.sh:36",
+        "baselines/CodeEvolve/src/codeevolve/lm/openai.py:97"
+      ]
+    },
+    {
+      "invariant_id": "INV-agent-context-provenance",
+      "kind": "integrity",
+      "statement": "Generated program text reaches a coding agent only as clearly delimited data.",
+      "subject_entity_ids": [
+        "ENT-coding-agent"
+      ],
+      "representation_ids": [
+        "REP-context-bundle"
+      ],
+      "enforcement_points": [],
+      "invalidating_transitions": [
+        "TR-inspect"
+      ],
+      "source_locations": [
+        "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py:274"
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "transition_id": "TR-generate",
+      "name": "Framework asks the model for a program",
+      "input_entity_ids": [
+        "ENT-model-server"
+      ],
+      "output_entity_ids": [
+        "ENT-evolved-program"
+      ],
+      "preconditions": [
+        "model endpoint answers"
+      ],
+      "postconditions": [
+        "a program file exists"
+      ],
+      "source_locations": [
+        "baselines/run_baseline.sh:36",
+        "baselines/openevolve/openevolve/evaluator.py:259"
+      ]
+    },
+    {
+      "transition_id": "TR-evaluate",
+      "name": "Scorer runs the evaluator on a program and records the score",
+      "input_entity_ids": [
+        "ENT-evolved-program"
+      ],
+      "output_entity_ids": [
+        "ENT-scorer"
+      ],
+      "preconditions": [
+        "program file exists"
+      ],
+      "postconditions": [
+        "one record appended to the score log"
+      ],
+      "source_locations": [
+        "benchmarks/evaluation.py:43",
+        "benchmarks/run_evaluator.py:12",
+        "benchmarks/evaluation.py:74"
+      ]
+    },
+    {
+      "transition_id": "TR-resume",
+      "name": "Framework reloads saved state from a results or checkpoint directory",
+      "input_entity_ids": [
+        "ENT-artifact-supplier"
+      ],
+      "output_entity_ids": [
+        "ENT-framework-runner"
+      ],
+      "preconditions": [
+        "state file exists and resume is enabled"
+      ],
+      "postconditions": [
+        "runner state replaced by file content"
+      ],
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/core/async_runner.py:628",
+        "baselines/CodeEvolve/src/codeevolve/cli.py:125"
+      ]
+    },
+    {
+      "transition_id": "TR-serve-viewer",
+      "name": "Viewer answers an HTTP request",
+      "input_entity_ids": [
+        "ENT-network-client",
+        "ENT-cross-site-page"
+      ],
+      "output_entity_ids": [
+        "ENT-shinka-viewer"
+      ],
+      "preconditions": [
+        "port reachable"
+      ],
+      "postconditions": [
+        "file or database content returned"
+      ],
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:274",
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:1012"
+      ]
+    },
+    {
+      "transition_id": "TR-render",
+      "name": "Browser renders stored run data",
+      "input_entity_ids": [
+        "ENT-artifact-supplier",
+        "ENT-evolved-program"
+      ],
+      "output_entity_ids": [
+        "ENT-operator"
+      ],
+      "preconditions": [
+        "operator opens the UI or an exported page"
+      ],
+      "postconditions": [
+        "DOM built from stored fields"
+      ],
+      "source_locations": [
+        "baselines/ShinkaEvolve/shinka/webui/viz_tree.html:5692",
+        "baselines/openevolve/scripts/static/js/sidebar.js:421"
+      ]
+    },
+    {
+      "transition_id": "TR-manual-answer",
+      "name": "Manual-mode endpoint stores an answer that becomes the LLM reply",
+      "input_entity_ids": [
+        "ENT-network-client",
+        "ENT-local-user"
+      ],
+      "output_entity_ids": [
+        "ENT-framework-runner"
+      ],
+      "preconditions": [
+        "manual mode enabled and a task is pending"
+      ],
+      "postconditions": [
+        "answer executed as a generated program"
+      ],
+      "source_locations": [
+        "baselines/openevolve/scripts/manual.py:160",
+        "baselines/openevolve/openevolve/llm/openai.py:290"
+      ]
+    },
+    {
+      "transition_id": "TR-inspect",
+      "name": "Skill script writes a context bundle for a coding agent",
+      "input_entity_ids": [
+        "ENT-evolved-program"
+      ],
+      "output_entity_ids": [
+        "ENT-coding-agent"
+      ],
+      "preconditions": [
+        "results database exists"
+      ],
+      "postconditions": [
+        "agent reads the bundle"
+      ],
+      "source_locations": [
+        "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py:274"
+      ]
+    }
+  ],
+  "seams": [
+    {
+      "seam_id": "SEAM-program-stdout-to-scorer",
+      "kind": "shared output channel",
+      "producer_ids": [
+        "ENT-evolved-program"
+      ],
+      "consumer_ids": [
+        "ENT-scorer"
+      ],
+      "invariant_ids": [
+        "INV-score-origin"
+      ],
+      "transition_ids": [
+        "TR-evaluate"
+      ],
+      "candidate_locations": [
+        "benchmarks/evaluation.py:50",
+        "benchmarks/run_evaluator.py:16"
+      ],
+      "hypothesis": "The program and the evaluator write to one stdout stream, and the scorer reads the score from it."
+    },
+    {
+      "seam_id": "SEAM-program-env-to-log",
+      "kind": "inherited environment",
+      "producer_ids": [
+        "ENT-scorer"
+      ],
+      "consumer_ids": [
+        "ENT-evolved-program"
+      ],
+      "invariant_ids": [
+        "INV-log-append-only-by-scorer"
+      ],
+      "transition_ids": [
+        "TR-evaluate"
+      ],
+      "candidate_locations": [
+        "benchmarks/evaluation.py:46",
+        "benchmarks/evaluation.py:74"
+      ],
+      "hypothesis": "The log path travels to the program in its environment."
+    },
+    {
+      "seam_id": "SEAM-evaluation-to-later-evaluation",
+      "kind": "shared temp directory across evaluations and runs",
+      "producer_ids": [
+        "ENT-evolved-program",
+        "ENT-local-user"
+      ],
+      "consumer_ids": [
+        "ENT-problem-evaluator",
+        "ENT-framework-runner"
+      ],
+      "invariant_ids": [
+        "INV-import-path-trusted",
+        "INV-eval-time-bound"
+      ],
+      "transition_ids": [
+        "TR-evaluate"
+      ],
+      "candidate_locations": [
+        "benchmarks/problems/circle_packing_26/evaluator.py:95",
+        "benchmarks/problems/circle_packing_26/evaluator.py:148",
+        "baselines/openevolve/openevolve/evaluator.py:259"
+      ],
+      "hypothesis": "A file left in the shared temp directory by one evaluation, or by a process that outlived it, is imported by a later evaluation of another program, problem or framework."
+    },
+    {
+      "seam_id": "SEAM-child-result-to-evaluator",
+      "kind": "result file crossing a process boundary",
+      "producer_ids": [
+        "ENT-evolved-program"
+      ],
+      "consumer_ids": [
+        "ENT-problem-evaluator"
+      ],
+      "invariant_ids": [
+        "INV-deserialize-trusted-only",
+        "INV-score-origin"
+      ],
+      "transition_ids": [
+        "TR-evaluate"
+      ],
+      "candidate_locations": [
+        "benchmarks/problems/circle_packing_26/evaluator.py:168"
+      ],
+      "hypothesis": "The one evaluator that isolates the program in a child reads the child result with pickle."
+    },
+    {
+      "seam_id": "SEAM-stored-text-to-dom",
+      "kind": "stored model text rendered as markup",
+      "producer_ids": [
+        "ENT-evolved-program",
+        "ENT-artifact-supplier"
+      ],
+      "consumer_ids": [
+        "ENT-operator"
+      ],
+      "invariant_ids": [
+        "INV-ui-text-not-markup"
+      ],
+      "transition_ids": [
+        "TR-render"
+      ],
+      "candidate_locations": [
+        "baselines/ShinkaEvolve/shinka/webui/viz_tree.html:5692",
+        "baselines/openevolve/scripts/static/js/sidebar.js:421",
+        "baselines/openevolve/scripts/visualizer.py:160"
+      ],
+      "hypothesis": "A field written by the model is safe in the database and becomes script when a UI renders it."
+    },
+    {
+      "seam_id": "SEAM-ui-script-to-same-origin-api",
+      "kind": "script in a UI origin calling that UI server",
+      "producer_ids": [
+        "ENT-operator"
+      ],
+      "consumer_ids": [
+        "ENT-shinka-viewer",
+        "ENT-openevolve-visualizer"
+      ],
+      "invariant_ids": [
+        "INV-viewer-root-containment",
+        "INV-llm-reply-origin"
+      ],
+      "transition_ids": [
+        "TR-serve-viewer",
+        "TR-manual-answer"
+      ],
+      "candidate_locations": [
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:985",
+        "baselines/openevolve/scripts/manual.py:160"
+      ],
+      "hypothesis": "Script running in a UI page can call the same-origin endpoints that an outside page cannot read: the viewer file endpoints, the manual-mode task list and answer endpoint."
+    },
+    {
+      "seam_id": "SEAM-network-to-viewer",
+      "kind": "unauthenticated listener",
+      "producer_ids": [
+        "ENT-network-client",
+        "ENT-cross-site-page"
+      ],
+      "consumer_ids": [
+        "ENT-shinka-viewer"
+      ],
+      "invariant_ids": [
+        "INV-viewer-operator-only",
+        "INV-viewer-root-containment"
+      ],
+      "transition_ids": [
+        "TR-serve-viewer"
+      ],
+      "candidate_locations": [
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:1740",
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:1681",
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py:997"
+      ],
+      "hypothesis": "Reachability of the port is the only thing between an outside client and the file-reading handlers."
+    },
+    {
+      "seam_id": "SEAM-model-endpoint-identity",
+      "kind": "unauthenticated localhost endpoint",
+      "producer_ids": [
+        "ENT-model-server",
+        "ENT-local-user"
+      ],
+      "consumer_ids": [
+        "ENT-framework-runner"
+      ],
+      "invariant_ids": [
+        "INV-llm-reply-origin"
+      ],
+      "transition_ids": [
+        "TR-generate"
+      ],
+      "candidate_locations": [
+        "baselines/run_baseline.sh:29",
+        "baselines/run_baseline.sh:36",
+        "baselines/CodeEvolve/src/codeevolve/lm/openai.py:97"
+      ],
+      "hypothesis": "Whoever answers on the port, or sits on an unverified TLS path, writes every program the operator then runs."
+    },
+    {
+      "seam_id": "SEAM-saved-state-to-runner",
+      "kind": "state file loaded on resume",
+      "producer_ids": [
+        "ENT-artifact-supplier",
+        "ENT-evolved-program"
+      ],
+      "consumer_ids": [
+        "ENT-framework-runner"
+      ],
+      "invariant_ids": [
+        "INV-deserialize-trusted-only"
+      ],
+      "transition_ids": [
+        "TR-resume"
+      ],
+      "candidate_locations": [
+        "baselines/ShinkaEvolve/shinka/llm/prioritization.py:220",
+        "baselines/CodeEvolve/src/codeevolve/utils/ckpt.py:115"
+      ],
+      "hypothesis": "A results or checkpoint directory looks like data and is loaded as code."
+    },
+    {
+      "seam_id": "SEAM-generated-text-to-agent",
+      "kind": "generated text entering an agent context",
+      "producer_ids": [
+        "ENT-evolved-program"
+      ],
+      "consumer_ids": [
+        "ENT-coding-agent"
+      ],
+      "invariant_ids": [
+        "INV-agent-context-provenance"
+      ],
+      "transition_ids": [
+        "TR-inspect"
+      ],
+      "candidate_locations": [
+        "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py:274"
+      ],
+      "hypothesis": "Program text and program output are placed in fixed-length code fences in a file an agent is told to load."
+    },
+    {
+      "seam_id": "SEAM-launch-dir-env",
+      "kind": "dotenv file loaded at import",
+      "producer_ids": [
+        "ENT-artifact-supplier",
+        "ENT-evolved-program"
+      ],
+      "consumer_ids": [
+        "ENT-framework-runner"
+      ],
+      "invariant_ids": [
+        "INV-llm-reply-origin"
+      ],
+      "transition_ids": [
+        "TR-generate"
+      ],
+      "candidate_locations": [
+        "baselines/ShinkaEvolve/shinka/env.py:26"
+      ],
+      "hypothesis": "Not investigated in run-1 (deferred unit): a .env file in the launch directory overrides the process environment when shinka is imported."
+    }
+  ]
+}
