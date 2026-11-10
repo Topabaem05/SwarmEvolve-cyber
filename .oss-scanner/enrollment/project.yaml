@@ -1,0 +1,24 @@
+# DRAFT — NOT SUBMITTED.
+#
+# Enrolling in anthropics/oss-scanner means opening a pull request in THAT repository that adds
+# projects/<name>/project.yaml. Nothing has been sent there. This file is kept here only so the
+# enrolment is ready if the repository owner decides to submit it. See .oss-scanner/README.md.
+
+# The repository to scan.
+repo: https://github.com/Topabaem05/SwarmEvolve-cyber#main
+
+# REPLACE before submitting. This address becomes public in anthropics/oss-scanner; use a security alias.
+primary_contact: security-contact@example.org
+
+output_format:
+  email:
+    min_severity: low
+  github_security_advisory:
+    min_severity: none
+
+disabled: false
+
+dockerfile: .oss-scanner/Dockerfile
+threat_model: .oss-scanner/threat_model.md
+report_guidelines: .oss-scanner/report_guidelines.md
+patch_guidelines: .oss-scanner/patch_guidelines.md

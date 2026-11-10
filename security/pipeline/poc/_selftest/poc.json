@@ -1,0 +1,7 @@
+{
+  "fingerprint": "_selftest",
+  "title": "Pipeline self-test (no target code)",
+  "observable": "selftest_marker exists in scratch after the network, environment and read-only checks pass",
+  "control": true,
+  "limits": {"wall_s": 30, "cpu_s": 10, "memory_mb": 512, "fsize_mb": 1}
+}

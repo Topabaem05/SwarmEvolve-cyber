@@ -1,0 +1,457 @@
+{
+  "units": [
+    {
+      "coverage_id": "baselines%2Fopenevolve%2F.github%2Fworkflows%2Fclaude.yml%23on::baselines%2Fopenevolve%2F.github%2Fworkflows%2Fclaude.yml%23permissions::profile%2Fquick%2Fall-in-scope-subsystems::SUPPLY-CHAIN-AND-RELEASE.md%23Untrusted%20code%20in%20a%20privileged%20workflow",
+      "disposition": "candidate",
+      "reviewed_paths": [
+        "baselines/CodeEvolve/.github/workflows/ci.yml",
+        "baselines/ShinkaEvolve/.github/workflows/ci.yml",
+        "baselines/ShinkaEvolve/.github/workflows/claude.yml",
+        "baselines/ShinkaEvolve/.github/workflows/docs-release.yml",
+        "baselines/ShinkaEvolve/.github/workflows/integration.yml",
+        "baselines/ShinkaEvolve/.github/workflows/pypi-release.yml",
+        "baselines/ShinkaEvolve/shinka/release_check.py",
+        "baselines/openevolve/.github/workflows/claude.yml",
+        "baselines/openevolve/.github/workflows/python-test.yml",
+        "baselines/openevolve/.github/workflows/release.yml",
+        "baselines/openevolve/.github/workflows/security-scan.yml",
+        "baselines/openevolve/.pre-commit-config.yaml"
+      ],
+      "checks": [
+        {
+          "agent_id": "hunter-ci-supply-chain",
+          "reviewed_paths": [
+            "baselines/openevolve/.github/workflows/claude.yml",
+            "baselines/ShinkaEvolve/.github/workflows/claude.yml"
+          ],
+          "invariant": "An agent job that receives secrets.CLAUDE_CODE_OAUTH_TOKEN and id-token: write must only start for actors the repository trusts, and that gate must be visible in the workflow or in immutable action code.",
+          "method": "source",
+          "result": "Not active in this repository (no root .github/). As source: openevolve claude.yml starts the job on issue_comment / issues / pull_request_review(_comment) for any actor whose text contains '@claude' (lines 15-19); there is no author_association or actor predicate. The job passes the OAuth secret (line 37) to anthropics/claude-code-action at the mutable tag 'beta' (line 35) with id-token: write (line 25). The sibling ShinkaEvolve claude.yml has the gate on all four events (lines 19-31), SHA-pinned actions (lines 41, 51), persist-credentials: false (line 47) and a tool deny-list (line 63); I checked its four branches for equivalence (comment/review/issue author_association, 'assigned' re-checks the issue author) and found no bypass. The only remaining control for openevolve is whatever the action code behind the floating tag does, which is not source-visible. Returned as candidate openevolve-ci/claude-workflow-no-actor-gate.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ci-supply-chain",
+          "reviewed_paths": [
+            "baselines/openevolve/.github/workflows/python-test.yml"
+          ],
+          "invariant": "Pull-request-controlled code must not run with repository secrets or a write token.",
+          "method": "source",
+          "result": "Refuted as a candidate. Not active in this repository. The workflow uses 'on: [push, pull_request]' (line 3), not pull_request_target or workflow_run, and checks out the default merge ref. PR code does run in the same job that references secrets.HF_TOKEN (lines 107, 113), but for the pull_request event GitHub does not pass repository secrets to runs from forks and gives them a read-only token; a same-repository branch needs write access, which already allows reading the secret. No ${{ }} expression reaches a run: block. actions/cache (lines 18, 51, 68) is written from PR runs only into the PR-scoped cache, which default-branch runs cannot restore. Residual condition recorded as hardening (private repository with 'send secrets to fork pull requests' enabled).",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ci-supply-chain",
+          "reviewed_paths": [
+            "baselines/CodeEvolve/.github/workflows/ci.yml"
+          ],
+          "invariant": "The auto-format job with contents: write must not check out or execute code from a contributor who lacks write access.",
+          "method": "source",
+          "result": "Refuted as a candidate. Not active in this repository. The 'format' job has 'if: github.event_name == push' (line 13), so it never runs for pull_request events; on push github.head_ref is empty and the checkout ref (line 21) resolves to github.ref, a branch the pusher already has write access to (fork pushes run in the fork with the fork's token). The 'test' job (lines 44-62) runs PR code with no secrets and no permissions block. Remaining points are hardening: pip install -e '.[dev]' (line 31) and stefanzweifel/git-auto-commit-action@v5 (line 40) run unpinned third-party code while the write token is persisted by actions/checkout.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ci-supply-chain",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/.github/workflows/ci.yml",
+            "baselines/ShinkaEvolve/.github/workflows/integration.yml",
+            "baselines/ShinkaEvolve/.github/workflows/pypi-release.yml",
+            "baselines/ShinkaEvolve/.github/workflows/docs-release.yml",
+            "baselines/ShinkaEvolve/shinka/release_check.py"
+          ],
+          "invariant": "Secret-backed and publishing jobs must not be triggerable by, or execute code from, a principal without write access.",
+          "method": "source",
+          "result": "No candidate. Not active in this repository. integration.yml (11 provider secrets at job level, lines 16-27) triggers only on push to main, schedule and workflow_dispatch (lines 3-9); ci.yml runs PR code without secrets and deselects requires_secrets tests (line 41); its uploaded artifact is not consumed by any workflow_run job. pypi-release.yml triggers on v* tag push (lines 3-6), reads the tag through the GITHUB_REF_NAME shell variable rather than an expression (line 29), and publishes by OIDC with contents: read; docs-release.yml is workflow_dispatch only. All of these need repository write access. Hardening only: pypi-release has no environment gate, and unpinned tools (uv run --with build/twine/python-dotenv, lines 44-50) run in the job that holds id-token: write.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ci-supply-chain",
+          "reviewed_paths": [
+            "baselines/openevolve/.github/workflows/release.yml",
+            "baselines/openevolve/.github/workflows/security-scan.yml",
+            "baselines/openevolve/.pre-commit-config.yaml"
+          ],
+          "invariant": "Release and scan jobs must not let PR-controlled values reach a privileged token, secret or shell expression.",
+          "method": "source",
+          "result": "No candidate. Not active in this repository. release.yml triggers on release: created (write access required), publishes to PyPI by OIDC inside the 'pypi' environment and pushes the image with packages: write; github.actor / github.repository appear only in with: inputs (lines 52, 59, 68-69). security-scan.yml runs on pull_request with contents: read and no secrets; the PR base SHA is passed through env (line 41) and file names are quoted shell array elements (lines 46-66); the scanner is cloned at a fixed commit (line 36). A PR file name beginning with '-' or '::' could inject a CLI option or a workflow command into that job, but the job holds no secret and a read-only token, so no boundary is crossed.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ci-supply-chain",
+          "reviewed_paths": [
+            "baselines/openevolve/.github/workflows/claude.yml",
+            "baselines/openevolve/.github/workflows/python-test.yml",
+            "baselines/openevolve/.github/workflows/release.yml",
+            "baselines/openevolve/.github/workflows/security-scan.yml",
+            "baselines/CodeEvolve/.github/workflows/ci.yml",
+            "baselines/ShinkaEvolve/.github/workflows/ci.yml",
+            "baselines/ShinkaEvolve/.github/workflows/claude.yml",
+            "baselines/ShinkaEvolve/.github/workflows/docs-release.yml",
+            "baselines/ShinkaEvolve/.github/workflows/integration.yml",
+            "baselines/ShinkaEvolve/.github/workflows/pypi-release.yml"
+          ],
+          "invariant": "No attacker-controlled ${{ github.event.* }} / head_ref value is interpolated into a run: script, and no workflow uses pull_request_target, workflow_run or a self-hosted runner.",
+          "method": "source",
+          "result": "Holds in all ten workflow files. Every '${{' occurrence is in a with:, env:, key:, ref: or url: field; none is inside run:. The only event-derived values are github.head_ref in a checkout ref of a push-only job (CodeEvolve ci.yml line 21) and pull_request.base.sha passed through env (security-scan.yml line 41). grep finds no pull_request_target, workflow_run or self-hosted. Action pinning: only ShinkaEvolve claude.yml pins by commit SHA; every other 'uses:' is a mutable tag or branch (v3/v4/v5, release/v1, beta). With no lower-trust writer shown for those refs this is hardening, except where it removes the only gate (the openevolve claude.yml candidate).",
+          "artifact": null
+        }
+      ],
+      "candidate_fingerprints": [
+        "openevolve-ci/claude-workflow-no-actor-gate"
+      ],
+      "unresolved": []
+    },
+    {
+      "coverage_id": "baselines%2Frequirements_openevolve_shinkaevolve.txt%23pins::baselines%2Fsetup_baselines.sh%23pip%20install::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Obvious%20things",
+      "disposition": "candidate",
+      "reviewed_paths": [
+        ".gitignore",
+        "baselines/CodeEvolve/.gitignore",
+        "baselines/CodeEvolve/README.md",
+        "baselines/CodeEvolve/configs/templates/config_gemini.yaml",
+        "baselines/CodeEvolve/configs/templates/config_qwen.yaml",
+        "baselines/CodeEvolve/problems/eoh-problems/tsp_gls/input/evaluate.py",
+        "baselines/CodeEvolve/pyproject.toml",
+        "baselines/CodeEvolve/scripts/run.sh",
+        "baselines/CodeEvolve/src/codeevolve/cli.py",
+        "baselines/CodeEvolve/src/codeevolve/evolution.py",
+        "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+        "baselines/CodeEvolve/src/codeevolve/prompt/sampler.py",
+        "baselines/CodeEvolve/src/codeevolve/utils/cli_setup.py",
+        "baselines/ShinkaEvolve/.gitignore",
+        "baselines/ShinkaEvolve/pyproject.toml",
+        "baselines/ShinkaEvolve/shinka/cli/run.py",
+        "baselines/ShinkaEvolve/shinka/core/wrap_eval.py",
+        "baselines/ShinkaEvolve/shinka/env.py",
+        "baselines/ShinkaEvolve/shinka/plots/code_path_anim.py",
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "baselines/openevolve/.gitignore",
+        "baselines/openevolve/Dockerfile",
+        "baselines/openevolve/Makefile",
+        "baselines/openevolve/configs/default_config.yaml",
+        "baselines/openevolve/examples",
+        "baselines/openevolve/openevolve/test_regional_endpoint.py",
+        "baselines/openevolve/pyproject.toml",
+        "baselines/openevolve/scripts/manual.py",
+        "baselines/openevolve/scripts/visualizer.py",
+        "baselines/openevolve/tests/test_visualizer_debug.py",
+        "baselines/requirements_codeevolve.txt",
+        "baselines/requirements_openevolve_shinkaevolve.txt",
+        "baselines/run_baseline.sh",
+        "baselines/run_codeevolve.py",
+        "baselines/run_openevolve.py",
+        "baselines/setup_baselines.sh",
+        "benchmarks"
+      ],
+      "checks": [
+        {
+          "agent_id": "hunter-ci-supply-chain",
+          "reviewed_paths": [
+            "benchmarks",
+            "baselines/openevolve/configs/default_config.yaml",
+            "baselines/openevolve/examples",
+            "baselines/openevolve/Makefile",
+            "baselines/run_baseline.sh",
+            "baselines/run_openevolve.py",
+            "baselines/run_codeevolve.py"
+          ],
+          "invariant": "No real password, API key, token or private key is committed in source, configs, examples or git history; shipped example credentials do not work against a real service.",
+          "method": "source",
+          "result": "Holds. Pattern greps over benchmarks/ and baselines/ for provider key formats (sk-, sk-ant-, ghp_, github_pat_, hf_, AKIA/ASIA, AIza, xox*, glpat-, JWT, PEM private-key headers) return nothing, and the same patterns over all 12 commits of git history return nothing. Assignment-style greps (api_key/secret/password/token/bearer = literal) find only test dummies and placeholders: 'optillm', 'ollama', 'test_key', 'EMPTY', 'YOUR_API_KEY', '<your-api-key>', '${ANTHROPIC_API_KEY}'. The glue uses OPENAI_API_KEY=EMPTY / api_key 'EMPTY' for the local vLLM server only.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ci-supply-chain",
+          "reviewed_paths": [
+            ".gitignore",
+            "baselines/CodeEvolve/.gitignore",
+            "baselines/ShinkaEvolve/.gitignore",
+            "baselines/openevolve/.gitignore",
+            "baselines/ShinkaEvolve/shinka/env.py",
+            "baselines/CodeEvolve/problems/eoh-problems/tsp_gls/input/evaluate.py"
+          ],
+          "invariant": "No .env, credentials or key file is tracked, and the ignore rules cover the secret and local-state files the code actually reads or writes.",
+          "method": "source",
+          "result": "Holds, with gaps noted as hardening. git ls-files contains no .env*, *.pem, *.key, credentials*, .npmrc, .pypirc or .netrc; the only serialized-object file tracked is the example dataset baselines/CodeEvolve/problems/eoh-problems/tsp_gls/input/TrainingData/TSPAEL64.pkl (repository-shipped, loaded only by that example's evaluator, not by the benchmark path). git check-ignore confirms that .env is ignored at the repository root (the cwd used by run_baseline.sh, which is where ShinkaEvolve loads a launch-directory .env), in baselines/ShinkaEvolve/ and in baselines/CodeEvolve/, and that results/ is ignored. Not ignored: baselines/.env, benchmarks/.env and baselines/openevolve/.env (openevolve/.gitignore lists secrets.yaml but not .env); no in-scope code loads a .env from those locations.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ci-supply-chain",
+          "reviewed_paths": [
+            "benchmarks",
+            "baselines/openevolve/scripts/visualizer.py",
+            "baselines/openevolve/scripts/manual.py",
+            "baselines/openevolve/tests/test_visualizer_debug.py",
+            "baselines/ShinkaEvolve/shinka/cli/run.py",
+            "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+          ],
+          "invariant": "Debug mode is off by default and cannot be switched on by an environment variable, query parameter or header; no /debug, /admin, /env, /config, /health, /metrics style endpoint is exposed; no security TODO/FIXME marks a skipped control.",
+          "method": "source",
+          "result": "Holds. The OpenEvolve visualizer enables Flask debug only through the explicit --debug CLI flag (visualizer.py lines 208-212) and calls app.run(host=args.host, port=args.port, debug=args.debug) (line 239); because a boolean is always passed, Flask's FLASK_DEBUG environment variable cannot override it, and the default bind is 127.0.0.1 (line 207). A regression test pins both defaults (test_visualizer_debug.py lines 33-39). Nothing prevents an operator from combining --host 0.0.0.0 with --debug (hardening). ShinkaEvolve's --debug (cli/run.py line 206) only adds runner diagnostics. Route greps over the Flask app, the manual blueprint and the ShinkaEvolve handler find no debug/admin/env/config/health/metrics path. Greps for TODO/FIXME/HACK/XXX with security terms return nothing in benchmarks/ or baselines/.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ci-supply-chain",
+          "reviewed_paths": [
+            "baselines/requirements_openevolve_shinkaevolve.txt",
+            "baselines/requirements_codeevolve.txt",
+            "baselines/setup_baselines.sh",
+            "baselines/ShinkaEvolve/shinka/plots/code_path_anim.py",
+            "baselines/ShinkaEvolve/shinka/core/wrap_eval.py",
+            "baselines/ShinkaEvolve/pyproject.toml",
+            "baselines/openevolve/pyproject.toml",
+            "baselines/CodeEvolve/pyproject.toml",
+            "baselines/openevolve/examples",
+            "baselines/openevolve/Dockerfile"
+          ],
+          "invariant": "A pinned dependency with known advisories is only a finding if in-scope code feeds it attacker-influenced input; the pillow==11.3.0 pin must not decode untrusted image or font data.",
+          "method": "source",
+          "result": "Refuted as a candidate; hardening only. osv-scanner reports exactly one affected package in the two installed manifests: pillow 11.3.0 (requirements_openevolve_shinkaevolve.txt line 46), 93 advisory records in 58 groups, fixed in 12.1.1 to 13.0.0. They fall into (a) decoders for attacker-supplied files, e.g. CVE-2026-25990 and CVE-2026-42311 (PSD out-of-bounds write), CVE-2026-112403 (JPEG decode heap overflow), CVE-2026-112398 (FlashPix), CVE-2026-40192 (FITS gzip bomb), GHSA-78g4-xqwv-q3g8 (bundled libopenjp2 reachable from Image.open().load()); (b) attacker-supplied fonts, e.g. CVE-2026-42308, CVE-2026-54059, CVE-2026-55379, CVE-2026-112893; (c) API misuse with extreme arguments, e.g. CVE-2026-59199 (paste/crop/alpha_composite with coordinates near INT_MAX), CVE-2026-42309 (nested coordinate lists), CVE-2026-59197 (RankFilter); (d) encoders, PdfParser and Windows/Ghostscript paths. In scope, PIL is imported in one module, shinka/plots/code_path_anim.py (line 6), an operator-run plotting script: it creates canvases with Image.new, loads a hardcoded system font path (line 77, 82) or the built-in default font, draws program text, and uses paste/alpha_composite with layout-derived coordinates bounded by the 3840x2160 frame. There is no Image.open, imread or font load from run data anywhere in benchmarks/ or baselines/ outside examples; wrap_eval.py line 482 only encodes a GIF through matplotlib inside the evaluation process. No untrusted bytes reach a Pillow decoder or font loader. The example-only hits (torch, scipy, pillow 9.5.0, transformers, anyio, certifi, idna, plus orjson, mlx, numpy, scikit-learn, lxml, requests in the no-resolve scan) come from unpinned '>=' lower bounds in baselines/openevolve/examples/*/requirements.txt, which setup_baselines.sh never installs. Both installed manifests are fully '==' pinned and installed with --no-deps (setup_baselines.sh lines 21, 26), without --require-hashes.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ci-supply-chain",
+          "reviewed_paths": [
+            "baselines/CodeEvolve/configs/templates/config_gemini.yaml",
+            "baselines/CodeEvolve/configs/templates/config_qwen.yaml",
+            "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+            "baselines/CodeEvolve/src/codeevolve/evolution.py",
+            "baselines/CodeEvolve/src/codeevolve/prompt/sampler.py",
+            "baselines/CodeEvolve/src/codeevolve/cli.py",
+            "baselines/CodeEvolve/src/codeevolve/utils/cli_setup.py",
+            "baselines/CodeEvolve/scripts/run.sh",
+            "baselines/CodeEvolve/README.md",
+            "baselines/run_codeevolve.py"
+          ],
+          "invariant": "TLS certificate verification stays enabled for every client that sends an API key and whose replies become executed code.",
+          "method": "source",
+          "result": "Fails in the shipped CodeEvolve templates. Both real-model templates set verify_ssl: False on every LM role (config_gemini.yaml lines 40, 42, 43, 45; config_qwen.yaml lines 40, 42, 44); the value is splatted into OpenAILM (openai.py line 324) and becomes httpx.AsyncClient(verify=False) (line 97) for the client that carries API_KEY to API_BASE. CodeEvolve's own scripts/run.sh uses the qwen template unchanged (line 17). This repository's glue is not affected: run_codeevolve.py loads the qwen template but replaces all three LM entries with dictionaries that have no verify_ssl key (lines 38-47) and points API_BASE at http://localhost (line 60). Returned as candidate codeevolve/config-template-verify-ssl-false. No other verify=False, CERT_NONE, unverified-context, --insecure or --trusted-host use exists in benchmarks/ or baselines/.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-ci-supply-chain",
+          "reviewed_paths": [
+            "baselines/run_baseline.sh",
+            "baselines/run_openevolve.py",
+            "baselines/run_codeevolve.py",
+            "baselines/openevolve/openevolve/test_regional_endpoint.py",
+            "baselines/openevolve/Dockerfile"
+          ],
+          "invariant": "Credentials are not sent over plain HTTP to a non-loopback host.",
+          "method": "source",
+          "result": "Holds for the code I own. Every non-test http:// URL in Python, shell, YAML and TOML under benchmarks/ and baselines/ is loopback: the glue talks to the local vLLM server at http://localhost:<port>/v1 with the dummy key 'EMPTY' (run_openevolve.py line 37, run_codeevolve.py line 60). The http://api.openai.com strings in test_regional_endpoint.py are prefix comparisons, not requests. The plain-HTTP web UIs and the vLLM bind address / missing --api-key in run_baseline.sh belong to peer units (hunter-shinka-webui, hunter-openevolve-visualizer, hunter-command-construction) and were not investigated here.",
+          "artifact": null
+        }
+      ],
+      "candidate_fingerprints": [
+        "codeevolve/config-template-verify-ssl-false"
+      ],
+      "unresolved": []
+    }
+  ],
+  "candidates": [
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "openevolve-ci/claude-workflow-no-actor-gate",
+      "title": "OpenEvolve claude.yml starts a secret-bearing agent job for any '@claude' commenter; the only actor gate is inside a floating third-party action tag",
+      "description": "Scope condition: this workflow is NOT active in the audited repository. SwarmEvolve-cyber has no root .github/ directory, so the file under baselines/openevolve/.github/workflows/ describes the upstream OpenEvolve repository and would only run if copied to a repository root. Evaluated as source for a repository where it is active: the job runs on issue_comment, issues (opened/assigned), pull_request_review and pull_request_review_comment, and its only condition is that the comment, review or issue text contains '@claude'. There is no author_association or actor check, so on a public repository any GitHub account can start the job by commenting on or opening an issue. issue_comment and issues events run in the base-repository context, so the job receives secrets.CLAUDE_CODE_OAUTH_TOKEN and id-token: write, and hands both to anthropics/claude-code-action at the mutable tag 'beta'. The workflow's own GITHUB_TOKEN is read-only, but id-token: write is what the action uses to obtain its own GitHub App token, so the read-only permissions block does not bound what the agent can do. Whether an outside commenter gets an agent run therefore depends entirely on a permission check inside third-party code that can change without a commit to this repository. The vendored ShinkaEvolve copy of the same workflow shows the intended control: an explicit OWNER/MEMBER/COLLABORATOR gate on all four events, both actions pinned by commit SHA, persist-credentials: false, and web tools denied; its comment states that without the guard 'any external account could trigger the agent job'. If the action's internal check holds at the commit 'beta' currently points to, an outside commenter gains only a started-and-rejected job and this reduces to hardening; I could not establish that from source.",
+      "claimed_root_cause": "The workflow's job-level 'if' authorizes on message content only ('@claude' substring) and never on who wrote it, while the action that receives the OAuth secret and OIDC permission is referenced by a floating tag instead of a commit SHA, so the single remaining actor check is neither source-visible nor immutable.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "baselines/openevolve/.github/workflows/claude.yml",
+          "line": 4,
+          "scope": "on.issue_comment",
+          "description": "Any account that can comment on an issue or pull request (or open an issue, line 8) raises an event that runs in the base-repository context with secrets available."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/.github/workflows/claude.yml",
+          "line": 16,
+          "scope": "jobs.claude.if",
+          "description": "The job condition (lines 15-19) tests only contains(body, '@claude'); no author_association or actor predicate exists for any of the four events."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/.github/workflows/claude.yml",
+          "line": 25,
+          "scope": "jobs.claude.permissions",
+          "description": "id-token: write lets the job mint an OIDC token, which the action exchanges for its own GitHub App token; the read-only contents/pull-requests/issues entries limit only the workflow GITHUB_TOKEN."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/.github/workflows/claude.yml",
+          "line": 35,
+          "scope": "jobs.claude.steps[Run Claude Code].uses",
+          "description": "Third-party action code is resolved from the mutable tag 'beta' at run time."
+        },
+        {
+          "kind": "sink",
+          "file": "baselines/openevolve/.github/workflows/claude.yml",
+          "line": 37,
+          "scope": "jobs.claude.steps[Run Claude Code].with",
+          "description": "secrets.CLAUDE_CODE_OAUTH_TOKEN is passed to that action for a run whose prompt is the commenter's text."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/openevolve/.github/workflows/claude.yml",
+          "line": 19,
+          "description": "Last branch of the job condition: an opened or assigned issue whose body or title contains '@claude' is enough; no author check."
+        },
+        {
+          "file": "baselines/openevolve/.github/workflows/claude.yml",
+          "line": 29,
+          "description": "actions/checkout@v4 with default persist-credentials, so the workflow token is left in .git/config for agent subprocesses (ShinkaEvolve sets persist-credentials: false)."
+        },
+        {
+          "file": "baselines/openevolve/.github/workflows/claude.yml",
+          "line": 35,
+          "description": "uses: anthropics/claude-code-action@beta, a floating tag rather than a commit SHA."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/.github/workflows/claude.yml",
+          "line": 15,
+          "description": "Sibling workflow's comment (lines 15-18): without the author_association guard any external account could trigger the agent job; the guard is described as defense in depth on top of the action's own write-access check."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/.github/workflows/claude.yml",
+          "line": 22,
+          "description": "Sibling control that is missing in OpenEvolve: author_association must be OWNER, MEMBER or COLLABORATOR (repeated for all four events, lines 19-31)."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/.github/workflows/claude.yml",
+          "line": 51,
+          "description": "Sibling pins anthropics/claude-code-action to a 40-hex commit SHA (v1.0.239), so its internal permission check is reviewable and immutable."
+        }
+      ],
+      "blockers": [
+        "The workflow is not active in the audited repository: there is no root .github/ directory, so no event in SwarmEvolve-cyber can trigger it. The claim applies only to a repository that places this file under its root .github/workflows/ (the upstream OpenEvolve repository).",
+        "Not source-visible: whether the code that the mutable tag anthropics/claude-code-action@beta currently resolves to rejects actors without write permission before using the OAuth token. The vendored ShinkaEvolve comment asserts the action has its own write-access check, but that refers to a different, SHA-pinned release (v1.0.239).",
+        "Hosted facts not in source: whether the upstream repository is public, whether the CLAUDE_CODE_OAUTH_TOKEN secret and the Claude GitHub App are installed there, and what permissions that App installation holds.",
+        "No bounded local observation was made: this run forbids executing target code and GitHub-hosted workflow evaluation cannot be reproduced offline."
+      ],
+      "validation_plan": {
+        "local": "Static check only (it proves the source precondition, not the hosted outcome). In the no-network sandbox, parse baselines/openevolve/.github/workflows/claude.yml and baselines/ShinkaEvolve/.github/workflows/claude.yml with a safe YAML loader and assert for the OpenEvolve file: (1) jobs.claude.if contains neither 'author_association' nor 'github.actor'; (2) the ref of the 'anthropics/claude-code-action' step does not match ^[0-9a-f]{40}$; (3) the step's 'with' block references secrets.CLAUDE_CODE_OAUTH_TOKEN and jobs.claude.permissions['id-token'] == 'write'. Assert the opposite of (1) and (2) for the ShinkaEvolve file as the control. Single observable: the script prints 'openevolve: gate_absent=1 mutable_ref=beta' and 'shinka: gate_absent=0 mutable_ref=0'.",
+        "deployment": "Owner-observed, in a repository where this file is active (upstream OpenEvolve): (a) record the commit that the 'beta' tag of anthropics/claude-code-action currently resolves to and read its entry point for a check that the triggering actor has write permission; (b) in the Actions run history for the 'Claude Code' workflow, find a run triggered by a comment from an account whose author_association is NONE, or create one from a test account with a comment containing only '@claude ping', and observe whether the 'Run Claude Code' step stops at a permission error before any model call or proceeds. Do not test against a repository you do not own."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "codeevolve/config-template-verify-ssl-false",
+      "title": "CodeEvolve's shipped model templates disable TLS certificate verification for the client that carries the API key and returns code to execute",
+      "description": "Both real-model configuration templates vendored under baselines/CodeEvolve/configs/templates/ set verify_ssl: False on every language-model role (exploration ensemble, exploitation ensemble, sampler auxiliary model). CodeEvolve passes each entry straight into OpenAILM, which builds httpx.AsyncClient(verify=self.verify_ssl) and gives it to AsyncOpenAI together with the operator's API_KEY and API_BASE. With verify=False the client accepts any certificate for any host. An operator who follows CodeEvolve's own instructions (export API_KEY and API_BASE for a hosted provider or gateway, run scripts/run.sh or pass --cfg_path with a template) therefore sends the bearer key over a connection that an on-path network attacker can terminate with a self-signed certificate. That attacker can read the API key and can also return forged completions; CodeEvolve applies completions as code edits and executes the result on the operator's host, so reply integrity is a code-execution boundary, not just a confidentiality one. The class default is verify_ssl: None, so the unsafe behavior comes from the templates, which are the only non-mock starting configurations the project ships. Scope condition: the benchmark path of this repository is not affected. baselines/run_codeevolve.py loads the qwen template but replaces all three model entries with dictionaries that have no verify_ssl key and sets API_BASE to http://localhost, so the flag never reaches a client there. The issue applies when the vendored CodeEvolve is run with its own templates or scripts/run.sh against an https endpoint.",
+      "claimed_root_cause": "The configuration templates opt every model client out of certificate verification (verify_ssl: False), and the loader forwards that value to httpx without a warning, an allow-list of hosts, or a requirement that the endpoint be loopback.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "baselines/CodeEvolve/configs/templates/config_gemini.yaml",
+          "line": 40,
+          "scope": "EXPLORATION_ENSEMBLE",
+          "description": "Template model entry carries verify_ssl: False (same on lines 42, 43, 45, and in config_qwen.yaml lines 40, 42, 44); the network peer of this client is the lower-trust party whose certificate is accepted unchecked."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/CodeEvolve/src/codeevolve/cli.py",
+          "line": 121,
+          "scope": "main",
+          "description": "API_BASE and API_KEY are read from the operator's environment (validate_environment, utils/cli_setup.py lines 43-44) and stored in args."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/CodeEvolve/src/codeevolve/evolution.py",
+          "line": 1003,
+          "scope": "_create_ensembles",
+          "description": "The EXPLORATION_ENSEMBLE list from the YAML is passed as models_cfg to OpenAIEnsemble with the operator's api_key and api_base (exploitation ensemble and SAMPLER_AUX_LM take the same route, line 1042 and prompt/sampler.py line 122)."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+          "line": 324,
+          "scope": "_create_lm_from_config",
+          "description": "OpenAILM(**model_cfg, api_key=api_key, api_base=api_base): the verify_ssl key from the template becomes a constructor argument without validation."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+          "line": 97,
+          "scope": "OpenAILM.__post_init__",
+          "description": "httpx.AsyncClient(verify=self.verify_ssl) is created with verify=False and installed as the AsyncOpenAI http_client together with the API key and base URL (lines 99-101)."
+        },
+        {
+          "kind": "sink",
+          "file": "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+          "line": 132,
+          "scope": "OpenAILM.generate",
+          "description": "chat.completions.create sends the bearer API key over the unverified TLS connection and returns the peer's reply, which the evolution loop turns into program edits that are then executed."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/CodeEvolve/configs/templates/config_qwen.yaml",
+          "line": 40,
+          "description": "The second real-model template also sets verify_ssl: False (lines 40, 42, 44)."
+        },
+        {
+          "file": "baselines/CodeEvolve/scripts/run.sh",
+          "line": 17,
+          "description": "CodeEvolve's own run script points CFG_PATH at configs/templates/config_qwen.yaml unchanged."
+        },
+        {
+          "file": "baselines/CodeEvolve/README.md",
+          "line": 275,
+          "description": "Documentation says API_BASE may be a hosted provider or gateway, i.e. a remote https endpoint is an expected deployment."
+        },
+        {
+          "file": "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+          "line": 71,
+          "description": "Class default is verify_ssl: Optional[bool] = None, so verification is disabled by the template value, not by the code default."
+        },
+        {
+          "file": "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+          "line": 502,
+          "description": "The embedding client has the same verify=self.verify_ssl construction and would be affected by an EMBEDDING entry with the same flag."
+        },
+        {
+          "file": "baselines/run_codeevolve.py",
+          "line": 38,
+          "description": "Strongest in-repo mitigation: this repository's glue replaces the template's three model entries with a dictionary that has no verify_ssl key (lines 38-47) and uses http://localhost as API_BASE (line 60), so its benchmark runs never use the flag."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation was made: this run forbids executing target code, and httpx/openai are not installed on the audit host. Whether the pinned openai==3.37.0 client uses the supplied http_client unchanged, and whether httpx==0.28.1 treats verify=False as CERT_NONE with hostname checking off, must be observed.",
+        "Deployment fact: the flag only matters when an operator runs the vendored CodeEvolve with its own templates or scripts/run.sh against an https API_BASE on a network path an attacker can intercept. The path this repository documents (baselines/run_baseline.sh -> baselines/run_codeevolve.py) overrides the affected entries and talks to a loopback HTTP server."
+      ],
+      "validation_plan": {
+        "local": "Inside the no-network sandbox, with the baselines/venv_codeevolve packages mounted read-only and loopback only: (1) generate a throwaway self-signed certificate in scratch and start an HTTPS server on 127.0.0.1:<port> that records the Authorization header of POST /v1/chat/completions and returns a minimal fixed chat-completion JSON; (2) yaml.safe_load baselines/CodeEvolve/configs/templates/config_gemini.yaml and call codeevolve.lm.openai._create_lm_from_config(cfg['EXPLORATION_ENSEMBLE'][0], api_key='DUMMY-KEY-MARKER', api_base='https://127.0.0.1:<port>/v1'), then await .generate([{'role': 'user', 'content': 'x'}]) once. Single observable: the server log contains 'Bearer DUMMY-KEY-MARKER' and generate() returns the fixed content with no certificate error. Control: repeat with the same entry after deleting its verify_ssl key; the call must fail with a certificate verification error and the server must not log the marker. Limits: one request per case, 30 s wall clock, no external hosts.",
+        "deployment": "Owner-observed: list the CodeEvolve configuration files actually used for runs outside baselines/run_codeevolve.py (for example copies of config_qwen.yaml or config_gemini.yaml) and check whether any model entry still carries verify_ssl: False while API_BASE is an https URL that is not loopback."
+      }
+    }
+  ],
+  "hardening": [
+    "Vendored workflows are inert here (no root .github/). If any are ever activated, pin every 'uses:' to a commit SHA: all refs except those in ShinkaEvolve claude.yml are mutable (actions/*@v3-v5, astral-sh/setup-uv@v5, docker/*@v3-v5, stefanzweifel/git-auto-commit-action@v5, pypa/gh-action-pypi-publish@release/v1, anthropics/claude-code-action@beta), and several run in jobs holding contents: write, packages: write, id-token: write or provider secrets.",
+    "openevolve python-test.yml runs PR code in the job that references secrets.HF_TOKEN. This is safe only because GitHub withholds secrets from fork pull_request runs; it would expose the token in a private repository with 'send secrets to fork pull requests' enabled, or if the trigger were changed to pull_request_target. Split the secret-backed integration job onto push/schedule as ShinkaEvolve integration.yml does. The same file installs optillm and math-verify unpinned (line 65) and declares no permissions block.",
+    "CodeEvolve ci.yml 'format' job: add persist-credentials: false to the test job and limit the write-token job to the minimum; pip install -e '.[dev]' and the auto-commit action run unpinned third-party code while a contents: write token is in .git/config.",
+    "ShinkaEvolve pypi-release.yml publishes on any v* tag push with no protected environment, and runs unpinned 'uv run --with build/twine/python-dotenv' in the job that holds id-token: write; integration.yml exposes eleven provider secrets at job level to every step, including mutable-tag actions, and installs without a lock file (no uv.lock is vendored).",
+    "pillow==11.3.0 (baselines/requirements_openevolve_shinkaevolve.txt line 46) matches 58 OSV advisory groups (fixed in 12.1.1 through 13.0.0). No in-scope code decodes untrusted images or fonts with Pillow, so this is not reachable today; raise the pin to >= 13.0.0 when the paper environment can be re-validated, since any later use of Image.open on run data would make the decoder advisories reachable.",
+    "Both installed manifests are '==' pinned and installed with --no-deps but without hashes (setup_baselines.sh lines 21, 26); add --require-hashes. They pin 'httpx2' and 'httpcore2' (requirements_openevolve_shinkaevolve.txt lines 26-27, requirements_codeevolve.txt lines 6, 8), names that no source file or pyproject in this repository references; I could not verify their provenance offline, so the owner should confirm they are the intended transitive dependencies of the pinned openai/google-genai releases and not look-alike packages. osv-scanner also reports that the first manifest cannot be resolved (aiohttp==3.14.5 against a '<3.14.0' requirement), which --no-deps hides.",
+    "The example-only OSV hits (torch, scipy, pillow 9.5.0, transformers, anyio, certifi, idna, orjson, mlx, numpy, scikit-learn, lxml, requests) come from '>=' lower bounds in baselines/openevolve/examples/*/requirements.txt that setup_baselines.sh never installs; no action needed beyond not installing those files into the benchmark environment.",
+    "OpenEvolve visualizer: --debug is correctly opt-in and cannot be enabled by FLASK_DEBUG, but nothing rejects --debug together with a non-loopback --host; refuse that combination so the Werkzeug debugger is never offered on a network interface.",
+    "CodeEvolve OpenAILM/OpenAIEmbedding default verify_ssl to None and pass it to httpx.AsyncClient(verify=None); make the default an explicit True and log a warning whenever a configuration sets it to False.",
+    ".gitignore coverage: baselines/openevolve/.gitignore does not list .env, and the root allow-list does not ignore baselines/.env or benchmarks/.env; add '.env' and '.env.*' at the root. baselines/openevolve has no .dockerignore while its Dockerfile does 'COPY . /app' from a mutable base tag (python:3.12-slim) and runs as root, so a local docker build would bake any untracked secrets.yaml or .env into the image.",
+    "baselines/CodeEvolve/problems/eoh-problems/tsp_gls/input/TrainingData/TSPAEL64.pkl is a tracked pickle loaded by that example's evaluator; it is repository-shipped data, but replacing it with a non-executable format (npz/JSON) removes a code-execution-on-load file from the tree."
+  ],
+  "uncovered": [
+    {
+      "surface": "ShinkaEvolve import-time dotenv loading: shinka/__init__.py calls load_shinka_dotenv(), which loads <cwd>/.env with override=True",
+      "boundary": "Author of files in the launch directory (shared or downloaded results directory, or a previous evolved program that wrote <cwd>/.env) vs. the operator's process environment and provider credentials",
+      "subsystem": "All in-scope subsystems (quick profile)",
+      "attack_class": "Chained vulnerabilities and trust boundaries",
+      "starting_paths": [
+        "baselines/ShinkaEvolve/shinka/env.py",
+        "baselines/ShinkaEvolve/shinka/__init__.py",
+        "baselines/ShinkaEvolve/shinka/llm/client.py"
+      ],
+      "reason": "Importing shinka from any directory loads that directory's .env over the existing environment (env.py lines 18-26, override=True; __init__.py line 7). A .env there can set OPENAI_BASE_URL / ANTHROPIC_BASE_URL (both read by shinka/llm) so the operator's real API key is sent to another host, or set PATH / PYTHONPATH / LD_PRELOAD for every child process. No current unit owns this configuration-trust path; I did not trace which commands are realistically run from an untrusted directory, so it is reported for its own coverage unit rather than as a candidate."
+    }
+  ]
+}

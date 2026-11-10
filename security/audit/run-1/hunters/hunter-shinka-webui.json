@@ -1,0 +1,704 @@
+{
+  "units": [
+    {
+      "coverage_id": "baselines%2FShinkaEvolve%2Fshinka%2Fwebui%2Fvisualization.py%23do_GET::baselines%2FShinkaEvolve%2Fshinka%2Fwebui%2Fvisualization.py%23ReusableTCPServer::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Access%20control",
+      "disposition": "candidate",
+      "reviewed_paths": [
+        "baselines/ShinkaEvolve/docs/webui.md",
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+      ],
+      "checks": [
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/docs/webui.md",
+            "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+          ],
+          "invariant": "Only the operator (loopback or an SSH tunnel, as the docs describe) can reach the web UI endpoints; a caller is identified or the listening address is restricted.",
+          "method": "source",
+          "result": "Fails in source. start_server builds ReusableTCPServer((\"\", port), ...) at visualization.py:1740 (all IPv4 interfaces) and prints 'Serving http://0.0.0.0:{port}' at :1741; there is no --host option in main() (:1749-1778). DatabaseRequestHandler.do_GET (:274-349) performs no authentication, token, Host or Origin check before dispatching to any handler. docs/webui.md:43-46 and :130 describe access through 'ssh -L 8888:localhost:8888', docs/webui.md:140 describes 'ssh -L 8888:compute-node:8888' (which needs a non-loopback listener) and docs/webui.md:189 says 'never expose ports publicly'. Candidate shinka-webui/wildcard-bind-no-auth.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+          ],
+          "invariant": "A web page from another origin that the operator visits cannot read web UI API responses through the operator's browser.",
+          "method": "source",
+          "result": "Fails in source for every JSON endpoint. send_json_response (:1674-1685) sets 'Access-Control-Allow-Origin: *' at :1681 unconditionally, and all data endpoints are simple GETs with no credential or custom header, so no preflight is needed. Limits established: handle_serve_plot_file (:1015-1019), handle_download_meta_pdf (:923-929), send_error responses and the SimpleHTTPRequestHandler static fall-through send no CORS header, so those bodies are not readable cross-origin; there is no do_OPTIONS. Candidate shinka-webui/cors-wildcard-json-api. Whether a public-origin page may reach a loopback/private address at all is a browser policy fact (Local/Private Network Access) that source cannot settle.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+          ],
+          "invariant": "No unauthenticated request can change server-side state (write, delete, start a job).",
+          "method": "source",
+          "result": "Holds. The handler defines only do_GET; no do_POST/do_PUT/do_DELETE/do_OPTIONS exists, so other methods get the stdlib 501. GET handlers only read: ProgramDatabase and SystemPromptDatabase are opened with read_only=True (:464, :558, :628, :727, :1053), which maps to a 'file:...?mode=ro' URI (shinka/database/dbase.py:338). The three plain sqlite3.connect calls (:235, :1145, :1253) are read-write handles but issue only PRAGMA busy_timeout and SELECT statements. The only process-wide mutable state is the in-memory db_cache (:36, :484).",
+          "artifact": null
+        }
+      ],
+      "candidate_fingerprints": [
+        "shinka-webui/wildcard-bind-no-auth",
+        "shinka-webui/cors-wildcard-json-api"
+      ],
+      "unresolved": []
+    },
+    {
+      "coverage_id": "baselines%2FShinkaEvolve%2Fshinka%2Fwebui%2Fvisualization.py%23do_GET::baselines%2FShinkaEvolve%2Fshinka%2Fwebui%2Fvisualization.py%23_get_actual_db_path::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+      "disposition": "candidate",
+      "reviewed_paths": [
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+      ],
+      "checks": [
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+          ],
+          "invariant": "A request-supplied db_path resolves to a file inside search_root before any file or sqlite access.",
+          "method": "source",
+          "result": "Fails in source. _get_actual_db_path (:428-430) returns its argument unchanged. The value is passed to os.path.join(self.search_root, ...) at :449, :546, :616, :694, :785, :843, :891, :948, :1035 and :1134 with no normalisation or containment test; an absolute value discards search_root and '../' climbs out of it. Reach established per endpoint: (a) /get_programs, /get_programs_summary, /get_program_count, /get_program_details, /get_database_stats, /get_system_prompts return the contents of any sqlite file with the Shinka 'programs' (or sibling prompts.sqlite 'system_prompts') schema anywhere the server uid can read; a non-sqlite or foreign-schema file yields only an error string. (b) /get_meta_files lists meta_<int>.txt in dirname(db_path) or its meta/ subdirectory and returns absolute server paths (:815). (c) /get_meta_content returns the text of meta_<N>.txt in that directory. (d) 404 versus 500/JSON-error distinguishes existing from missing paths (:452-453, :1136-1138, :796-798). Arbitrary non-sqlite files are NOT readable through db_path alone. Candidate shinka-webui/db-path-traversal.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+          ],
+          "invariant": "The processed_count and generation query values cannot select a file outside the meta or plots directory of the chosen run.",
+          "method": "source",
+          "result": "Partly holds. /get_meta_content builds meta_{processed_count}.txt (:847) and reads it (:859-860) but int(processed_count) at :863 raises inside the try for any value containing '/', so content is returned only for integer-like values; traversal through this parameter is blocked there. /download_meta_pdf (:895-913) has no int() conversion and returns the file body (as PDF, or as raw text at :918-921 when no converter exists), but the fixed 'meta_' prefix means a '../' sequence only resolves when a directory whose name starts with 'meta_' already exists at that position, and the '.txt' suffix is always appended; no such directory is created by the framework (meta files are written as meta/meta_<int>.txt). /get_plots builds gen_{generation} (:953); because gen_<N> directories do exist in a results directory, generation='0/../../<dir>' lists .png/.gif/.jpg/.jpeg file names in any directory ending in results/plots, names only. Folded into shinka-webui/db-path-traversal as bounded variants.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+          ],
+          "invariant": "/plot_file/ serves only plot images that live inside search_root.",
+          "method": "source",
+          "result": "Fails in source. handle_serve_plot_file (:981-1025) URL-decodes the remainder of the path (:985), joins it to search_root (:987), tests existence first (:990-992), then compares os.path.abspath strings with startswith and no trailing separator (:995-997). Consequences: (1) no extension or directory allowlist, so every regular file under search_root is returned as application/octet-stream (:1009), while the listing endpoint restricts itself to four image extensions (:961); search_root defaults to the launch directory (:1753, :1781); (2) a sibling whose name extends the root name (root 'results' versus 'results_old', 'results.bak') passes the prefix test; (3) abspath does not resolve symlinks, so a link inside the root is followed out of it; (4) existence is tested before containment, so 404 versus 403 reveals whether any path on the host exists. Paths outside the root that do not share its string prefix are refused with 403. Candidate shinka-webui/plot-file-unrestricted-read.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+          ],
+          "invariant": "Meta text and request values cannot inject commands or active content into the wkhtmltopdf/pandoc conversion.",
+          "method": "source",
+          "result": "Command injection is refuted: both subprocess.run calls use argument lists without a shell (:1510-1529, :1562-1567) and the only variable arguments are NamedTemporaryFile paths (:1498-1507, :1551-1560). Content injection holds: meta file text is converted with markdown.markdown (:1338-1341), which passes raw HTML through, and is interpolated unescaped into the document at :1492 and written to the file handed to the renderer (:1501, :1554). The request value 'generation' is also interpolated unescaped at :1369 and :1489-1490, but it is only reachable when a file literally named meta_<that value>.txt exists (:902-904), so it is not attacker-reachable from the network alone. Candidate shinka-webui/meta-pdf-html-injection for the meta text path.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+          ],
+          "invariant": "The static fall-through to SimpleHTTPRequestHandler serves only the packaged web UI assets.",
+          "method": "source",
+          "result": "Holds. start_server calls os.chdir(webui_dir) (:1723-1729) before the server is built, the handler is constructed without a directory argument (:40-42, :1714-1715), so the stdlib handler serves the package's webui directory (HTML shells, two images, and the visualization.py source). Path normalisation is the stdlib translate_path. Nothing operator-specific is stored there. Unmatched API routes (for example a data route without db_path) also land here and return the stdlib 404.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+          ],
+          "invariant": "File paths stored inside a database or failure.json cannot direct the server to read files outside search_root.",
+          "method": "source",
+          "result": "Fails in source, but only for an author of on-disk state. _read_failure_json joins details.failure_json_path from the attempt_log table to search_root (:75) and _resolve_failed_node_code_path joins artifacts.generated_code_path from that JSON (:134); an absolute value replaces the root. The file text is returned as 'code' by /get_program_details for id 'failed:proposal:<gen>' (:196, :700-711). In normal runs both values are written by the framework, not by model output (shinka/core/async_runner.py:3173, :3298). Recorded as a variant inside shinka-webui/db-path-traversal; it needs a crafted database plus JSON file on the server's disk.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+          ],
+          "invariant": "A request value placed in a response header cannot split the response.",
+          "method": "source",
+          "result": "Not reachable. processed_count is placed in Content-Disposition at :925-927, but that line is reached only after os.path.exists succeeds for a file literally named meta_<processed_count>.txt (:899-904); a value containing CR/LF therefore needs a pre-existing file with those bytes in its name.",
+          "artifact": null
+        }
+      ],
+      "candidate_fingerprints": [
+        "shinka-webui/db-path-traversal",
+        "shinka-webui/plot-file-unrestricted-read",
+        "shinka-webui/meta-pdf-html-injection"
+      ],
+      "unresolved": []
+    },
+    {
+      "coverage_id": "baselines%2FShinkaEvolve%2Fshinka%2Fwebui%2Fviz_tree.html%23innerHTML::baselines%2FShinkaEvolve%2Fshinka%2Fwebui%2Fviz_tree.html%23escapeHtml::profile%2Fquick%2Fall-in-scope-subsystems::CLIENT-SIDE.md%23DOM-based%20XSS",
+      "disposition": "candidate",
+      "reviewed_paths": [
+        "baselines/ShinkaEvolve/shinka/webui/compare.html",
+        "baselines/ShinkaEvolve/shinka/webui/index.html",
+        "baselines/ShinkaEvolve/shinka/webui/viz_tree.html"
+      ],
+      "checks": [
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/webui/viz_tree.html"
+          ],
+          "invariant": "Model-derived database fields are HTML-escaped (or set through textContent) before they reach innerHTML or d3 .html() in viz_tree.html.",
+          "method": "source",
+          "result": "Fails in source for several fields while neighbouring fields are escaped. Unescaped: metadata.patch_name in the node summary (:5688, :5692-5693), the patch panel (:5849, :5953), tree tooltips (:4758, :4770-4786, and the island-tree copy at :10406-10413), heatmap and MAP tooltips (:8860, :11017) and the best-path timeline (:10681); metadata.patch_description (:5850, :5857-5858, :10679); metadata.thought through marked.parse (:6009, sink :6022); meta file text through marked.parse (:3073, :3076) and through formatProgramSummaries/processSimpleMarkdown with no escaping (:2913-2914, :2956-2961), sink :3042; system-prompt name and description (:17656, :17660, sink :17642); metric keys (:5713, :5722); data.id, data.parent_id and data.error (:5694-5697). Escaped correctly: code (:5634), text_feedback (:5832), metadata values (:5737, :5748, :5756), stdout/stderr logs (:6101, :6105), llm_result (:6161-6170), diffs (:6322), failure summary (:6531-6534), plot file names (:6283-6284). The page has no CSP and no sanitizer; marked is loaded unpinned from a CDN (:2077) and current marked releases pass raw HTML through. Candidate shinka-webui/dom-xss-llm-derived-fields.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/webui/viz_tree.html"
+          ],
+          "invariant": "Browser-controlled document state (location, storage, messages) does not reach an HTML sink directly.",
+          "method": "source",
+          "result": "Holds for direct flows. The only location reads are db_path, left_tab, right_tab and selected_node (:3421-3433, :4056, :9125-9167). db_path is sent to the server with encodeURIComponent and shown through escapeHtml (:5187, :5301); left_tab is used only inside a querySelector string (:9152); selected_node is used only as a lookup key (:8273-8292). There is no postMessage listener, document.write, eval or string timer. Relevance to the candidate: db_path from the URL is loaded even when it is not in the server's database list (:3433) and selected_node auto-selects a node (:9167), so a single link can load a chosen database and render one node's details without a click.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-shinka-webui",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/webui/compare.html",
+            "baselines/ShinkaEvolve/shinka/webui/index.html"
+          ],
+          "invariant": "index.html and compare.html do not render model-derived text as HTML.",
+          "method": "source",
+          "result": "Holds for model-derived text: both pages render only database paths and labels, all through escapeHtml (index.html:689, :745-751; compare.html:448), and numeric statistics. Residual, not model-reachable: index.html writes formatter output with innerHTML (:854) and formatBestGeneration/formatGenerations (:929-937, :956-958) would pass a non-numeric MAX(generation) value through unescaped; that needs a hand-crafted sqlite file whose generation column holds text, so it is recorded as hardening only.",
+          "artifact": null
+        }
+      ],
+      "candidate_fingerprints": [
+        "shinka-webui/dom-xss-llm-derived-fields"
+      ],
+      "unresolved": []
+    }
+  ],
+  "candidates": [
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "shinka-webui/plot-file-unrestricted-read",
+      "title": "/plot_file/ returns any file under the search root (by default the launch directory that holds .env) and its prefix check admits sibling directories and symlinks",
+      "description": "Lower-trust principal: any client that can send an HTTP GET to the web UI port (the server listens on all interfaces without authentication; see shinka-webui/wildcard-bind-no-auth). Accepted input: the URL path after /plot_file/. Control that should stop it: the 'Security check: ensure the path is within search_root' in handle_serve_plot_file. Crossed boundary: network client to operator files. The handler is meant to serve plot images that /get_plots lists (png/gif/jpg/jpeg only), but it applies no extension or sub-directory restriction, so every regular file under search_root is returned as application/octet-stream. search_root defaults to the current working directory, and the documented quick start runs 'shinka_visualize --port 8888' with no directory from the project/launch directory, which is also where the docs tell the operator to keep a .env file with provider API keys and where shinka loads it from. GET /plot_file/.env would then return those keys. Three further weaknesses in the same check: (1) containment is a string startswith on abspath values with no trailing separator, so a root of .../results also admits .../results_old/ or .../results.bak via '../results_old/...'; (2) abspath does not resolve symlinks, so a link placed inside the root is followed out of it; (3) existence is tested before containment, so 404 versus 403 tells the client whether an arbitrary host path exists. Limits: paths outside the root that do not share its string prefix are refused; the response carries no CORS header, so a cross-origin page cannot read it directly (a same-origin script, see shinka-webui/dom-xss-llm-derived-fields, can).",
+      "claimed_root_cause": "handle_serve_plot_file treats 'inside search_root by string prefix' as the whole authorisation decision: it has no file-type or plots-directory allowlist, compares un-normalised prefixes without a path separator, uses abspath instead of realpath, and checks existence before containment.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 333,
+          "scope": "DatabaseRequestHandler.do_GET",
+          "description": "Any GET whose path starts with /plot_file/ is dispatched to handle_serve_plot_file with no caller check."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 985,
+          "scope": "DatabaseRequestHandler.handle_serve_plot_file",
+          "description": "The remainder of the URL path is percent-decoded into rel_path, so encoded '../' sequences survive any client-side normalisation."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 987,
+          "scope": "DatabaseRequestHandler.handle_serve_plot_file",
+          "description": "rel_path is joined to search_root; no extension, directory or file-type restriction is applied."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 997,
+          "scope": "DatabaseRequestHandler.handle_serve_plot_file",
+          "description": "Containment is abspath(abs_path).startswith(abspath(search_root)) with no trailing separator and no symlink resolution."
+        },
+        {
+          "kind": "sink",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1012,
+          "scope": "DatabaseRequestHandler.handle_serve_plot_file",
+          "description": "The file is opened in binary mode and its full content is written to the response."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1753,
+          "description": "root_directory defaults to os.getcwd(), so search_root is the launch directory unless the operator passes a results directory."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/docs/webui.md",
+          "line": 43,
+          "description": "Documented remote launch is 'shinka_visualize --port 8888' with no directory argument."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/docs/getting_started.md",
+          "line": 71,
+          "description": "Docs instruct the operator to create a .env file with provider API keys in the project root."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/env.py",
+          "line": 18,
+          "description": "shinka loads .env from the launch (current working) directory, the same directory the web UI serves by default."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 961,
+          "description": "The listing endpoint restricts plots to .png/.gif/.jpg/.jpeg, showing the intended scope that the serving endpoint does not enforce."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1009,
+          "description": "Unknown extensions fall back to application/octet-stream instead of being rejected."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 990,
+          "description": "os.path.exists runs before the containment check, giving a 404-versus-403 existence oracle for any host path."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation exists: this run forbids executing target code because the required OS sandbox is not available.",
+        "Deployment fact: whether the operator starts shinka_visualize from a directory that contains .env or other non-plot files, or always passes a results directory.",
+        "Deployment fact: whether the port is reachable by any client other than the operator (host firewall, shared host or cluster network)."
+      ],
+      "validation_plan": {
+        "local": "In a no-network sandbox, create a temp tree T with T/root/.env containing 'DUMMY_KEY=SENTINEL_ENV', T/root_sibling/note.txt containing 'SENTINEL_SIBLING', and T/other/x (empty). Build the handler as tests/test_visualization_meta.py does (DatabaseRequestHandler.__new__, search_root=str(T/'root'), stub send_response/send_header/end_headers, record send_error calls, wfile=io.BytesIO(); stub the 'markdown' module if it is not installed). Step 1: set handler.path='/plot_file/.env' and call handle_serve_plot_file(); expected observable: wfile contains SENTINEL_ENV. Step 2: reset wfile, set handler.path='/plot_file/..%2Froot_sibling%2Fnote.txt'; expected: wfile contains SENTINEL_SIBLING. Step 3: path '/plot_file/..%2Fother%2Fx' records send_error(403) while '/plot_file/..%2Fother%2Fmissing' records send_error(404). Any one of steps 1 or 2 proves the boundary result; stop there.",
+        "deployment": "Owner check only: from the directory normally used to start shinka_visualize, list which non-image files (for example .env, configs, keys) sit under it, and confirm from a second machine on the same network whether the web UI port accepts connections."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "shinka-webui/db-path-traversal",
+      "title": "db_path query value is joined to search_root without containment, exposing Shinka databases, prompt databases and meta_*.txt files anywhere on the host",
+      "description": "Lower-trust principal: any client that can send a GET to the web UI (network client, or a cross-origin page because these responses carry Access-Control-Allow-Origin: *). Accepted input: the db_path query value on ten endpoints, plus generation/processed_count. Control that should stop it: _get_actual_db_path, which the handlers call first and which is a no-op. Crossed boundary: the operator chose one directory (search_root) to expose; the client reads outside it. What is actually reachable, established from source: (1) /get_programs, /get_programs_summary, /get_program_details, /get_program_count and /get_database_stats return the contents (program source, metrics, metadata including stored LLM prompts/responses and logs) of any sqlite file with the Shinka 'programs' schema that the server uid can read, addressed by absolute path or '../'; (2) /get_system_prompts returns prompts.sqlite from the same out-of-root directory; (3) /get_meta_files lists meta_<int>.txt in an arbitrary directory and returns absolute server paths; /get_meta_content returns the text of such a file; (4) /download_meta_pdf returns meta_<value>.txt and, only where a directory named meta_* already exists, any reachable .txt file; (5) /get_plots lists image file names in any directory ending in results/plots; (6) status differences reveal whether arbitrary files and directories exist and whether a file is a sqlite database. Not reachable through db_path alone: arbitrary non-sqlite files (they produce only an sqlite error string). Variant with a different precondition: path values stored inside a database (attempt_log details.failure_json_path) and inside the referenced failure.json (artifacts.generated_code_path) are also joined to search_root without containment and the referenced file is returned as 'code', so a crafted database placed on the server's disk turns /get_program_details into an arbitrary text-file read; in normal runs those values are written by the framework.",
+      "claimed_root_cause": "No function confines request- or database-supplied relative paths to search_root: _get_actual_db_path returns its input unchanged and every handler passes the result straight to os.path.join(self.search_root, ...), where an absolute value replaces the root and '..' segments are never normalised or checked.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 284,
+          "scope": "DatabaseRequestHandler.do_GET",
+          "description": "db_path is taken verbatim from the query string of an unauthenticated GET /get_programs."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 438,
+          "scope": "DatabaseRequestHandler.handle_get_programs",
+          "description": "The value passes through _get_actual_db_path, which returns it unchanged (definition at line 428-430)."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 449,
+          "scope": "DatabaseRequestHandler.handle_get_programs",
+          "description": "os.path.join(self.search_root, actual_db_path): an absolute value discards search_root, '../' climbs out of it; only os.path.exists is checked afterwards."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 464,
+          "scope": "DatabaseRequestHandler.handle_get_programs",
+          "description": "The out-of-root file is opened as a read-only ProgramDatabase and all programs are loaded."
+        },
+        {
+          "kind": "sink",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 486,
+          "scope": "DatabaseRequestHandler.handle_get_programs",
+          "description": "The full program list (code, metrics, metadata) is serialised to the client with Access-Control-Allow-Origin: *."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 430,
+          "description": "_get_actual_db_path body is 'return db_path'; its docstring calls it a no-op."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 546,
+          "description": "Sibling join site in handle_get_programs_summary; the same pattern repeats at lines 616, 694, 785, 843, 891, 948, 1035 and 1134."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 859,
+          "description": "handle_get_meta_content opens meta_<processed_count>.txt under the attacker-chosen directory and returns its text."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 863,
+          "description": "int(processed_count) limits this endpoint to integer-like file suffixes; it is the only value check on any of these parameters."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 815,
+          "description": "handle_get_meta_files returns the absolute filesystem path of each meta file to the client."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 953,
+          "description": "handle_get_plots interpolates the raw generation value into a path component, allowing '../' after an existing gen_<N> directory."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1145,
+          "description": "handle_get_database_stats opens the attacker-chosen path with a plain read-write sqlite3.connect and returns the sqlite error text for non-database files."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 134,
+          "description": "Variant: generated_code_path from failure.json is joined to search_root without containment and the file is later read and returned as 'code' (read at line 196)."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/database/dbase.py",
+          "line": 338,
+          "description": "Strongest visible control: ProgramDatabase read-only mode opens the file with mode=ro, which prevents writes but not out-of-root reads."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation exists: this run forbids executing target code because the required OS sandbox is not available.",
+        "Deployment fact: whether Shinka-format databases or meta_*.txt files that the operator did not intend to publish exist outside the served directory on the same host.",
+        "Deployment fact: whether any client other than the operator can reach the port, or which browser policy applies to cross-origin reads of the JSON endpoints."
+      ],
+      "validation_plan": {
+        "local": "In a no-network sandbox, create temp tree T with T/root (empty, used as search_root), T/outside/meta/meta_5.txt containing 'SENTINEL_META', and T/outside/p.sqlite created with the stdlib sqlite3 module: CREATE TABLE programs(generation INTEGER, correct INTEGER, combined_score REAL, timestamp REAL, metadata TEXT) plus one row (7, 1, 0.5, 1.0, '{}'). Build the handler as tests/test_visualization_meta.py does (search_root=str(T/'root'), capture send_json_response and send_error). Step 1: handler.handle_get_meta_content('../outside/p.sqlite', '5'); expected observable: captured JSON has content == 'SENTINEL_META'. Step 2: handler.handle_get_database_stats(str(T/'outside'/'p.sqlite')) (absolute path); expected: captured JSON has program_count == 1 and max_generation == 7. Either result proves a read outside search_root."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "shinka-webui/wildcard-bind-no-auth",
+      "title": "Web UI listens on all interfaces with no authentication while the documentation describes access through an SSH tunnel to localhost",
+      "description": "Lower-trust principal: any host that can open a TCP connection to the operator's machine on the chosen port (other users of a shared GPU server or cluster network, other devices on the same LAN). Accepted action: any GET request. Control that should stop it: none in source; the listening address is the empty string (all IPv4 interfaces) and there is no option to change it, no token, and no Host or Origin validation. The documentation's remote workflow starts the server on the remote machine and reaches it through 'ssh -L 8888:localhost:8888', which only requires a loopback listener and leads an operator to assume the service is tunnel-only; the same page separately shows a cluster tunnel to a compute node's own address and a one-line 'never expose ports publicly' note. Crossed boundary: network client to operator data. Affected resources: every evolved program, metric, stored LLM prompt/response and log in the served databases, system prompts, meta summaries, and through the two file-handling candidates (shinka-webui/plot-file-unrestricted-read, shinka-webui/db-path-traversal) any file under the launch directory such as .env and Shinka databases elsewhere on the host. The absence of Host validation also leaves the loopback case open to DNS rebinding from a web page. This candidate is limited to exposure of the read-only API; no state-changing endpoint exists.",
+      "claimed_root_cause": "start_server hard-codes the bind address to \"\" and the request handler has no notion of a caller, so reachability of the port is the only access control and it is wider than the documented localhost/SSH-tunnel model.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1740,
+          "scope": "start_server",
+          "description": "ReusableTCPServer((\"\", port), handler_factory) listens on every IPv4 interface; main() offers no host option."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 274,
+          "scope": "DatabaseRequestHandler.do_GET",
+          "description": "Requests are routed purely on path and query; there is no authentication, token, Host or Origin check on any branch."
+        },
+        {
+          "kind": "sink",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1685,
+          "scope": "DatabaseRequestHandler.send_json_response",
+          "description": "Database contents are written to whichever peer connected."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1741,
+          "description": "The startup banner itself prints 'Serving http://0.0.0.0:{port}'."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1818,
+          "description": "The only operator hint is 'remember to forward the port if this is a remote host', which implies a tunnel rather than direct exposure."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/docs/webui.md",
+          "line": 46,
+          "description": "Documented remote access is an SSH local forward to localhost:8888 on the remote host."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/docs/webui.md",
+          "line": 140,
+          "description": "Cluster example forwards to compute-node:8888, which works only because the server is not loopback-bound; every other cluster user can reach the same address."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/docs/webui.md",
+          "line": 189,
+          "description": "Strongest visible control is advisory text: 'Use SSH tunnels for remote access; never expose ports publicly'."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1012,
+          "description": "Example of what an unauthenticated peer can obtain: /plot_file/ opens and returns files under the launch directory."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation exists: this run forbids executing target code because the required OS sandbox is not available.",
+        "Deployment fact: whether the operator's host firewall or network placement lets any other principal connect to the port; source cannot show this."
+      ],
+      "validation_plan": {
+        "local": "In a sandbox with only an isolated loopback interface, import shinka.webui.visualization, monkeypatch socketserver.TCPServer.serve_forever with a function that stores self.socket.getsockname() in a list and returns, then call start_server(0, <empty temp dir>). Expected observable: the stored address is ('0.0.0.0', <port>), not 127.0.0.1. Optional second observable with the real serve loop on loopback and a dummy empty directory: a GET /list_databases sent with no credentials or special headers returns HTTP 200 and a JSON list.",
+        "deployment": "Owner check only: while shinka_visualize is running, run 'ss -ltnp' on the host to see the listening address, and try the URL from a second machine or a second user account on the same network."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "shinka-webui/cors-wildcard-json-api",
+      "title": "Every JSON endpoint answers with Access-Control-Allow-Origin: *, letting any web page the operator visits read run data through the operator's browser",
+      "description": "Lower-trust principal: a web page from an unrelated origin opened in the browser the operator uses for the web UI (including when the operator correctly uses an SSH tunnel and a firewalled host). Accepted action: a simple cross-origin GET (fetch or XHR without credentials or custom headers) to http://localhost:<port>/... Control that should stop it: the browser same-origin policy, which the server switches off by sending Access-Control-Allow-Origin: * on every JSON response; there is no Origin check and no secret in the URL. Crossed boundary: foreign web origin to operator data. Readable cross-origin: /list_databases, /get_programs, /get_programs_summary, /get_program_details (program source), /get_system_prompts, /get_meta_files, /get_meta_content, /get_plots, /get_database_stats, and, combined with shinka-webui/db-path-traversal, Shinka databases and meta files outside the served directory. Not readable cross-origin: /plot_file/ bodies, the PDF download, error bodies and static files (no CORS header). The page needs the port number; 8000 is the default and 8888 is the documented value.",
+      "claimed_root_cause": "send_json_response unconditionally emits Access-Control-Allow-Origin: * for an unauthenticated API whose only intended client is the same-origin web UI, so the wildcard serves no functional purpose and removes the one browser-side barrier.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 274,
+          "scope": "DatabaseRequestHandler.do_GET",
+          "description": "A cross-origin simple GET issued by a foreign page in the operator's browser is routed like any other request; the Origin header is never read."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 571,
+          "scope": "DatabaseRequestHandler.handle_get_programs_summary",
+          "description": "Program summaries (including full metadata) are passed to send_json_response; the other data handlers do the same."
+        },
+        {
+          "kind": "sink",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1681,
+          "scope": "DatabaseRequestHandler.send_json_response",
+          "description": "Access-Control-Allow-Origin: * is attached to the response, so the browser hands the body to the foreign page's script."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1674,
+          "description": "send_json_response is the single helper used by all JSON endpoints, so the wildcard applies to every one of them."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1016,
+          "description": "Limit: the /plot_file/ response sets only Content-Type, Content-Length and Cache-Control, so it is not readable cross-origin."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 34,
+          "description": "DEFAULT_PORT is 8000, a predictable target for a foreign page."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 3924,
+          "description": "The shipped front end calls the API with same-origin relative URLs, so it does not need any CORS header."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation exists: this run forbids executing target code because the required OS sandbox is not available.",
+        "Browser policy fact: whether the operator's browser lets a page from a public origin send requests to a loopback or private address without a prompt (Local/Private Network Access enforcement differs by browser and version). Pages served from another local or intranet origin are not subject to that restriction.",
+        "Deployment fact: sensitivity of the run data (program source, stored prompts and responses, costs) for this operator."
+      ],
+      "validation_plan": {
+        "local": "In a no-network sandbox, build the handler as tests/test_visualization_meta.py does but record send_header calls in a list and set wfile=io.BytesIO(); call handler.send_json_response({'k': 'SENTINEL_JSON'}). Expected observable: the recorded headers contain ('Access-Control-Allow-Origin', '*') and wfile contains SENTINEL_JSON. Optional isolated-loopback variant with an empty dummy directory: GET /list_databases with header 'Origin: http://other.test' returns that same header.",
+        "deployment": "Owner check only: with the web UI running, open a page from a different origin in the browser normally used for it and run fetch('http://localhost:<port>/list_databases').then(r => r.text()) in the console; note whether the browser returns the body, blocks it, or shows a local-network permission prompt."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "shinka-webui/meta-pdf-html-injection",
+      "title": "Meta summary text is converted to HTML without sanitisation and rendered by wkhtmltopdf on the server when a PDF is requested",
+      "description": "Lower-trust principal: the author of meta_<N>.txt, which in a normal run is the meta-summariser model's output and in a shared-results scenario is whoever produced the results directory the operator is viewing. Accepted input: the file text. Control that should stop it: none; Python-Markdown passes raw HTML through and the result is interpolated into a full HTML document. Sink: that document is written to a temp file and opened by wkhtmltopdf (JavaScript enabled by default, file:// origin) or, failing that, pandoc. Crossed boundary: file content to a headless browser running with the web UI process's filesystem and network position. Any GET /download_meta_pdf triggers it, including from an unauthenticated network client, and the rendered PDF is returned to the requester. If the installed wkhtmltopdf permits local file access or network requests from a local document, injected markup such as an iframe/img/script could place local file content into the PDF or make requests to internal addresses. Bounds established from source: the subprocess calls use argument lists with temp-file paths only, so there is no command injection; the request-supplied 'generation' value is also interpolated unescaped into the document but is reachable only when a file literally named meta_<value>.txt exists; wkhtmltopdf and pandoc are optional external tools that are not installed by the package, and when both are missing the raw text is returned instead. Note that on the host where the evolution itself runs, generated programs already execute as the same user, so the added reach matters mainly when results are viewed on a different machine or come from a third party.",
+      "claimed_root_cause": "_generate_pdf builds the renderer input by concatenating markdown.markdown(meta_text) (raw HTML allowed) and the request's generation string into an HTML template with no escaping or sanitising, then hands it to a browser-engine converter without disabling JavaScript, local file access or network access.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "baselines/ShinkaEvolve/shinka/core/summarizer.py",
+          "line": 760,
+          "scope": "meta summary writer",
+          "description": "Model-produced summaries, scratchpad and recommendations are written verbatim to results_dir/meta/meta_<count>.txt."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 908,
+          "scope": "DatabaseRequestHandler.handle_download_meta_pdf",
+          "description": "An unauthenticated GET /download_meta_pdf reads the meta file text and passes it to _generate_pdf (line 913)."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1338,
+          "scope": "DatabaseRequestHandler._generate_pdf",
+          "description": "markdown.markdown converts the text; raw HTML in the input is preserved."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1492,
+          "scope": "DatabaseRequestHandler._generate_pdf",
+          "description": "The converted HTML is interpolated unescaped into the document body, which is written to a temp .html file at line 1501."
+        },
+        {
+          "kind": "sink",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1510,
+          "scope": "DatabaseRequestHandler._generate_pdf",
+          "description": "wkhtmltopdf renders the temp file with only page-size and margin options; the output PDF is returned to the requester."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1340,
+          "description": "Only the 'extra' and 'nl2br' extensions are enabled; no sanitising extension or post-filter is applied."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1512,
+          "description": "The wkhtmltopdf argument list has no --disable-javascript, --disable-local-file-access or --disable-external-links option."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1563,
+          "description": "Fallback converter is pandoc with the same HTML file; argument list form, so no shell injection."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 1369,
+          "description": "The request's generation/processed_count string is also placed unescaped in the document title and heading (line 1490), bounded by the file-existence check at line 902."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 930,
+          "description": "The converter output is sent back to whoever made the request."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation exists: this run forbids executing target code because the required OS sandbox is not available.",
+        "Tool fact: whether wkhtmltopdf (or pandoc with a PDF engine) is installed on the operator's host, and which version; wkhtmltopdf 0.12.6 and later block local file access by default while earlier versions allow it, and its handling of script and network requests from a local document must be observed, not assumed.",
+        "Deployment fact: whether meta files viewed by the operator can come from a less trusted source than the operator's own run (shared results, or a viewer host different from the run host)."
+      ],
+      "validation_plan": {
+        "local": "In a no-network sandbox with the real 'markdown' package importable, build the handler as tests/test_visualization_meta.py does (do not stub markdown), and monkeypatch shinka.webui.visualization.subprocess.run with a function that reads the file named by the first argv element ending in '.html', stores its text in a list, and returns an object with returncode=1 and stderr=''. Call handler._generate_pdf(\"Intro line\\n\\n<script>document.title='PDF_MARKER'</script>\\n\\n<iframe src=\\\"file:///nonexistent-dummy\\\"></iframe>\", '1'). Expected observable: the stored HTML contains the literal, unescaped substrings \"<script>document.title='PDF_MARKER'</script>\" and '<iframe src=\"file:///nonexistent-dummy\">'. This proves active markup reaches the renderer input; it does not run any converter.",
+        "deployment": "Owner check only: run 'wkhtmltopdf --version' on the host that serves the web UI and check whether its defaults allow local file access and JavaScript for a local input file."
+      }
+    },
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "shinka-webui/dom-xss-llm-derived-fields",
+      "title": "viz_tree.html writes model-derived patch names, descriptions, thoughts and meta summaries into innerHTML without escaping",
+      "description": "Source: text produced by the code-proposing model (the <NAME> and <DESCRIPTION> blocks of its reply, stored as metadata.patch_name and metadata.patch_description), by the meta-summariser model (meta_<N>.txt), by prompt evolution (system prompt name/description) and metadata.thought; equally, any of these fields in a results directory the operator received from someone else. Sink: innerHTML and d3 .html() in viz_tree.html. Browser policy that should stop it: none is present (no CSP, no sanitizer); the page's own escapeHtml helper is applied to code, logs, text feedback and metadata values but not to these fields. Affected origin/session: the web UI origin in the operator's browser (http://localhost:<port>, typically on the operator's workstation behind an SSH tunnel, which is a different machine from the one running generated code). Observable effect: markup such as an img element with an error handler placed in a patch name runs script when the operator hovers a tree node, selects a node, opens the best-path view, or opens the Meta tab. Because viz_tree.html auto-loads the database named in the db_path URL parameter and auto-selects the node named in selected_node, opening a single link is enough to render a chosen node. Script running in that origin can call the same-origin endpoints, including /plot_file/ (not readable cross-origin) and the db_path traversal, read files under the launch directory such as .env and send them to another host, since nothing restricts outbound requests. The program table truncates patch_name to 15 characters, which limits that one sink; index.html and compare.html do not render model-derived text.",
+      "claimed_root_cause": "HTML is assembled with template literals and assigned to innerHTML, and escaping is applied field by field; patch_name, patch_description, thought (via marked.parse), meta file text (via marked.parse and a hand-written markdown replacer), system-prompt name/description and several ids were left out, and marked is used without any sanitiser.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+          "line": 1938,
+          "scope": "initial-program and patch generation",
+          "description": "patch_name is extracted verbatim from between <NAME> tags of the model's reply (regex in shinka/llm/llm.py line 883, no character filtering); the same is done for patch_description at line 1941."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+          "line": 1981,
+          "scope": "initial-program and patch generation",
+          "description": "The value is stored in the program's metadata dictionary, which is persisted to the sqlite programs table."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "line": 571,
+          "scope": "DatabaseRequestHandler.handle_get_programs_summary",
+          "description": "/get_programs_summary returns each program with its full parsed metadata as JSON."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 3924,
+          "scope": "loadDatabase",
+          "description": "The front end fetches the summaries and keeps them as window.treeData; selecting a node passes its record to displayNodeDetails."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 5688,
+          "scope": "displayNodeDetails",
+          "description": "agentName is taken from data.metadata.patch_name with no escaping."
+        },
+        {
+          "kind": "sink",
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 5692,
+          "scope": "displayNodeDetails",
+          "description": "The node-summary element's innerHTML is set to a template containing <h3>${agentName} ...</h3>."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 4786,
+          "description": "Tree-node hover tooltip inserts patchName (from line 4758) through d3 .html() without escaping, while the adjacent failure fields are escaped."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 5857,
+          "description": "patch_description is interpolated raw into the node details HTML, which is assigned to innerHTML at line 6022."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 6009,
+          "description": "metadata.thought is passed through marked.parse and inserted via the same innerHTML assignment."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 3042,
+          "description": "Meta tab sink: sectionContent.innerHTML receives marked.parse output (lines 3073, 3076) and the unescaped program-summary formatter output (line 2914) built from meta_<N>.txt text."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 10681,
+          "description": "Best-path timeline inserts patch_name and patch_description (line 10679) through d3 .html()."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 17656,
+          "description": "System-prompt name and description (line 17660) are interpolated raw into detailsPanel.innerHTML, while prompt_text in the same template is escaped."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 5634,
+          "description": "Strongest visible control: escapeHtml is applied to program code (and to logs, text feedback and metadata values elsewhere), showing escaping was intended but is incomplete."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 2077,
+          "description": "marked is loaded unpinned from a CDN with no sanitiser library alongside it; there is no Content-Security-Policy in the page or in the server's headers."
+        },
+        {
+          "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "line": 9167,
+          "description": "The selected_node URL parameter auto-selects a node after load, and db_path from the URL is loaded even if not in the server's list (line 3433), so no click is required."
+        }
+      ],
+      "blockers": [
+        "No bounded local observation exists: this run forbids executing target code, and a browser test additionally needs local copies of the CDN libraries (d3, Chart.js, marked, highlight.js, Plotly) because the sandbox has no network.",
+        "Renderer fact: behaviour of the marked version actually delivered by the unpinned CDN URL for raw HTML input (current releases pass it through) must be observed in a browser.",
+        "Deployment fact: whether the operator views results whose text fields come from a less trusted source than their own account (model output steered by untrusted task content, or a results directory supplied by a third party)."
+      ],
+      "validation_plan": {
+        "local": "Function-level check without a browser or network: with Node.js, read baselines/ShinkaEvolve/shinka/webui/viz_tree.html, extract the source text of the two pure string functions formatProgramSummaries and processSimpleMarkdown (they start at the lines 'function formatProgramSummaries(content) {' and 'function processSimpleMarkdown(text) {'), evaluate them in an empty vm context, and call formatProgramSummaries('Program Name: <img src=x onerror=XSS_MARKER>\\nImplementation: a'). Expected observable: the returned string contains the unescaped substring '<img src=x onerror=XSS_MARKER>'; source line 3042 assigns that string to innerHTML. Optional end-to-end check when a sandboxed headless browser with locally served copies of the CDN scripts is available: create a dummy results directory with a programs.sqlite holding one program whose metadata.patch_name is '<img src=x onerror=\"document.title=`XSS_MARKER`\">', serve it on isolated loopback, open /viz_tree.html?db_path=<that db>&selected_node=<its id>, and observe document.title becoming XSS_MARKER."
+      }
+    }
+  ],
+  "hardening": [
+    "visualization.py: add a --host option defaulting to 127.0.0.1 and reject requests whose Host header is not an expected loopback/host name; this also closes DNS rebinding against the loopback listener.",
+    "visualization.py:1681: drop Access-Control-Allow-Origin: * (the bundled front end is same-origin) or restrict it to an explicit origin.",
+    "visualization.py: replace the no-op _get_actual_db_path with one resolver that realpath()s the joined path and requires os.path.commonpath([root, path]) == root, and use it for db_path, failure_json_path, generated_code_path and /plot_file/; validate generation and processed_count as integers at the dispatch layer (do_GET) for /get_plots, /get_meta_content and /download_meta_pdf.",
+    "visualization.py:981-1025: restrict /plot_file/ to the image extensions that /get_plots lists and to gen_*/results/plots directories, and perform the containment test before the existence test.",
+    "visualization.py:235, :1145, :1253: open sqlite files with a 'file:...?mode=ro' URI as ProgramDatabase does, so an unauthenticated GET never holds a writable handle (WAL/journal side files, hot-journal recovery) on a path chosen by the client.",
+    "visualization.py:815: return meta file names relative to the run directory instead of absolute server paths; error responses (:453, :525, :797, :830) should not echo server paths or raw exception text.",
+    "visualization.py:36, :441-484: db_cache is keyed by the raw client string with no size bound, so distinct spellings of the same path each retain a full program list in memory.",
+    "visualization.py:1510-1529: pass --disable-javascript and --disable-local-file-access (and avoid external fetches) to wkhtmltopdf, and escape or sanitise the markdown output and the generation string before building the document.",
+    "viz_tree.html:2075-2084 and compare.html:8: third-party scripts are loaded from CDNs without Subresource Integrity, and marked, Chart.js (compare.html) and 'plotly-latest' are unpinned; pin versions, add integrity attributes or vendor the files, and add a Content-Security-Policy.",
+    "viz_tree.html: use textContent or a single escaping template helper for every interpolated field, and pass marked.parse output through a sanitiser before assigning to innerHTML; ids interpolated into inline onclick attributes (:5900, :5917, :5934, :10595, :10682) should be bound with addEventListener instead.",
+    "index.html:854: statistics cells are filled with innerHTML; formatBestGeneration and formatGenerations would pass a non-numeric MAX(generation) from a hand-crafted sqlite file through unescaped. Use textContent or coerce to Number.",
+    "viz_tree.html defines escapeHtml three times with different behaviour (:3204, :6194, :18006); the later definitions override the earlier one for the whole script. Keep one implementation."
+  ],
+  "uncovered": []
+}

@@ -1,0 +1,9 @@
+{
+  "fingerprint": "shinka-webui/plot-file-unrestricted-read",
+  "title": "/plot_file/ prefix check admits a sibling directory of the search root",
+  "status": "draft, never executed",
+  "observable": "handle_serve_plot_file() writes the sentinel from <scratch>/tree/root_sibling/note.txt to the response when search_root is <scratch>/tree/root",
+  "control": true,
+  "requires": ["markdown", "the ShinkaEvolve package dependencies (see .oss-scanner/Dockerfile)"],
+  "limits": {"wall_s": 120, "cpu_s": 60}
+}

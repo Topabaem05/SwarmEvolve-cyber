@@ -1,0 +1,2164 @@
+[
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "baselines-glue/vllm-localhost-endpoint-impersonation",
+    "title": "run_baseline.sh accepts any listener on localhost:<port> as the model server, so another local user can supply the programs the operator executes",
+    "description": "Lower-trust principal: a second unprivileged local user (or other workload sharing the host network namespace) on the GPU host where the operator runs baselines/run_baseline.sh. Accepted input: HTTP responses from whichever process is listening on `localhost:<port>`. Control that should stop it: the launcher should only hand the frameworks an endpoint that is provably the vLLM child it started (and the frameworks should authenticate that endpoint); the only visible checks are a `curl -s localhost:$port/v1/models` probe and a `kill -0 $server` liveness test that is evaluated after the probe has already returned success. Boundary crossed: local user A to code execution as operator B. Affected resource: the operator's account (files, environment variables including any provider keys, EVAL_LOG score integrity), because every completion returned by the endpoint is turned into a program and executed by benchmarks/evaluation.py with the operator's environment.\n\nSource-visible mechanics: (1) free_port binds ('', 0), prints the number and releases the socket; the number is reused later for `vllm serve ... --port $port`, where it is visible in the process arguments. For shinkaevolve the main port is chosen before the embedding server is started and only used after that server is up. (2) `serve` backgrounds vLLM and loops: `curl -s localhost:$port/v1/models > /dev/null && return 0; kill -0 $server || break`. Any HTTP responder satisfies the probe (no -f, no identity check), and success is returned without consulting the child's state, so a vLLM child that failed to bind because the port was taken goes unnoticed. (3) All three drivers configure the framework with `http://localhost:<port>/v1` and the placeholder key 'EMPTY'; vLLM is started without --host and without --api-key, so neither side authenticates the other and the hostname is resolved by each client. (4) The completion text becomes child_code and is executed by the shared evaluation as a subprocess that inherits the operator environment.\n\nTwo ways a foreign listener can end up answering, both needing local validation: (a) binding 127.0.0.1:<port> between the `vllm serve` exec (port visible in process arguments) and vLLM's own listen; (b) binding [::1]:<port> at any time if vLLM's default bind covers IPv4 only, with clients that resolve `localhost` to ::1 first. This is not the documented 'generated code runs unsandboxed' trade-off: the party choosing the code is a different local principal than the operator and the operator's own model. Reviewer note: Parent review confirmed free_port binds and releases a port (run_baseline.sh:29), and that serve() accepts the endpoint as soon as `curl -s localhost:$port/v1/models` succeeds, a test made before the liveness check of the vLLM child in the same loop iteration (:36); no key or identity check ties the answering process to the server the script started.",
+    "claimed_root_cause": "baselines/run_baseline.sh treats 'something answers HTTP on localhost:<port>' as proof that its own vLLM child is serving: the port is picked by bind-and-release, the readiness probe is evaluated before (and independently of) the child liveness test, and the server/clients share no secret and use the ambiguous hostname `localhost`, so the identity of the endpoint whose output is executed is never established.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/run_baseline.sh",
+        "line": 36,
+        "scope": "serve",
+        "description": "Readiness loop: `curl -s localhost:$port/v1/models > /dev/null && return 0` succeeds for any HTTP responder on that port and returns before `kill -0 $server` is consulted; a foreign listener's response is accepted here as 'vLLM is up'."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/run_baseline.sh",
+        "line": 58,
+        "scope": "main script, case $framework",
+        "description": "The same port is handed to the framework driver (`--port $port`); lines 59 and 60 do the same for shinkaevolve (plus --embed-port) and codeevolve."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/run_openevolve.py",
+        "line": 37,
+        "scope": "module level, config['llm']",
+        "description": "OpenEvolve is configured with api_base `http://localhost:{port}/v1` and api_key 'EMPTY'; no credential or identity ties the client to the vLLM child."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/llm/openai.py",
+        "line": 86,
+        "scope": "OpenAILLM.__init__",
+        "description": "AsyncOpenAI client is created with base_url=self.api_base; all completions are requested from whichever process holds that address."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/process_parallel.py",
+        "line": 209,
+        "scope": "_run_iteration_worker",
+        "description": "llm_response is obtained from the endpoint via _worker_llm_ensemble.generate_with_context."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/process_parallel.py",
+        "line": 283,
+        "scope": "_run_iteration_worker",
+        "description": "Diff blocks extracted from the response are applied to the parent program to form child_code (full-rewrite mode takes the response's code block instead)."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/process_parallel.py",
+        "line": 364,
+        "scope": "_run_iteration_worker",
+        "description": "child_code is passed to _worker_evaluator.evaluate_program."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/evaluator.py",
+        "line": 455,
+        "scope": "Evaluator._direct_evaluate",
+        "description": "The code is written to a temp file (line 260) and the configured evaluate function is called with its path."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve_evaluator.py",
+        "line": 11,
+        "scope": "evaluate",
+        "description": "The glue evaluator forwards the program path to the shared benchmarks evaluation."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/evaluation.py",
+        "line": 43,
+        "scope": "evaluate",
+        "description": "subprocess.Popen runs run_evaluator.py on the program with env={**os.environ, ...} (line 46): the operator's uid and full environment, no isolation beyond a temp cwd and a 60 s limit."
+      },
+      {
+        "kind": "sink",
+        "file": "benchmarks/run_evaluator.py",
+        "line": 12,
+        "scope": "module level",
+        "description": "module.evaluate(program_path) runs the problem evaluator, which imports/executes the program text supplied by the endpoint."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/run_baseline.sh",
+        "line": 29,
+        "description": "free_port: `s.bind(('', 0)); print(s.getsockname()[1])` - the socket is released when the helper exits, so the returned port is unreserved until vLLM binds it."
+      },
+      {
+        "file": "baselines/run_baseline.sh",
+        "line": 34,
+        "description": "`vllm serve \"$@\" --port $port >> $log 2>&1 &` - started in the background with the port in its arguments, without --host and without --api-key; a bind failure is only written to the log."
+      },
+      {
+        "file": "baselines/run_baseline.sh",
+        "line": 36,
+        "description": "Strongest visible control: probe then liveness. The probe has no -f and no responder identity check, and `return 0` short-circuits before `kill -0 $server`."
+      },
+      {
+        "file": "baselines/run_baseline.sh",
+        "line": 42,
+        "description": "`port=$(free_port)` is taken before the optional embedding server is started and awaited (lines 46-47) and is only bound at line 50."
+      },
+      {
+        "file": "baselines/run_baseline.sh",
+        "line": 22,
+        "description": "`OPENAI_API_KEY=EMPTY` is exported: the clients present a placeholder, so no shared secret exists between launcher, server and frameworks."
+      },
+      {
+        "file": "baselines/run_shinkaevolve.py",
+        "line": 33,
+        "description": "ShinkaEvolve path of the same root cause: every LLM role uses `local/{model}@http://localhost:{port}/v1` (embedding endpoint at line 45)."
+      },
+      {
+        "file": "baselines/run_codeevolve.py",
+        "line": 60,
+        "description": "CodeEvolve path of the same root cause: API_BASE=`http://localhost:{port}/v1`, API_KEY='EMPTY'."
+      },
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 46,
+        "description": "The evaluated program inherits the operator's whole environment (`env={**os.environ, **SINGLE_THREAD}`)."
+      }
+    ],
+    "blockers": [
+      "No target code may be executed in this run (sandbox controls incomplete), so the readiness-gate behaviour of `serve` with a foreign listener and a failed/absent vLLM child has not been observed.",
+      "Deployment fact: whether the benchmark host has a second local principal (other user accounts, or unprivileged workloads sharing the host network namespace) that can read process arguments (/proc not mounted with hidepid) or probe loopback ports during a run.",
+      "Dependency fact (vLLM is not vendored and its version is not pinned in the repository): how long `vllm serve` takes from exec to listen() on --port, and which address family/interface it binds when --host is omitted (IPv4 wildcard only versus dual-stack); this decides whether 127.0.0.1:<port> can be taken first or [::1]:<port> stays free for the whole run.",
+      "Host fact: the order in which `localhost` resolves (::1 versus 127.0.0.1) for curl and for the OpenAI/httpx clients used by the three frameworks."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with isolated loopback and dummy data only. Step 1 (readiness gate): create scratch/bin/vllm as a stub script that sleeps 3 seconds and exits 1 (stand-in for a vLLM child that could not bind) and put scratch/bin first on PATH. Start a dummy HTTP listener (python3 http.server subclass) on 127.0.0.1:P, P a free port, that answers every GET with the body {\"sentinel\":\"foreign-listener\"}. Copy lines 29-38 of baselines/run_baseline.sh (free_port and serve) verbatim into scratch/harness.sh and append: `serve P scratch/vllm.log dummy-model; echo \"serve_rc=$?\" > scratch/poc_marker`. Run it under `bash` with `set -u`, 30 s wall-clock limit. Observable that proves the boundary result: scratch/poc_marker contains `serve_rc=0` and stdout does not contain 'vLLM did not start', although the stub child exited 1 and never listened. Step 2 (address-family split): bind a dummy listener on 0.0.0.0:P2 answering {\"sentinel\":\"own-server\"} (stand-in for an IPv4-wildcard bind), then try to bind a second listener on [::1]:P2 answering {\"sentinel\":\"foreign-listener\"}; write to scratch/poc_family whether the second bind succeeded and which sentinel is returned by `curl -s localhost:P2/v1/models` and by Python `urllib.request.urlopen('http://localhost:P2/v1/models')`. Stop all listeners afterwards. Nothing beyond these marker files is produced.",
+      "deployment": "Owner-observed on the benchmark host during one run: record the listening address of the vLLM process for the run's port (`ss -ltnp`), the output of `getent ahosts localhost`, whether other user accounts or shared-network containers exist on the host, whether /proc is mounted with hidepid, and whether a host firewall filters the port from other machines."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "benchmarks-evaluation/eval-log-writable-by-evaluated-program",
+    "title": "Evaluated program receives the path of the shared score log and can write records to it directly",
+    "description": "EVAL_LOG is documented as the file from which every framework's scores are read. evaluation.py starts the evaluator child with the complete parent environment, so the log path exported by run_baseline.sh reaches run_evaluator.py, and the per-case children of the scientific problems and the circle_packing_26 wrapper inherit it again because they are started without an env argument. The log is an ordinary file owned by the uid that runs the program and is opened in append mode by the parent; nothing authenticates a record or restricts who appends, truncates or rewrites it. A program in any of the 21 problems, including those whose header says the child is given only the case inputs, can therefore append records with a chosen score, time and sha, or alter earlier records and the saved sources under programs/. Run directories of the other frameworks for the same problem are siblings of the log's parent directory, so the same access reaches their logs when they are on the same host. This is independent of the marker channel: moving the program out of the evaluator process would not remove it. The lower-trust principal is the LLM output; the affected resource is the integrity of the score record that the cross-framework comparison relies on. Reviewer note: Parent review confirmed the child environment is {**os.environ, **SINGLE_THREAD} (evaluation.py:46), that run_baseline.sh:55 exports EVAL_LOG, and that records are appended with no integrity field (evaluation.py:72-75). This is a separate control from the metrics marker: fixing the marker does not protect the log file.",
+    "claimed_root_cause": "The score record of truth is a plain file in the trust domain of the evaluated program, and evaluation.py passes its location to that program through the inherited environment; there is no integrity control on the log.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "benchmarks/evaluation.py",
+        "line": 33,
+        "scope": "evaluate",
+        "description": "An LLM-generated program is submitted for scoring while EVAL_LOG is set in the adapter's environment."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/evaluation.py",
+        "line": 46,
+        "scope": "evaluate",
+        "description": "The child environment is the full parent environment plus thread settings, so EVAL_LOG is inherited."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/scientific_cases.py",
+        "line": 42,
+        "scope": "run_case",
+        "description": "The per-case child that runs the program is started without an env argument and inherits EVAL_LOG as well."
+      },
+      {
+        "kind": "sink",
+        "file": "benchmarks/evaluation.py",
+        "line": 74,
+        "scope": "evaluate",
+        "description": "The log is a plain append-mode file with no authentication of records; the program runs under the same uid and knows its path."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 6,
+        "description": "Comment: all frameworks' scores are read from these logs."
+      },
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 71,
+        "description": "Program sources are saved beside the log by hash with a plain write; they share the same exposure."
+      },
+      {
+        "file": "baselines/run_baseline.sh",
+        "line": 55,
+        "description": "EVAL_LOG is exported for the whole framework run as <run directory>/eval_log.jsonl."
+      },
+      {
+        "file": "baselines/run_baseline.sh",
+        "line": 18,
+        "description": "Run directories of all frameworks for a problem are siblings under results/<problem>/."
+      },
+      {
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 148,
+        "description": "The wrapper child is started without an env argument and inherits EVAL_LOG too."
+      },
+      {
+        "file": "benchmarks/scientific_cases.py",
+        "line": 2,
+        "description": "Header describes the child as receiving only the case inputs, yet the environment and file access are unrestricted."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation was allowed in this run, so a record written by an evaluated program has not been observed in the log.",
+      "The reader of EVAL_LOG used for the published results is not in the repository; how it treats additional, duplicate or back-dated records is not source-visible."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with python3 and numpy, create the directory <scratch>/b and the file <scratch>/b/poc_b.py containing: import json, os / def solve(nu, T, x): / (indented) open(os.environ['EVAL_LOG'], 'a').write(json.dumps({'time': 1.0, 'score': 777.0, 'sha': 'forged', 'error': '', 'metrics': {}}) + chr(10)) / (indented) return x * 0. From the repository root run: EVAL_LOG=<scratch>/b/eval_log.jsonl python3 benchmarks/evaluation.py burgers_1d <scratch>/b/poc_b.py. Single observable: <scratch>/b/eval_log.jsonl contains lines with sha 'forged' and score 777.0 written by the per-case child, next to the one genuine record whose score is near 0.",
+      "deployment": "Owner check: confirm whether the analysis that produces the result tables reads eval_log.jsonl without any cross-check against re-evaluation of programs/<sha>.py, and whether several frameworks' runs share one host account."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "benchmarks-evaluation/inband-metrics-marker-forgery",
+    "title": "Evaluated program can set its own recorded score through the in-band metrics marker",
+    "description": "The shared harness reads the score from the last line of the child's combined stdout and stderr that starts with the fixed marker '@@METRICS@@'. For 15 of the 21 problems the evaluator imports the LLM-generated program into the same interpreter that later prints that marker. Program code can therefore print its own marker line and end the interpreter (os._exit, or sys.exit, which the evaluators' 'except Exception' does not catch) before the genuine line is printed, or replace the evaluator's functions in memory. evaluation.py never checks the child's exit status, uses no per-run secret, and accepts any numeric non-NaN score, including values far above what the evaluator can produce. The forged value is returned to the framework as the fitness and is appended to EVAL_LOG by the trusted parent, which the file header describes as the place all frameworks' scores are read from. The lower-trust principal is the LLM output; the affected resource is the integrity of the benchmark scores and of the selection signal inside each run. The strongest control visible in source is the child process boundary with a 60 s limit, which does not separate the program from the marker's author. For the six evaluators that run the program in a further child process, the same marker channel might be reachable by a same-uid descendant that reopens the parent's stdout pipe through /proc and then stops the parent; that variant depends on operating-system behaviour and is not established from source. Reviewer note: Parent review read benchmarks/evaluation.py and benchmarks/run_evaluator.py in full: the scorer takes found[-1] among stdout lines starting with the marker (evaluation.py:50-52) and never checks the child exit status; run_evaluator.py prints the genuine marker only after module.evaluate() returns (:12-16), and in-process evaluators such as kissing_number_11 import the program into that same interpreter (evaluator.py:65-66). A harness draft exists at security/pipeline/poc/benchmarks-evaluation_inband-metrics-marker-forgery/.",
+    "claimed_root_cause": "The metrics channel is unauthenticated and shared with the untrusted program: run_evaluator.py executes the program inside the process that emits the marker, and evaluation.py trusts the last marker line without checking the exit status, a per-run secret or a plausible score range.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "benchmarks/evaluation.py",
+        "line": 33,
+        "scope": "evaluate",
+        "description": "The framework adapters pass the path of an LLM-generated program to the shared evaluate()."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/evaluation.py",
+        "line": 43,
+        "scope": "evaluate",
+        "description": "run_evaluator.py is started on that program with stdout piped and stderr merged into it."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/run_evaluator.py",
+        "line": 12,
+        "scope": "module",
+        "description": "The problem evaluator's evaluate() runs in this interpreter, which prints the genuine marker only afterwards (line 16)."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/problems/kissing_number_11/evaluator.py",
+        "line": 66,
+        "scope": "evaluate",
+        "description": "__import__ executes the program's top-level code in the evaluator process; the surrounding handler catches Exception only (line 95)."
+      },
+      {
+        "kind": "sink",
+        "file": "benchmarks/evaluation.py",
+        "line": 52,
+        "scope": "evaluate",
+        "description": "The JSON after the last marker line becomes the metrics, with no exit-status or origin check; the score is then returned and logged."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 50,
+        "description": "Marker lines are selected from all output lines by prefix only; found[-1] is used."
+      },
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 62,
+        "description": "The only score validation is a type and NaN test; there is no upper bound and process.returncode is never read."
+      },
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 72,
+        "description": "The accepted score is written into the EVAL_LOG record by the parent process."
+      },
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 2,
+        "description": "Header states combined_score is the score and is 0 for an invalid program."
+      },
+      {
+        "file": "benchmarks/run_evaluator.py",
+        "line": 16,
+        "description": "The genuine marker is printed with the same fixed public prefix after the program has run in-process."
+      },
+      {
+        "file": "benchmarks/problems/kissing_number_11/evaluator.py",
+        "line": 95,
+        "description": "Only Exception is caught, so SystemExit or os._exit from program code ends the evaluator before it reports."
+      },
+      {
+        "file": "benchmarks/problems/first_autocorrelation/evaluator.py",
+        "line": 67,
+        "description": "Same in-process import pattern; one of 15 evaluators that share it."
+      },
+      {
+        "file": "baselines/shinka_evaluate.py",
+        "line": 27,
+        "description": "The adapter forwards combined_score to the framework without further validation."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation was allowed in this run (no target code execution), so the forged score has not been observed in the returned metrics or in EVAL_LOG.",
+      "Whether a same-uid descendant can inject a marker for the six process-isolated evaluators by reopening the parent's stdout pipe through /proc is an operating-system fact that was not observed.",
+      "The script that reads EVAL_LOG for the published tables is not in the repository, so any filtering it applies to implausible scores is not source-visible."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with python3 and numpy, create <scratch>/a/poc_a.py with three lines: import os, json / print('@@METRICS@@' + json.dumps({'combined_score': 123.0}), flush=True) / os._exit(0). The file defines no kissing_number11 function, so it is an invalid program. From the repository root run: EVAL_LOG=<scratch>/a/eval_log.jsonl python3 benchmarks/evaluation.py kissing_number_11 <scratch>/a/poc_a.py. Single observable: the printed metrics have combined_score 123.0 and the one line appended to <scratch>/a/eval_log.jsonl has score 123.0; if the control held, the score would be 0 with an error."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "benchmarks-evaluation/time-limit-process-escape",
+    "title": "Processes started by an evaluated program outlive the evaluation and its time limit",
+    "description": "evaluation.py starts the evaluator in a new session and states that this lets a timeout kill everything the child started. The group kill is sent only when communicate() times out, and only to the original process group. A descendant that the program moved to another session or group is not signalled, and when the evaluation finishes normally nothing is signalled at all, so a background process that does not hold the stdout pipe keeps running with the operator's uid and environment after the score has been recorded. The per-case runner of the scientific problems has the same structure, and the circle_packing_26 evaluator kills only its direct child. Because the evaluator child is in its own session, the group SIGTERM that run_baseline.sh relies on at the end of the budget does not reach in-flight evaluations, whose only supervisor is the adapter process being terminated. The task statements promise a hard 60 s limit on one core. A surviving process is not bound by it: it can continue computing and leave results for later programs of the same lineage, act on the score log after the parent has written the genuine record, and keep running after the framework run ends. The lower-trust principal is the LLM output; the affected resources are the compute-budget rule the comparison depends on and the operator's host after the run. A related robustness effect is that the communicate() call after the kill has no timeout, so a surviving descendant that still holds the pipe keeps evaluate() from returning. Reviewer note: Parent review confirmed os.killpg is called only in the TimeoutExpired branch (evaluation.py:55-56) although the comment at :41 says the process group lets a timeout kill everything the evaluator started; a descendant that calls setsid leaves the group. The concrete cross-boundary effect to test is work that continues past the 60 s limit and is consumed by a later evaluation (the per-evaluation compute budget the benchmark states).",
+    "claimed_root_cause": "Process lifetime is bound to the evaluation only through a process-group SIGKILL issued in the timeout handler; there is no kill on normal completion and no containment (subreaper, cgroup or PID namespace) for descendants that leave the group.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "benchmarks/evaluation.py",
+        "line": 33,
+        "scope": "evaluate",
+        "description": "An LLM-generated program is submitted for scoring."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/evaluation.py",
+        "line": 43,
+        "scope": "evaluate",
+        "description": "The evaluator child is started as leader of a new session and process group."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/run_evaluator.py",
+        "line": 12,
+        "scope": "module",
+        "description": "Program code runs and may start a process in a different session with its standard streams detached."
+      },
+      {
+        "kind": "sink",
+        "file": "benchmarks/evaluation.py",
+        "line": 56,
+        "scope": "evaluate",
+        "description": "The only termination step: SIGKILL to the original group, reached only on TimeoutExpired."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 41,
+        "description": "Comment claims the separate process group lets a timeout kill everything the child started."
+      },
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 48,
+        "description": "Normal completion path: no signal is sent to the group after communicate() returns."
+      },
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 57,
+        "description": "communicate() without a timeout after the kill; it waits for every holder of the pipe."
+      },
+      {
+        "file": "benchmarks/scientific_cases.py",
+        "line": 48,
+        "description": "Same pattern for the per-case child: group kill only in the timeout handler."
+      },
+      {
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 180,
+        "description": "process.kill() reaches only the direct wrapper child."
+      },
+      {
+        "file": "baselines/run_baseline.sh",
+        "line": 54,
+        "description": "End of budget relies on SIGTERM to the framework's process group, which excludes evaluator sessions."
+      },
+      {
+        "file": "benchmarks/problems/kissing_number_11/task.md",
+        "line": 23,
+        "description": "Task statement promises a single CPU core and a hard time limit of 60 seconds."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation was allowed in this run, so a surviving descendant has not been observed after a timeout or after normal completion.",
+      "Whether the deployment adds outer containment (container, systemd scope, cgroup kill) around framework runs is not source-visible."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with python3 and numpy, create <scratch>/c/child.py: import os, time / time.sleep(8) / open(os.environ['POC_MARKER'], 'w').write('alive'). Create <scratch>/c/poc_c.py: import os, subprocess, sys, time / subprocess.Popen([sys.executable, os.environ['POC_CHILD']], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True) / time.sleep(30). From the repository root run, with the limit shortened to keep the check bounded: POC_CHILD=<scratch>/c/child.py POC_MARKER=<scratch>/c/marker python3 -c \"import sys; sys.path.insert(0, 'benchmarks'); import evaluation; evaluation.TIME_LIMIT = 3; print(evaluation.evaluate('<scratch>/c/poc_c.py', 'kissing_number_11'))\". Single observable: evaluate() returns the error 'time limit of 3 s exceeded' after about 3 s, and about 5 s later <scratch>/c/marker is created by the descendant that survived the group kill. The helper exits by itself after 8 s.",
+      "deployment": "Owner check: after a baseline run ends, list processes of the run account (ps -u <account> -o pid,ppid,sid,etime,cmd) and confirm whether any interpreter started from an evaluation is still alive."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "benchmarks-scientific-cases/reference-answers-readable-by-program",
+    "title": "Scientific-problem programs can read the reference answers they are scored against",
+    "description": "scientific_cases.py states that the program's entry function runs in a child process that receives only the case inputs and never the reference answer. That is true of the arguments, but the child runs under the same uid with no file-system restriction. For convection_diffusion_2d and helmholtz_2d the answers are stored in reference.npz beside the evaluator, world-readable and keyed by case name; for burgers_1d, nonnormal_eigenvalues and sparse_linear_systems the evaluator source regenerates the references from a fixed seed, so importing that file yields them. The absolute problem directory appears in the command line of the child's parent process, and BENCHMARK_PROBLEM is in the inherited environment. A program that returns the stored reference for the case it is given has relative error 0 and receives full marks on every case without solving the problem. The lower-trust principal is the LLM output; the affected resource is the validity of the scores of the five scientific-computing problems. The control named in source is the separate child process with input-only arguments. Reviewer note: Parent review confirmed the explicit claim at benchmarks/scientific_cases.py:2-5 that the child \"receives only the case's inputs (never the reference answer)\"; the child (CHILD, :19-29) runs under the same uid with no file-system restriction, and the score is digits of accuracy against the reference.",
+    "claimed_root_cause": "Reference answers are kept in files readable by the process that runs the untrusted program, and the isolation claimed for that process covers only its arguments, not its file access or environment.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "benchmarks/evaluation.py",
+        "line": 43,
+        "scope": "evaluate",
+        "description": "The evaluator child is started with the absolute problem directory and program path in its argv and the full environment."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/problems/convection_diffusion_2d/evaluator.py",
+        "line": 24,
+        "scope": "cases",
+        "description": "References are loaded from reference.npz in the problem directory, keyed by case name."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/scientific_cases.py",
+        "line": 42,
+        "scope": "run_case",
+        "description": "The per-case child is started under the same uid with inherited environment and no file-system restriction."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/scientific_cases.py",
+        "line": 26,
+        "scope": "CHILD",
+        "description": "The program's entry function executes in that child and can open any file the operator can read."
+      },
+      {
+        "kind": "sink",
+        "file": "benchmarks/scientific_cases.py",
+        "line": 75,
+        "scope": "evaluate_cases",
+        "description": "The returned array is compared with the same reference; an identical array gives relative error 0 and full digits."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "benchmarks/scientific_cases.py",
+        "line": 2,
+        "description": "Header: the child receives only the case inputs, never the reference answer."
+      },
+      {
+        "file": "benchmarks/scientific_cases.py",
+        "line": 62,
+        "description": "digits() maps a relative error of 0 to the cap, so an exact copy scores full marks."
+      },
+      {
+        "file": "benchmarks/problems/helmholtz_2d/evaluator.py",
+        "line": 24,
+        "description": "Second problem whose answers are in reference.npz beside the evaluator."
+      },
+      {
+        "file": "benchmarks/problems/sparse_linear_systems/evaluator.py",
+        "line": 76,
+        "description": "Planted solutions come from a fixed seed in the evaluator source and can be regenerated by importing it."
+      },
+      {
+        "file": "benchmarks/problems/burgers_1d/evaluator.py",
+        "line": 28,
+        "description": "Reference values are computed by a function in the evaluator source from fixed inputs."
+      },
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 44,
+        "description": "The absolute problem directory is placed in the evaluator child's argv, visible to its children."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation was allowed in this run, so a full score obtained by returning the stored reference has not been observed.",
+      "Reading the parent's command line needs a /proc file system consistent with the PID namespace; that is an operating-system fact of the evaluation host."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with python3 and numpy and a /proc that matches the sandbox PID namespace, create <scratch>/r/poc_r.py: import os / import numpy as np / def solve(eps, b, x, y): / (indented) problem_dir = open('/proc/%d/cmdline' % os.getppid(), 'rb').read().split(bytes(1))[2].decode() / (indented) return np.load(os.path.join(problem_dir, 'reference.npz'))['eps_%g' % eps]. From the repository root run: python3 benchmarks/evaluation.py convection_diffusion_2d <scratch>/r/poc_r.py. Single observable: combined_score is 1.0 and output_tail reports 6.00 of 6 digits for all five cases although the file contains no solver; if the control held, the reference would be unreachable and the score would be 0."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "circle-packing-26-evaluator/results-pickle-load",
+    "title": "circle_packing_26 evaluator unpickles a results file controlled by the evaluated program",
+    "description": "The circle_packing_26 evaluator is the one evaluator that runs the program in a child process of its own. The child returns its result by pickling the objects that run_packing() returned into a file next to the wrapper script, and the evaluator loads that file with pickle.load after checking only that the child exited with code 0. The objects are chosen by the program, and the program can also write the file itself because its path is the wrapper script path plus '.results'. Unpickling therefore executes program-chosen callables inside the run_evaluator.py process, which is the process that prints the metrics marker. That removes the only separation this evaluator has between the program and the scorer: code running there can emit its own metrics and end the process, and a SystemExit raised during the load is not caught by the evaluator's 'except Exception', while the child's stdout, whose lines after the first are reprinted without a prefix, has already been written. The lower-trust principal is the LLM output; the crossed boundary is child process to evaluator process; the affected resource is the integrity of this problem's scores. Both processes run under the same uid, so no additional operating-system privilege is claimed. Reviewer note: Parent review confirmed run_with_timeout loads <wrapper>.results with pickle.load (circle_packing_26/evaluator.py:166-168) after checking only the child exit code. Scope of the gain: the loading process is the run_evaluator.py child that prints the metrics marker, so this is a second route to score forgery for the one evaluator that separates the program from the scorer by a process; it does not reach the framework process.",
+    "claimed_root_cause": "run_with_timeout uses pickle as the result format for data produced by the untrusted child and loads it in the evaluator process with no restriction on the types that may be constructed.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 208,
+        "scope": "evaluate",
+        "description": "The LLM-generated program path is handed to run_with_timeout."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 119,
+        "scope": "run_with_timeout",
+        "description": "In the child, the wrapper calls the program's run_packing(); the returned objects are program-controlled."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 129,
+        "scope": "run_with_timeout",
+        "description": "The wrapper pickles those objects into '<wrapper path>.results', a path the program can also write directly."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 162,
+        "scope": "run_with_timeout",
+        "description": "The only gate before loading is the child's exit code."
+      },
+      {
+        "kind": "sink",
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 168,
+        "scope": "run_with_timeout",
+        "description": "pickle.load of the child-written file runs in the evaluator process."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 144,
+        "description": "results_path is derived from the wrapper script name, which the child knows as its own script path."
+      },
+      {
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 157,
+        "description": "Child stdout is reprinted with a prefix on its first line only, before the load."
+      },
+      {
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 271,
+        "description": "evaluate() catches Exception only; SystemExit from the load ends the evaluator before it reports."
+      },
+      {
+        "file": "benchmarks/run_evaluator.py",
+        "line": 16,
+        "description": "The process that performs the load is the one that prints the genuine metrics marker."
+      },
+      {
+        "file": "benchmarks/scientific_cases.py",
+        "line": 57,
+        "description": "Sibling control for comparison: the scientific problems return child data with np.load(allow_pickle=False)."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation was allowed in this run, so execution in the evaluator process during the load has not been observed."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with python3 and numpy, create the directories <scratch>/d and <scratch>/d/tmp and the file <scratch>/d/poc_d.py: import os / class Marker: / (indented) def __reduce__(self): return (exec, (\"import os; open(os.environ['POC_MARKER'], 'w').write(str(os.getpid()))\",)) / def run_packing(): / (indented) open(os.environ['POC_CHILD_PID'], 'w').write(str(os.getpid())) / (indented) return (Marker(), Marker(), 0.0). From the repository root run: TMPDIR=<scratch>/d/tmp POC_MARKER=<scratch>/d/marker POC_CHILD_PID=<scratch>/d/child_pid python3 benchmarks/evaluation.py circle_packing_26 <scratch>/d/poc_d.py. Single observable: <scratch>/d/marker exists and holds a PID different from the one in <scratch>/d/child_pid, showing the callable ran in the evaluator process during pickle.load rather than in the program's child."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "circle-packing-26-evaluator/shared-tempdir-on-module-search-path",
+    "title": "Evaluation runs Python with the shared temp directory first on the module search path",
+    "description": "The circle_packing_26 evaluator writes its wrapper script directly into the system temp directory and runs it as a script. Python then puts the script's directory, normally the world-writable /tmp, at the front of the module search path, ahead of the standard library and site-packages, and the wrapper imports numpy, pickle and traceback. A file such as numpy.py or pickle.py present in that directory is imported and executed with the operator's uid on every circle_packing_26 evaluation, under any framework. The harness sets PYTHONNOUSERSITE but not safe-path mode. The results file is a predictable sibling name in the same directory, is opened by the child without exclusive creation, and is unpickled by the evaluator whenever it exists and the child exited with 0, so on hosts without the protected-file sysctls a file placed there by another account can be loaded. The same pattern reaches the 15 in-process evaluators when OpenEvolve is the framework: OpenEvolve writes each program directly into the temp directory and the evaluators insert the program's directory at sys.path[0] before importing it, so the program's own imports of modules not yet loaded, for example jax in the shipped initial programs, resolve from the shared directory first. Two lower-trust principals are affected differently. Another local account on a shared host could plant such a file and gain code execution as the operator; whether such accounts and a shared /tmp exist is a deployment fact. An evaluated program can plant one and thereby persist into every later evaluation and run on the host. The affected resources are the operator's account and the integrity of later evaluations. Reviewer note: Parent review confirmed tempfile.NamedTemporaryFile(suffix=\".py\", delete=False) with no dir (evaluator.py:95) and that the file is run as [sys.executable, temp_file_path] (:148), which puts the temp directory first on sys.path before the wrapper's `import numpy`. evaluation.py changes the child's cwd, not TMPDIR.",
+    "claimed_root_cause": "Scripts and result files are created directly in the shared temp directory instead of a private directory, and the interpreters are started without isolated or safe-path mode, so the shared directory becomes an import location.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 95,
+        "scope": "run_with_timeout",
+        "description": "The wrapper script is created with NamedTemporaryFile in the default temp directory, which other principals can write to."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 99,
+        "scope": "run_with_timeout",
+        "description": "The generated script imports numpy, os, pickle and traceback by name."
+      },
+      {
+        "kind": "sink",
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 148,
+        "scope": "run_with_timeout",
+        "description": "The script is run as [sys.executable, path], so its directory is sys.path[0] and those imports search the shared temp directory first."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 28,
+        "description": "The child environment adds PYTHONNOUSERSITE and thread settings only; no PYTHONSAFEPATH or isolated mode."
+      },
+      {
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 144,
+        "description": "The results file is the predictable sibling '<wrapper path>.results' in the same shared directory."
+      },
+      {
+        "file": "benchmarks/problems/circle_packing_26/evaluator.py",
+        "line": 166,
+        "description": "An existing results file is unpickled after an exit code of 0, whoever created it."
+      },
+      {
+        "file": "benchmarks/problems/kissing_number_11/evaluator.py",
+        "line": 65,
+        "description": "In-process evaluators insert the program's directory at sys.path[0] before importing the program."
+      },
+      {
+        "file": "baselines/openevolve/openevolve/evaluator.py",
+        "line": 259,
+        "description": "OpenEvolve creates each program file directly in the default temp directory, making it that program directory."
+      },
+      {
+        "file": "benchmarks/scientific_cases.py",
+        "line": 36,
+        "description": "Sibling control for comparison: the scientific runner uses a private TemporaryDirectory for its script and outputs."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation was allowed in this run, so import of a file from the temp directory by the wrapper has not been observed.",
+      "Whether evaluation hosts have other local accounts sharing a world-writable temp directory, and the values of fs.protected_regular and fs.protected_symlinks there, are deployment facts not visible in source."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with python3 and numpy, create the directory <scratch>/t/tmp and the file <scratch>/t/tmp/pickle.py containing: import os / open(os.environ['POC_MARKER'], 'w').write(str(os.getpid())). From the repository root run the repository's own unmodified program: TMPDIR=<scratch>/t/tmp POC_MARKER=<scratch>/t/marker python3 benchmarks/evaluation.py circle_packing_26 benchmarks/problems/circle_packing_26/initial_program.py. Single observable: <scratch>/t/marker is created, showing that a file in the temp directory was imported in place of the standard-library module during a normal evaluation. The evaluation then reports score 0 because the stand-in module is empty.",
+      "deployment": "Owner check on an evaluation host: run 'ls -ld \"${TMPDIR:-/tmp}\"' and 'getent passwd' to see whether the temp directory is world-writable and shared with other accounts, and 'sysctl fs.protected_regular fs.protected_symlinks'."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "codeevolve-ckpt/pickle-load-on-resume",
+    "title": "CodeEvolve unpickles the highest-numbered ckpt_N.pkl found in an output directory that evaluated programs can write",
+    "description": "CodeEvolve checkpoints are pickles under <out_dir>/island_<i>/ckpt/. On a resume (--load_ckpt -1 or a positive epoch) each island process calls pickle.load on ckpt_<epoch>.pkl. The epoch is taken from a directory listing: for -1, and also when a requested epoch is missing, the highest-numbered file name common to all island directories is used. An evaluated program (a plain subprocess with the full parent environment, which in this repo includes EVAL_LOG pointing into the run directory) can write a file such as ckpt_99999999.pkl into every island's ckpt directory; the framework never overwrites it, and the next resume executes its content inside the CodeEvolve island processes, after the evaluation that wrote it has timed out or been killed. Scope limits established from source: the load occurs only on an explicit resume; the repo glue always starts with --load_ckpt 0 (while writing a checkpoint every epoch), so the path is reached only when an operator later resumes a codeevolve_output directory by hand or uses CodeEvolve directly. CodeEvolve's README describes evaluation as sandboxed, but the evaluator applies only a timeout and a psutil monitor, so the program has the operator's uid and full filesystem access; the pickle adds a boundary crossing where the output directory is resumed on another host or account, or where the operator relies on the documented sandbox. Reviewer note: Parent review confirmed pkl.load in load_ckpt (utils/ckpt.py:114-115) and that loading is enabled only when --load_ckpt is not 0 (cli.py:125). This repository's glue passes --load_ckpt 0, so the default flow here does not reach the sink. A generated program already runs as the operator, so the boundary that matters is a checkpoint directory received from someone else and then resumed.",
+    "claimed_root_cause": "load_ckpt deserializes checkpoints with pickle from a directory shared with untrusted evaluated programs, with no integrity check, and checkpoint selection trusts file names found in that directory.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/CodeEvolve/src/codeevolve/evaluator.py",
+        "line": 298,
+        "scope": "Evaluator.execute",
+        "description": "The evaluated program runs as a plain subprocess that inherits the environment and has no filesystem isolation, so it can write <out_dir>/island_<i>/ckpt/ckpt_<n>.pkl."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/CodeEvolve/src/codeevolve/utils/cli_setup.py",
+        "line": 162,
+        "scope": "find_common_checkpoints",
+        "description": "On start-up the checkpoint candidates are whatever file names matching ckpt_(\\d+)\\.pkl exist in every island ckpt directory."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/CodeEvolve/src/codeevolve/utils/cli_setup.py",
+        "line": 189,
+        "scope": "determine_checkpoint_to_load",
+        "description": "For --load_ckpt -1, or a requested epoch that is absent, the maximum epoch number found is selected."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/CodeEvolve/src/codeevolve/evolution.py",
+        "line": 1196,
+        "scope": "_initialize_from_checkpoint",
+        "description": "Each island process calls load_ckpt(args['load_ckpt'], args['ckpt_dir']) when load_ckpt is non-zero."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/CodeEvolve/src/codeevolve/utils/ckpt.py",
+        "line": 115,
+        "scope": "load_ckpt",
+        "description": "pickle.load on the selected checkpoint file in the island process."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/CodeEvolve/src/codeevolve/utils/ckpt.py",
+        "line": 115,
+        "description": "Bare pickle.load; no signature, MAC, ownership check or restricted unpickler."
+      },
+      {
+        "file": "baselines/CodeEvolve/src/codeevolve/utils/cli_setup.py",
+        "line": 287,
+        "description": "Checkpoint directory is the fixed path <out_dir>/island_<id>/ckpt."
+      },
+      {
+        "file": "baselines/CodeEvolve/src/codeevolve/cli.py",
+        "line": 125,
+        "description": "Checkpoint loading is active only when --load_ckpt is non-zero."
+      },
+      {
+        "file": "baselines/run_codeevolve.py",
+        "line": 69,
+        "description": "The repo glue always passes --load_ckpt 0, so the glue itself never loads a checkpoint."
+      },
+      {
+        "file": "baselines/run_codeevolve.py",
+        "line": 52,
+        "description": "The glue sets ckpt: 1, so pickled checkpoints are written every epoch into the run directory for later use."
+      },
+      {
+        "file": "baselines/run_baseline.sh",
+        "line": 55,
+        "description": "EVAL_LOG=<run dir>/eval_log.jsonl is exported and inherited by evaluated programs, disclosing the run directory that contains codeevolve_output."
+      },
+      {
+        "file": "baselines/CodeEvolve/README.md",
+        "line": 200,
+        "description": "Documentation claims sandboxed program execution; source shows only time and memory limits."
+      }
+    ],
+    "blockers": [
+      "No target code was executed in this run; the marker-file observation for the pickle sink and the epoch-selection result have not been observed.",
+      "Deployment fact not in source: whether any CodeEvolve output directory produced by this repo is ever resumed with a non-zero --load_ckpt (the glue never does).",
+      "Deployment fact not in source: whether the resume happens under a different host, account or isolation level than the evaluation that could write the file. On one host and one uid the evaluated program already has equivalent write access to the framework's code."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with baselines/CodeEvolve/src on PYTHONPATH and its dependencies present: (1) call codeevolve.utils.cli_setup.determine_checkpoint_to_load({'ckpt_3.pkl', 'ckpt_99999999.pkl'}, -1) and record the return value (expected 99999999). (2) Create scratch/ckpt/ckpt_99999999.pkl by pickling {'x': Obj()} where Obj.__reduce__ returns (open, ('scratch/poc_marker_codeevolve', 'w')), then call codeevolve.utils.ckpt.load_ckpt(99999999, 'scratch/ckpt'). Single observable: scratch/poc_marker_codeevolve exists after the call.",
+      "deployment": "Owner check: confirm whether codeevolve_output directories are ever resumed (--load_ckpt -1 or N), on which host and account, and whether evaluated programs could write to island_*/ckpt during the original run."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "codeevolve/config-template-verify-ssl-false",
+    "title": "CodeEvolve's shipped model templates disable TLS certificate verification for the client that carries the API key and returns code to execute",
+    "description": "Both real-model configuration templates vendored under baselines/CodeEvolve/configs/templates/ set verify_ssl: False on every language-model role (exploration ensemble, exploitation ensemble, sampler auxiliary model). CodeEvolve passes each entry straight into OpenAILM, which builds httpx.AsyncClient(verify=self.verify_ssl) and gives it to AsyncOpenAI together with the operator's API_KEY and API_BASE. With verify=False the client accepts any certificate for any host. An operator who follows CodeEvolve's own instructions (export API_KEY and API_BASE for a hosted provider or gateway, run scripts/run.sh or pass --cfg_path with a template) therefore sends the bearer key over a connection that an on-path network attacker can terminate with a self-signed certificate. That attacker can read the API key and can also return forged completions; CodeEvolve applies completions as code edits and executes the result on the operator's host, so reply integrity is a code-execution boundary, not just a confidentiality one. The class default is verify_ssl: None, so the unsafe behavior comes from the templates, which are the only non-mock starting configurations the project ships. Scope condition: the benchmark path of this repository is not affected. baselines/run_codeevolve.py loads the qwen template but replaces all three model entries with dictionaries that have no verify_ssl key and sets API_BASE to http://localhost, so the flag never reaches a client there. The issue applies when the vendored CodeEvolve is run with its own templates or scripts/run.sh against an https endpoint. Reviewer note: Parent review confirmed verify_ssl: False on every model entry of configs/templates/config_qwen.yaml and config_gemini.yaml (:40-45) and that the value is passed to httpx.AsyncClient(verify=...) (lm/openai.py:97). This repository's CodeEvolve run talks to a local http endpoint, so it is not affected; the templates are.",
+    "claimed_root_cause": "The configuration templates opt every model client out of certificate verification (verify_ssl: False), and the loader forwards that value to httpx without a warning, an allow-list of hosts, or a requirement that the endpoint be loopback.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/CodeEvolve/configs/templates/config_gemini.yaml",
+        "line": 40,
+        "scope": "EXPLORATION_ENSEMBLE",
+        "description": "Template model entry carries verify_ssl: False (same on lines 42, 43, 45, and in config_qwen.yaml lines 40, 42, 44); the network peer of this client is the lower-trust party whose certificate is accepted unchecked."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/CodeEvolve/src/codeevolve/cli.py",
+        "line": 121,
+        "scope": "main",
+        "description": "API_BASE and API_KEY are read from the operator's environment (validate_environment, utils/cli_setup.py lines 43-44) and stored in args."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/CodeEvolve/src/codeevolve/evolution.py",
+        "line": 1003,
+        "scope": "_create_ensembles",
+        "description": "The EXPLORATION_ENSEMBLE list from the YAML is passed as models_cfg to OpenAIEnsemble with the operator's api_key and api_base (exploitation ensemble and SAMPLER_AUX_LM take the same route, line 1042 and prompt/sampler.py line 122)."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+        "line": 324,
+        "scope": "_create_lm_from_config",
+        "description": "OpenAILM(**model_cfg, api_key=api_key, api_base=api_base): the verify_ssl key from the template becomes a constructor argument without validation."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+        "line": 97,
+        "scope": "OpenAILM.__post_init__",
+        "description": "httpx.AsyncClient(verify=self.verify_ssl) is created with verify=False and installed as the AsyncOpenAI http_client together with the API key and base URL (lines 99-101)."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+        "line": 132,
+        "scope": "OpenAILM.generate",
+        "description": "chat.completions.create sends the bearer API key over the unverified TLS connection and returns the peer's reply, which the evolution loop turns into program edits that are then executed."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/CodeEvolve/configs/templates/config_qwen.yaml",
+        "line": 40,
+        "description": "The second real-model template also sets verify_ssl: False (lines 40, 42, 44)."
+      },
+      {
+        "file": "baselines/CodeEvolve/scripts/run.sh",
+        "line": 17,
+        "description": "CodeEvolve's own run script points CFG_PATH at configs/templates/config_qwen.yaml unchanged."
+      },
+      {
+        "file": "baselines/CodeEvolve/README.md",
+        "line": 275,
+        "description": "Documentation says API_BASE may be a hosted provider or gateway, i.e. a remote https endpoint is an expected deployment."
+      },
+      {
+        "file": "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+        "line": 71,
+        "description": "Class default is verify_ssl: Optional[bool] = None, so verification is disabled by the template value, not by the code default."
+      },
+      {
+        "file": "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+        "line": 502,
+        "description": "The embedding client has the same verify=self.verify_ssl construction and would be affected by an EMBEDDING entry with the same flag."
+      },
+      {
+        "file": "baselines/run_codeevolve.py",
+        "line": 38,
+        "description": "Strongest in-repo mitigation: this repository's glue replaces the template's three model entries with a dictionary that has no verify_ssl key (lines 38-47) and uses http://localhost as API_BASE (line 60), so its benchmark runs never use the flag."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation was made: this run forbids executing target code, and httpx/openai are not installed on the audit host. Whether the pinned openai==3.37.0 client uses the supplied http_client unchanged, and whether httpx==0.28.1 treats verify=False as CERT_NONE with hostname checking off, must be observed.",
+      "Deployment fact: the flag only matters when an operator runs the vendored CodeEvolve with its own templates or scripts/run.sh against an https API_BASE on a network path an attacker can intercept. The path this repository documents (baselines/run_baseline.sh -> baselines/run_codeevolve.py) overrides the affected entries and talks to a loopback HTTP server."
+    ],
+    "validation_plan": {
+      "local": "Inside the no-network sandbox, with the baselines/venv_codeevolve packages mounted read-only and loopback only: (1) generate a throwaway self-signed certificate in scratch and start an HTTPS server on 127.0.0.1:<port> that records the Authorization header of POST /v1/chat/completions and returns a minimal fixed chat-completion JSON; (2) yaml.safe_load baselines/CodeEvolve/configs/templates/config_gemini.yaml and call codeevolve.lm.openai._create_lm_from_config(cfg['EXPLORATION_ENSEMBLE'][0], api_key='DUMMY-KEY-MARKER', api_base='https://127.0.0.1:<port>/v1'), then await .generate([{'role': 'user', 'content': 'x'}]) once. Single observable: the server log contains 'Bearer DUMMY-KEY-MARKER' and generate() returns the fixed content with no certificate error. Control: repeat with the same entry after deleting its verify_ssl key; the call must fail with a certificate verification error and the server must not log the marker. Limits: one request per case, 30 s wall clock, no external hosts.",
+      "deployment": "Owner-observed: list the CodeEvolve configuration files actually used for runs outside baselines/run_codeevolve.py (for example copies of config_qwen.yaml or config_gemini.yaml) and check whether any model entry still carries verify_ssl: False while API_BASE is an https URL that is not loopback."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "openevolve-api/shared-tempdir-module-path",
+    "title": "OpenEvolve library API writes the evaluator module into the shared temp dir and adds that dir to sys.path of controller and workers",
+    "description": "run_evolution() uses a private mkdtemp directory only when output_dir is None and cleanup is True. When the caller passes output_dir or cleanup=False and supplies the evaluator as a callable or a code string, the evaluator pickle, the generated wrapper module and the initial program are written straight into tempfile.gettempdir(). The controller's Evaluator and every worker's Evaluator then insert the evaluator file's directory, which is now the world-writable temp dir, at sys.path[0] (never removed) and import the module from there, with its bytecode cache under <tempdir>/__pycache__. Consequences for another local user of the host: (1) any later import of a not-yet-loaded top-level module in the controller or a worker, including modules resolved while unpickling a cloudpickled evaluator and modules imported by evolved programs that the evaluator loads in-process, is resolved from the temp dir first; (2) if that user owns a pre-created <tempdir>/__pycache__, they can swap the cached .pyc of the evaluator module (source mtime and size are readable) before worker processes import it. Either way their code runs as the operator. The files themselves are created with default umask (world-readable) but cannot be replaced by another user in a sticky temp dir, and their names (uuid4 hex) cannot be pre-created; the evaluated program, which has the operator's uid, can overwrite the pickle, but in this flow it already runs in the worker, so that is not a separate escalation. The repo glue does not use this API (it drives the CLI with a file evaluator), so this affects direct users of the vendored library. Reviewer note: Parent review confirmed api.py falls back to tempfile.gettempdir() for the evaluator module (:359-362) and that Evaluator._load_evaluation_function inserts that directory at sys.path[0] (evaluator.py:86-89). The file names carry 8 random hex characters, so the claim rests on the import path, not on predicting a file name. This library API is not used by this repository's glue scripts.",
+    "claimed_root_cause": "api._prepare_evaluator/_prepare_program fall back to the shared system temp directory for executable module files when no private temp_dir was created, and Evaluator._load_evaluation_function unconditionally prepends the evaluator file's directory to sys.path.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/openevolve/openevolve/api.py",
+        "line": 157,
+        "scope": "_run_evolution_async",
+        "description": "A private mkdtemp directory is created only when output_dir is None and cleanup is true; otherwise temp_dir stays None."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/api.py",
+        "line": 360,
+        "scope": "_prepare_evaluator",
+        "description": "With temp_dir None the wrapper/evaluator module is written as <gettempdir()>/evaluator_<8 hex>.py (the pickle likewise at lines 329-333)."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/controller.py",
+        "line": 138,
+        "scope": "OpenEvolve.__init__",
+        "description": "The controller builds an Evaluator for that file; workers do the same lazily (process_parallel.py:131)."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/openevolve/openevolve/evaluator.py",
+        "line": 89,
+        "scope": "Evaluator._load_evaluation_function",
+        "description": "sys.path.insert(0, eval_dir) with eval_dir equal to the shared temp dir, followed by exec_module at line 98 which reads/writes the bytecode cache under <tempdir>/__pycache__."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/openevolve/openevolve/api.py",
+        "line": 329,
+        "description": "temp_dir falls back to tempfile.gettempdir() for the evaluator pickle."
+      },
+      {
+        "file": "baselines/openevolve/openevolve/api.py",
+        "line": 332,
+        "description": "Pickle is created with open(path, 'wb') and default permissions in that directory."
+      },
+      {
+        "file": "baselines/openevolve/openevolve/api.py",
+        "line": 255,
+        "description": "Same fallback for the initial program file."
+      },
+      {
+        "file": "baselines/openevolve/openevolve/api.py",
+        "line": 347,
+        "description": "The wrapper unpickles the evaluator once per process, after the temp dir is already first on sys.path."
+      },
+      {
+        "file": "baselines/openevolve/openevolve/evaluator.py",
+        "line": 88,
+        "description": "The directory is added whenever it is not yet on sys.path and is never removed."
+      },
+      {
+        "file": "baselines/openevolve/openevolve/process_parallel.py",
+        "line": 131,
+        "description": "Each worker process constructs its own Evaluator from the same file path, re-importing the module (and its cached bytecode) later than the controller."
+      },
+      {
+        "file": "baselines/run_openevolve.py",
+        "line": 49,
+        "description": "The repo glue runs the CLI entry point with a file evaluator and does not call openevolve.api."
+      }
+    ],
+    "blockers": [
+      "No target code was executed in this run; neither the sys.path state nor a shadowed import has been observed.",
+      "Deployment fact not in source: whether the vendored openevolve.api is used at all with a callable or code-string evaluator together with output_dir or cleanup=False, on a host where another account can write to the temp directory.",
+      "Runtime fact: which modules are imported after the insertion in the controller and workers, and whether bytecode caching is enabled (PYTHONDONTWRITEBYTECODE / PYTHONPYCACHEPREFIX), are not source-visible."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with baselines/openevolve on PYTHONPATH and its dependencies present, set TMPDIR=scratch/sharedtmp and create scratch/sharedtmp/colorsys.py containing only: open('<abs scratch>/poc_marker_api_path', 'w').close(). In one Python process: p = openevolve.api._prepare_evaluator(\"def evaluate(program_path):\\n    return {'score': 1.0}\\n\", None, []); from openevolve.config import EvaluatorConfig; from openevolve.evaluator import Evaluator; Evaluator(EvaluatorConfig(), p); then 'import colorsys'. Observables: os.path.dirname(p) == tempfile.gettempdir(), sys.path[0] == tempfile.gettempdir(), and the single decisive one: scratch/poc_marker_api_path exists. Also record whether scratch/sharedtmp/__pycache__/evaluator_*.pyc was created.",
+      "deployment": "Owner check: confirm whether any workflow calls openevolve.api.run_evolution / evolve_function / evolve_algorithm / evolve_code with output_dir set or cleanup=False on a multi-user host."
+    }
+  },
+  {
+    "verdict": "rejected",
+    "fingerprint": "openevolve-ci/claude-workflow-no-actor-gate",
+    "title": "OpenEvolve claude.yml starts a secret-bearing agent job for any '@claude' commenter; the only actor gate is inside a floating third-party action tag",
+    "description": "Scope condition: this workflow is NOT active in the audited repository. SwarmEvolve-cyber has no root .github/ directory, so the file under baselines/openevolve/.github/workflows/ describes the upstream OpenEvolve repository and would only run if copied to a repository root. Evaluated as source for a repository where it is active: the job runs on issue_comment, issues (opened/assigned), pull_request_review and pull_request_review_comment, and its only condition is that the comment, review or issue text contains '@claude'. There is no author_association or actor check, so on a public repository any GitHub account can start the job by commenting on or opening an issue. issue_comment and issues events run in the base-repository context, so the job receives secrets.CLAUDE_CODE_OAUTH_TOKEN and id-token: write, and hands both to anthropics/claude-code-action at the mutable tag 'beta'. The workflow's own GITHUB_TOKEN is read-only, but id-token: write is what the action uses to obtain its own GitHub App token, so the read-only permissions block does not bound what the agent can do. Whether an outside commenter gets an agent run therefore depends entirely on a permission check inside third-party code that can change without a commit to this repository. The vendored ShinkaEvolve copy of the same workflow shows the intended control: an explicit OWNER/MEMBER/COLLABORATOR gate on all four events, both actions pinned by commit SHA, persist-credentials: false, and web tools denied; its comment states that without the guard 'any external account could trigger the agent job'. If the action's internal check holds at the commit 'beta' currently points to, an outside commenter gains only a started-and-rejected job and this reduces to hardening; I could not establish that from source.",
+    "claimed_root_cause": "The workflow's job-level 'if' authorizes on message content only ('@claude' substring) and never on who wrote it, while the action that receives the OAuth secret and OIDC permission is referenced by a floating tag instead of a commit SHA, so the single remaining actor check is neither source-visible nor immutable.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/openevolve/.github/workflows/claude.yml",
+        "line": 4,
+        "scope": "on.issue_comment",
+        "description": "Any account that can comment on an issue or pull request (or open an issue, line 8) raises an event that runs in the base-repository context with secrets available."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/.github/workflows/claude.yml",
+        "line": 16,
+        "scope": "jobs.claude.if",
+        "description": "The job condition (lines 15-19) tests only contains(body, '@claude'); no author_association or actor predicate exists for any of the four events."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/.github/workflows/claude.yml",
+        "line": 25,
+        "scope": "jobs.claude.permissions",
+        "description": "id-token: write lets the job mint an OIDC token, which the action exchanges for its own GitHub App token; the read-only contents/pull-requests/issues entries limit only the workflow GITHUB_TOKEN."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/.github/workflows/claude.yml",
+        "line": 35,
+        "scope": "jobs.claude.steps[Run Claude Code].uses",
+        "description": "Third-party action code is resolved from the mutable tag 'beta' at run time."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/openevolve/.github/workflows/claude.yml",
+        "line": 37,
+        "scope": "jobs.claude.steps[Run Claude Code].with",
+        "description": "secrets.CLAUDE_CODE_OAUTH_TOKEN is passed to that action for a run whose prompt is the commenter's text."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/openevolve/.github/workflows/claude.yml",
+        "line": 19,
+        "description": "Last branch of the job condition: an opened or assigned issue whose body or title contains '@claude' is enough; no author check."
+      },
+      {
+        "file": "baselines/openevolve/.github/workflows/claude.yml",
+        "line": 29,
+        "description": "actions/checkout@v4 with default persist-credentials, so the workflow token is left in .git/config for agent subprocesses (ShinkaEvolve sets persist-credentials: false)."
+      },
+      {
+        "file": "baselines/openevolve/.github/workflows/claude.yml",
+        "line": 35,
+        "description": "uses: anthropics/claude-code-action@beta, a floating tag rather than a commit SHA."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/.github/workflows/claude.yml",
+        "line": 15,
+        "description": "Sibling workflow's comment (lines 15-18): without the author_association guard any external account could trigger the agent job; the guard is described as defense in depth on top of the action's own write-access check."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/.github/workflows/claude.yml",
+        "line": 22,
+        "description": "Sibling control that is missing in OpenEvolve: author_association must be OWNER, MEMBER or COLLABORATOR (repeated for all four events, lines 19-31)."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/.github/workflows/claude.yml",
+        "line": 51,
+        "description": "Sibling pins anthropics/claude-code-action to a 40-hex commit SHA (v1.0.239), so its internal permission check is reviewable and immutable."
+      }
+    ],
+    "reason": "This repository has no root .github directory, so the vendored workflow never runs here and no principal or resource of this repository is affected. In a repository where it is active, the decisive control is the actor check inside anthropics/claude-code-action, a third-party action whose code is not in this repository. Kept as a hardening note for anyone who activates the file: add an author_association condition to the job and pin the action to a commit SHA."
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "openevolve-evaluator/shared-tmp-program-import-path",
+    "title": "OpenEvolve places candidate programs in the shared temp dir, which the benchmark evaluators then put first on sys.path",
+    "description": "In the repo's OpenEvolve flow every candidate program is written to the system temp directory itself (tempfile.NamedTemporaryFile with no dir, e.g. /tmp/tmpXXXXXXXX.py). The glue evaluator hands that path to the shared scoring harness, and the in-process problem evaluators insert the program's directory at sys.path[0], import the program and call its entry function while that entry is still present. The directory is therefore the world-writable temp dir: any top-level module the program imports that is not already loaded in the scorer process (the evaluator pre-imports numpy and scipy; other stdlib or third-party names are not) is resolved from the temp dir before the standard library and site-packages. Another local user of the host can pre-place files such as /tmp/<module>.py and have them executed as the operator inside the scorer process, which carries the operator's full environment. This needs no cooperation from the LLM beyond importing a common module. CodeEvolve and ShinkaEvolve do not share the problem because they place the program in a private temporary directory or under the results directory. Reviewer note: Parent review confirmed NamedTemporaryFile(suffix=..., delete=False) with no dir in Evaluator.evaluate_program (openevolve/evaluator.py:259) and that in-process benchmark evaluators insert the program's directory at sys.path[0] before importing it.",
+    "claimed_root_cause": "OpenEvolve's Evaluator.evaluate_program creates the importable program file directly in the shared system temp directory instead of a private directory, and the consumer adds the file's directory to the import path.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/openevolve/openevolve/evaluator.py",
+        "line": 259,
+        "scope": "Evaluator.evaluate_program",
+        "description": "Candidate program is written with tempfile.NamedTemporaryFile(suffix=..., delete=False) and no dir argument, so it lands directly in tempfile.gettempdir()."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/evaluator.py",
+        "line": 270,
+        "scope": "Evaluator.evaluate_program",
+        "description": "The temp file path is passed to the configured evaluate function."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve_evaluator.py",
+        "line": 11,
+        "scope": "evaluate",
+        "description": "The glue evaluator forwards the path to the shared harness."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/evaluation.py",
+        "line": 44,
+        "scope": "evaluate",
+        "description": "The harness starts run_evaluator.py with the resolved program path and the full parent environment."
+      },
+      {
+        "kind": "propagation",
+        "file": "benchmarks/run_evaluator.py",
+        "line": 12,
+        "scope": "module",
+        "description": "The problem evaluator's evaluate(program_path) is called in the scorer process."
+      },
+      {
+        "kind": "sink",
+        "file": "benchmarks/problems/min_max_distance_14_3d/evaluator.py",
+        "line": 34,
+        "scope": "evaluate",
+        "description": "sys.path.insert(0, dirname(program_path)) followed by __import__ and the entry-function call; with an OpenEvolve program this puts the shared temp dir first on the import path while program imports are resolved."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/openevolve/openevolve/evaluator.py",
+        "line": 259,
+        "description": "No dir= argument and no private directory: the program file is created in the shared temp dir."
+      },
+      {
+        "file": "benchmarks/problems/min_max_distance_14_3d/evaluator.py",
+        "line": 35,
+        "description": "The program is imported and (line 37) executed while its directory is at sys.path[0]; removal happens only in the finally block at line 43-45."
+      },
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 46,
+        "description": "The scorer process inherits the operator's whole environment (env={**os.environ, ...}), so code loaded from the temp dir runs with it."
+      },
+      {
+        "file": "baselines/CodeEvolve/src/codeevolve/evaluator.py",
+        "line": 269,
+        "description": "Sibling control: CodeEvolve creates a private TemporaryDirectory and writes the program inside it (lines 276-278)."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "line": 2606,
+        "description": "Sibling control: ShinkaEvolve stores the program under <results_dir>/gen_N, not in a shared directory."
+      }
+    ],
+    "blockers": [
+      "No target code was executed in this run; the import-resolution observation has not been made.",
+      "Deployment fact not in source: whether the benchmark host has other local users (or other lower-trust processes) able to create files in the temp directory used by the run, and whether TMPDIR points at a shared directory.",
+      "Runtime fact: which top-level modules are not yet in sys.modules of the scorer process when the program is imported depends on the installed numpy/scipy versions and on what the generated program imports."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with numpy and scipy available, set TMPDIR=scratch/sharedtmp (stand-in for the shared temp dir). As the stand-in for the other user, create scratch/sharedtmp/colorsys.py containing only: open('<abs scratch>/poc_marker_tmp_import', 'w').close(). Create the program exactly as OpenEvolve does, with tempfile.NamedTemporaryFile(suffix='.py', delete=False), containing: 'import colorsys\\nimport numpy as np\\ndef min_max_dist_dim3_14():\\n    return np.zeros((14, 3))'. Run: python benchmarks/run_evaluator.py benchmarks/problems/min_max_distance_14_3d <that temp path>. Single observable: scratch/poc_marker_tmp_import exists. Control: the same run without colorsys.py in the temp dir creates no marker.",
+      "deployment": "Owner check: on the hosts used for baselines/run_baseline.sh openevolve runs, confirm whether other accounts can write to the directory returned by tempfile.gettempdir() for the run's user."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+    "title": "OpenEvolve manual-mode endpoints let any client that can reach the visualizer port supply the LLM reply that is then executed",
+    "description": "When OpenEvolve runs in manual mode, each LLM call is written as a task file and the run waits for a matching answer file. The visualizer's manual blueprint lists pending task ids, returns each prompt, and accepts an answer by form POST, all without authentication and without any Origin or Host validation. The answer text is returned to the framework as the model reply, converted into a child program and passed to the evaluator, which runs it under the operator's account.\n\nThe lower-trust principal is anyone other than the operator who can read responses from the port. Source shows three: (1) another local user on a shared run host, since the default bind is loopback, which every local account can reach; (2) a network client, if the operator starts the visualizer with a non-loopback --host; (3) a web page in the operator's browser that uses DNS rebinding, since any Host header is accepted. Each can list task ids, read the prompts, and post an answer. The first answer written wins, so the operator's own answer for that task is ignored.\n\nA blind cross-site form POST alone does not work: the task id is a random uuid4 and the listing is not readable cross-origin. That narrower claim was refuted from source and is not part of this candidate.\n\nPreconditions: llm.manual_mode must be enabled (it is off by default and is not set by baselines/run_openevolve.py), and the visualizer must be running with --path pointing at the live run directory. Reviewer note: Parent review confirmed api_tasks lists task ids and api_task_answer writes the answer with no authentication, Origin or Host check (scripts/manual.py:136-142,159-177), and that manual mode is opt-in (config.py:138 default False; not set by baselines/run_openevolve.py). With manual mode off there is no consumer for the answer.",
+    "claimed_root_cause": "The manual blueprint treats reachability of the port as authorization. The only check on the answer route is that the task file exists, and the task id needed to pass it is published by the unauthenticated listing route on the same server. No token, Origin check or Host allowlist binds the answer to the operator.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/openevolve/scripts/manual.py",
+        "line": 136,
+        "scope": "create_manual_blueprint.api_tasks",
+        "description": "GET /manual/api/tasks returns the id, creation time and model of every pending task to any caller."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/manual.py",
+        "line": 159,
+        "scope": "create_manual_blueprint.api_task_answer",
+        "description": "POST /manual/api/tasks/<task_id>/answer is registered with no authentication, token, Origin or Host check."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/manual.py",
+        "line": 165,
+        "scope": "create_manual_blueprint.api_task_answer",
+        "description": "The answer is read from request.form, so a urlencoded or multipart body is accepted."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/manual.py",
+        "line": 173,
+        "scope": "create_manual_blueprint.api_task_answer",
+        "description": "The only gate: the file <queue>/<task_id>.json must exist."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/manual.py",
+        "line": 125,
+        "scope": "_write_answer",
+        "description": "The answer is written atomically to <queue>/<task_id>.answer.json."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/llm/openai.py",
+        "line": 301,
+        "scope": "OpenAILLM._manual_wait_for_answer",
+        "description": "The polling loop reads and parses the answer file as soon as it exists."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/llm/openai.py",
+        "line": 309,
+        "scope": "OpenAILLM._manual_wait_for_answer",
+        "description": "The answer string is returned as the model reply."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/process_parallel.py",
+        "line": 208,
+        "scope": "_run_iteration_worker",
+        "description": "The reply becomes llm_response in the iteration worker."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/process_parallel.py",
+        "line": 312,
+        "scope": "_run_iteration_worker",
+        "description": "The reply is parsed into new program code (full rewrite; the diff path applies blocks at line 283)."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/openevolve/openevolve/process_parallel.py",
+        "line": 364,
+        "scope": "_run_iteration_worker",
+        "description": "The resulting child code is passed to the evaluator, which executes it under the operator's account."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/openevolve/scripts/manual.py",
+        "line": 141,
+        "description": "The listing response includes each pending task id, which is the only secret the answer route depends on."
+      },
+      {
+        "file": "baselines/openevolve/scripts/manual.py",
+        "line": 152,
+        "description": "The task detail route returns the full display prompt to any caller."
+      },
+      {
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 17,
+        "description": "The Flask app is created with no secret key, trusted-host list or request hook; no access control exists elsewhere in scripts/."
+      },
+      {
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 194,
+        "description": "The manual blueprint is registered unconditionally on every visualizer run."
+      },
+      {
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 207,
+        "description": "Strongest visible control: the default bind host is 127.0.0.1. It can be overridden with --host."
+      },
+      {
+        "file": "baselines/openevolve/openevolve/llm/openai.py",
+        "line": 269,
+        "description": "Second visible control: the task id is a uuid4, so it cannot be guessed, only read from the listing."
+      },
+      {
+        "file": "baselines/openevolve/openevolve/llm/openai.py",
+        "line": 299,
+        "description": "The wait loop accepts the answer file on existence alone, so the first writer wins."
+      },
+      {
+        "file": "baselines/openevolve/openevolve/config.py",
+        "line": 138,
+        "description": "Manual mode defaults to False."
+      },
+      {
+        "file": "baselines/openevolve/openevolve/controller.py",
+        "line": 224,
+        "description": "The controller creates the queue directory only when llm.manual_mode is enabled."
+      },
+      {
+        "file": "baselines/run_openevolve.py",
+        "line": 37,
+        "description": "The repository's OpenEvolve launcher writes an llm config with no manual_mode key, so this repository's default runs do not enable manual mode."
+      }
+    ],
+    "blockers": [
+      "No target code was executed in this run, so acceptance of a request with a foreign Host and Origin and a form content type was not observed.",
+      "Manual mode is opt-in and is not enabled by baselines/run_openevolve.py; whether any operator workflow enables llm.manual_mode alongside the visualizer is a deployment fact.",
+      "Local-user path: whether the run host is shared with other accounts is a deployment fact.",
+      "Network path: requires the operator to pass a non-loopback --host; the default is 127.0.0.1.",
+      "DNS-rebinding path: depends on the operator's browser. Browsers that enforce local-network-access permission for requests from public pages to loopback addresses block or prompt for it; that behaviour is not visible in source.",
+      "Flask and Werkzeug are not vendored; the absence of default Host validation must be observed on the pinned Flask==3.1.3 / Werkzeug==3.1.9."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with Flask installed, create scratch/run/manual_tasks_queue/11111111-1111-4111-8111-111111111111.json containing {\"id\": \"11111111-1111-4111-8111-111111111111\", \"created_at\": \"t\", \"model\": \"dummy\", \"display_prompt\": \"dummy prompt\"}. Set EVOLVE_OUTPUT=scratch/run, add baselines/openevolve/scripts to sys.path, import the module visualizer (do not run it as __main__) and use visualizer.app.test_client(). Send every request with no cookies and with headers Host: rebind.example:8080 and Origin: http://rebind.example:8080. Step 1: GET /manual/api/tasks and expect status 200 with the dummy id in the JSON body. Step 2: POST /manual/api/tasks/11111111-1111-4111-8111-111111111111/answer with Content-Type application/x-www-form-urlencoded and body answer=SENTINEL_ANSWER_7f3a; expect status 200 and body {\"ok\": true}. Step 3: POST the same body to /manual/api/tasks/00000000-0000-4000-8000-000000000000/answer and expect 404. Single deciding observable: after step 2 the file scratch/run/manual_tasks_queue/11111111-1111-4111-8111-111111111111.answer.json exists and its \"answer\" field equals SENTINEL_ANSWER_7f3a. No evaluator is run and no generated code is executed.",
+      "deployment": "Owner check: confirm whether any run enables llm.manual_mode, whether the visualizer is ever started with a non-loopback --host, and whether the run host has other interactive accounts. For the browser path, confirm which browsers operators use and whether they prompt for local network access."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+    "title": "OpenEvolve visualizer writes LLM replies, prompts and artifacts into the page as HTML without escaping",
+    "description": "The visualizer sidebar escapes program code but not the Prompts tab. The selected prompt entry, which can be the system prompt, the user prompt, the raw model reply ('responses') or the artifacts JSON, is placed inside a <pre> element by string interpolation and assigned to innerHTML. Markup in that text is parsed by the browser, so an inline event handler such as an onerror attribute on an img tag runs script in the visualizer's origin.\n\nThe source is the lowest-trust data in the system. The raw model reply is logged verbatim with each program (prompt logging is on by default), the user prompt quotes earlier generated code and program output, and the artifacts entry is the tail of the evaluated program's stdout in this repository's glue. The victim is the operator's browser, which may be on a different machine from the run host (for example through a forwarded port), or anyone who opens a checkpoint directory produced by someone else.\n\nReaching the main sink needs ordinary inspection steps: select a node, open the Prompts tab and choose the 'user', 'responses' or 'artifacts' entry. The choice is remembered in localStorage, and once the Prompts tab is active in a page session, hovering over any node re-renders it with that node's text.\n\nVariants of the same missing escape: metric names are interpolated raw into the sidebar metrics table and the list view, and the list view is rendered on every data load without a click; program and parent ids are interpolated raw into text and attribute positions. Metric names are program-influenced in this repository's glue; ids are framework-generated unless the checkpoint files come from another party.\n\nScript running in the visualizer origin can call every same-origin route, including the manual-mode answer route described under openevolve-visualizer/manual-answer-unauthenticated-reply-injection. Reviewer note: Parent review confirmed `<pre class=\"sidebar-pre\">${promptVal ?? ''}</pre>` at static/js/sidebar.js:421 with no escapeHtml call, while the code and diff tabs in the same file do escape (:353-369).",
+    "claimed_root_cause": "The front-end builds HTML by template-string interpolation and assigns it to innerHTML. Escaping is applied only to program code and diff lines; prompt values, artifacts, metric names and ids are interpolated raw. The server sends no Content-Security-Policy that would stop inline handlers.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/openevolve/openevolve/process_parallel.py",
+        "line": 208,
+        "scope": "_run_iteration_worker",
+        "description": "The raw model reply is received as llm_response."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/process_parallel.py",
+        "line": 810,
+        "scope": "ProcessParallelController.run_evolution",
+        "description": "The reply is passed verbatim to database.log_prompt as the responses list."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/database.py",
+        "line": 2818,
+        "scope": "ProgramDatabase.log_prompt",
+        "description": "The responses list is stored on the prompt record for the program."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/database.py",
+        "line": 973,
+        "scope": "ProgramDatabase._save_program",
+        "description": "The prompt record is written into the program's checkpoint JSON under 'prompts'."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 68,
+        "scope": "load_evolution_data",
+        "description": "The visualizer loads the program JSON; only metric values are sanitised."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 124,
+        "scope": "data",
+        "description": "GET /api/data returns the nodes, including prompts and artifacts, as JSON."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/static/js/main.js",
+        "line": 122,
+        "scope": "fetchAndRender",
+        "description": "The page fetches /api/data every two seconds and stores the nodes."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+        "line": 381,
+        "scope": "showSidebarContent.renderSidebarTabContent",
+        "description": "Each prompt sub-entry (system, user, responses) is placed in promptMap unchanged."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+        "line": 421,
+        "scope": "showSidebarContent.renderSidebarTabContent",
+        "description": "The selected value is interpolated into a <pre> element with no escaping."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+        "line": 468,
+        "scope": "showSidebarContent",
+        "description": "The assembled string is assigned to sidebarContent.innerHTML (also to tabContent.innerHTML at lines 491 and 508)."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+        "line": 369,
+        "description": "Sibling control: the Code tab passes d.code through escapeHtml, showing the escape exists and is omitted for prompts."
+      },
+      {
+        "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+        "line": 394,
+        "description": "The artifacts JSON string is added to the same unescaped promptMap."
+      },
+      {
+        "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+        "line": 414,
+        "description": "Artifacts are re-serialised with JSON.stringify, which does not escape '<'."
+      },
+      {
+        "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+        "line": 508,
+        "description": "Clicking a tab assigns the unescaped tab content to innerHTML."
+      },
+      {
+        "file": "baselines/openevolve/scripts/static/js/graph.js",
+        "line": 265,
+        "description": "Hovering over a graph node calls showSidebarContent, so rendering happens without a click once the Prompts tab is the active tab."
+      },
+      {
+        "file": "baselines/openevolve/scripts/static/js/main.js",
+        "line": 52,
+        "description": "formatMetrics interpolates metric names raw into a table row used in the sidebar."
+      },
+      {
+        "file": "baselines/openevolve/scripts/static/js/list.js",
+        "line": 113,
+        "description": "The list view interpolates metric names raw."
+      },
+      {
+        "file": "baselines/openevolve/scripts/static/js/list.js",
+        "line": 129,
+        "description": "The list view assigns that string to innerHTML; renderNodeList runs on every data load (main.js:83)."
+      },
+      {
+        "file": "baselines/openevolve/scripts/static/js/sidebar.js",
+        "line": 294,
+        "description": "The program id is concatenated raw into an href attribute."
+      },
+      {
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 93,
+        "description": "Strongest server-side control: only metric values are replaced when they are not finite numbers; keys and all text fields pass through."
+      },
+      {
+        "file": "baselines/openevolve/openevolve/config.py",
+        "line": 326,
+        "description": "DatabaseConfig.log_prompts defaults to True, so prompts and replies are stored by default."
+      },
+      {
+        "file": "baselines/openevolve_evaluator.py",
+        "line": 13,
+        "description": "This repository's evaluator returns the program's output tail and error text as artifacts."
+      },
+      {
+        "file": "benchmarks/evaluation.py",
+        "line": 52,
+        "description": "Metric names are parsed from the last @@METRICS@@ line of the evaluator child's stdout, which the evolved program can print."
+      }
+    ],
+    "blockers": [
+      "No target code or browser was run, so script execution from a prompt value was not observed.",
+      "The page imports d3 from https://d3js.org at load time (templates/index.html:6); in a no-network sandbox the module graph fails unless a local d3 v7 copy is served by request interception.",
+      "Operator interaction is required for the main path: opening the Prompts tab and selecting a non-system entry.",
+      "Metric-name variant: whether OpenEvolve's evaluator (openevolve/evaluator.py, peer-owned) preserves arbitrary metric keys into the checkpoint was not traced.",
+      "Impact depends on what else the operator's browser trusts at the visualizer origin and on whether the browser runs on a different machine from the run host; both are deployment facts."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox, create scratch/ckpt/checkpoint_1/metadata.json with {\"islands\": [[\"p1\"]], \"archive\": []} and scratch/ckpt/checkpoint_1/programs/p1.json with {\"id\": \"p1\", \"code\": \"x = 1\", \"generation\": 0, \"parent_id\": null, \"metrics\": {\"combined_score\": 1.0}, \"metadata\": {}, \"prompts\": {\"diff_user\": {\"system\": \"s\", \"user\": \"u\", \"responses\": [\"<img src=x onerror=\\\"document.title='XSS_MARKER_A'\\\">\"]}}}. Start baselines/openevolve/scripts/visualizer.py on isolated loopback with --path scratch/ckpt. Open / in a headless browser with request interception that serves a local d3.v7.min.js for https://d3js.org/d3.v7.min.js and blocks every other external host. Click the List tab, click the single row, click the Prompts tab in the sidebar and choose 'diff_user - responses' in the select box. Single deciding observable: document.title equals XSS_MARKER_A (equivalently, document.querySelector('pre.sidebar-pre img') is not null).",
+      "deployment": "Owner check: confirm how operators view the visualizer (same host, forwarded port, or checkpoints copied or shared between people) and whether manual mode is ever active on the same origin."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "openevolve-visualizer/static-export-inline-script-json-breakout",
+    "title": "OpenEvolve static export embeds run data in an inline script without HTML-safe encoding, so '</script>' in generated text injects markup",
+    "description": "The --static-output option writes a self-contained index.html. It serialises all programs, prompts, model replies and artifacts with jsonify and concatenates the result into an inline <script> element. JSON serialisation does not escape '<'. The HTML parser ends a script element at the first '</script' regardless of JavaScript string context, so any string value containing that sequence closes the data script, and whatever follows is parsed as HTML.\n\nProgram code, model replies and program output are all LLM-derived, so a generated program or reply that contains '</script><script>...' runs script when the exported page is opened. No click is needed. The export is meant to be served or shared (the tool prints a hint to serve it with a web server), so the affected principal is whoever opens the export, in whatever origin hosts it.\n\nThe same defect also corrupts the export for benign programs that merely contain the text '</script>'. Reviewer note: Parent review confirmed run_static_export builds `<script>window.STATIC_DATA = {data_json};</script>` from jsonify(data).get_data(as_text=True) (scripts/visualizer.py:158-160). Whether that serializer leaves `</script>` intact is behaviour of the installed Flask (pinned 3.1.3, not vendored) and must be observed.",
+    "claimed_root_cause": "run_static_export builds an inline script by string concatenation of jsonify output. That output is plain JSON, not the HTML-safe form produced by the tojson template filter, so '<', '>' and '&' are not escaped for the script-data context.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/openevolve/openevolve/process_parallel.py",
+        "line": 208,
+        "scope": "_run_iteration_worker",
+        "description": "The raw model reply is received; it becomes program code and is also logged as a response."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/openevolve/database.py",
+        "line": 973,
+        "scope": "ProgramDatabase._save_program",
+        "description": "Program code, prompts and replies are written to the checkpoint program JSON."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 68,
+        "scope": "load_evolution_data",
+        "description": "The exporter loads each program JSON; text fields are not altered."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 158,
+        "scope": "run_static_export",
+        "description": "The dataset is serialised with jsonify(data).get_data(as_text=True)."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 159,
+        "scope": "run_static_export",
+        "description": "The JSON text is concatenated into an inline <script> element."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 172,
+        "scope": "run_static_export",
+        "description": "The script element is spliced into the index.html template text."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 177,
+        "scope": "run_static_export",
+        "description": "The resulting HTML is written to <static_output>/index.html, where a browser parses the injected markup."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 11,
+        "description": "Only render_template and jsonify are imported; no HTML-safe JSON helper is used anywhere in the file."
+      },
+      {
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 93,
+        "description": "Strongest visible control: sanitisation replaces non-finite metric values only; no text field is encoded."
+      },
+      {
+        "file": "baselines/openevolve/scripts/visualizer.py",
+        "line": 189,
+        "description": "The export log message tells the operator to serve the directory with a web server, so the output is intended to be opened over HTTP."
+      },
+      {
+        "file": "baselines/openevolve/scripts/static/js/main.js",
+        "line": 118,
+        "description": "The front-end consumes window.STATIC_DATA, confirming the inline script is the data channel for exported pages."
+      },
+      {
+        "file": "baselines/requirements_openevolve_shinkaevolve.txt",
+        "line": 22,
+        "description": "Flask is pinned to 3.1.3 here; it is not vendored, so the serialiser was not read in source."
+      }
+    ],
+    "blockers": [
+      "No target code was executed, so the exported file was not produced or inspected.",
+      "Flask is not vendored in the repository and not installed on the audit host. The claim that jsonify output leaves '<' unescaped rests on Flask's documented JSON provider behaviour and must be observed on the pinned Flask==3.1.3.",
+      "Impact depends on where exports are hosted and who opens them, which is a deployment fact."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with Flask==3.1.3 installed, create scratch/ckpt/checkpoint_1/metadata.json with {\"islands\": [[\"p1\"]], \"archive\": []} and scratch/ckpt/checkpoint_1/programs/p1.json with {\"id\": \"p1\", \"code\": \"s = '</script><script>document.title=\\\"XSS_MARKER_B\\\"</script>'\", \"generation\": 0, \"parent_id\": null, \"metrics\": {\"combined_score\": 1.0}, \"metadata\": {}}. Add baselines/openevolve/scripts to sys.path, import the module visualizer (do not run it as __main__) and call visualizer.run_static_export(argparse.Namespace(path='scratch/ckpt', static_output='scratch/export')). Parse scratch/export/index.html with Python's html.parser and collect the text of every script element. Single deciding observable: one script element's text is exactly document.title=\"XSS_MARKER_B\" (that is, the marker appears as its own script element instead of inside the STATIC_DATA string). If the file instead contains \\u003c/script in place of </script, the candidate is refuted for this Flask version.",
+      "deployment": "Owner check: confirm whether static exports are produced and where they are published or shared."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "shinka-bandit-state/pickle-load-on-resume",
+    "title": "ShinkaEvolve runner unpickles results_dir/bandit_state.pkl on resume, a file the evaluated program can write",
+    "description": "When a ShinkaEvolve run is resumed (same results_dir, programs.sqlite with last_iteration > 0) and LLM bandit selection is enabled (framework default 'ucb'), the runner process loads <results_dir>/bandit_state.pkl with pickle.load. Evaluated programs are stored and executed under the same results_dir (<results_dir>/gen_N/main.py) as plain subprocesses, so LLM-generated code can write that file; whatever it pickles is executed inside the runner process at the next resume, after the evaluation job that wrote it has ended or been killed, and on whatever host or account performs the resume. Load failures are swallowed with a warning, so the run continues normally. Scope limits established from source: the load happens once at resume start-up, never periodically; the runner overwrites the file every 5 completed generations and at normal end, so a planted file survives only if it is the last write; the repo glue disables the bandit (llm_dynamic_selection: None) and uses a fresh timestamped directory, so this is reachable with the vendored framework's own defaults or examples, not through baselines/run_baseline.sh. With the local job backend the evaluated program already has the operator's uid and full filesystem access, so the pickle adds a boundary crossing only where the program's writes are otherwise confined to the results tree (the slurm_docker backend with the results directory mounted) or where a results directory is resumed on another host or account. Reviewer note: Parent review confirmed pickle.load in load_state (llm/prioritization.py:218-220) and the gate in _load_bandit_state: it returns early when llm_selection is None (core/async_runner.py:627-628). This repository's glue sets llm_dynamic_selection to None (baselines/run_shinkaevolve.py:46), so the default flow here does not reach the sink. A generated program already runs as the operator, so the boundary that matters is a results directory received from someone else and then resumed.",
+    "claimed_root_cause": "BanditBase.load_state deserializes run state with pickle from the results directory, which is also the working tree of untrusted evaluated programs, with no integrity check; the state itself is only arrays and scalars and does not need pickle.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/ShinkaEvolve/shinka/launch/local.py",
+        "line": 105,
+        "scope": "submit",
+        "description": "Evaluation job for an LLM-generated program is started as a plain subprocess with a copy of the parent environment and no filesystem isolation; the program file is <results_dir>/gen_N/main.py, so it can locate and write <results_dir>/bandit_state.pkl."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "line": 1223,
+        "scope": "ShinkaEvolveRunner._setup_async",
+        "description": "A later start with the same results_dir is treated as a resume when programs.sqlite exists and last_iteration > 0."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "line": 1240,
+        "scope": "ShinkaEvolveRunner._setup_async",
+        "description": "The resume branch calls _load_bandit_state()."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "line": 633,
+        "scope": "ShinkaEvolveRunner._load_bandit_state",
+        "description": "If llm_selection is not None and <results_dir>/bandit_state.pkl exists, load_state is called on that path."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/ShinkaEvolve/shinka/llm/prioritization.py",
+        "line": 220,
+        "scope": "BanditBase.load_state",
+        "description": "pickle.load on the file content in the runner process."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/ShinkaEvolve/shinka/llm/prioritization.py",
+        "line": 220,
+        "description": "Bare pickle.load; no signature, type restriction or ownership check precedes it."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "line": 631,
+        "description": "The path is the fixed name bandit_state.pkl directly under results_dir."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "line": 643,
+        "description": "Any exception from the load is caught and only logged as a warning, so a payload that breaks set_state does not stop the run."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "line": 2606,
+        "description": "Evaluated program path is <results_dir>/gen_<generation>/main.<ext>, i.e. inside the same tree as the state file."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "line": 5190,
+        "description": "The runner rewrites the state file every 5 completed generations (and at line 1166 on normal end); a planted file must be written after the last save."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/core/config.py",
+        "line": 30,
+        "description": "Framework default llm_dynamic_selection is 'ucb', so the load path is active by default."
+      },
+      {
+        "file": "baselines/run_shinkaevolve.py",
+        "line": 46,
+        "description": "The repo glue sets llm_dynamic_selection to None, which makes _load_bandit_state return early; the path is not reachable through the glue."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/launch/slurm.py",
+        "line": 152,
+        "description": "The slurm_docker backend runs the evaluation in a container with operator-supplied flags; the mount layout that would make the results tree the only shared writable path is not source-visible."
+      }
+    ],
+    "blockers": [
+      "No target code was executed in this run; the marker-file observation for the pickle sink has not been made.",
+      "Deployment fact not in source: whether ShinkaEvolve is run with bandit selection enabled and resumed from a results directory that evaluated programs could write (the repo glue disables the bandit and never reuses a run directory).",
+      "Deployment fact not in source: whether the evaluated program is confined relative to the runner (slurm_docker with only the results tree mounted, or a results directory resumed on another host or account). With the local backend and one uid the program already has equivalent write access to the runner's code and home directory.",
+      "Timing fact: the planted file must be the last write before the resume, since the runner re-saves the file every 5 completed generations and at normal completion."
+    ],
+    "validation_plan": {
+      "local": "In the no-network sandbox with baselines/ShinkaEvolve on PYTHONPATH and numpy available: create scratch/results/bandit_state.pkl by pickling {'x': Obj()} where Obj.__reduce__ returns (open, ('scratch/poc_marker_shinka', 'w')). Then call shinka.llm.prioritization.AsymmetricUCB(arm_names=['a']).load_state('scratch/results/bandit_state.pkl'), the same call ShinkaEvolveRunner._load_bandit_state makes. Single observable: the file scratch/poc_marker_shinka exists afterwards (a later exception from set_state is expected and irrelevant).",
+      "deployment": "Owner check: confirm whether any ShinkaEvolve run uses llm_dynamic_selection other than null and is ever restarted on an existing results_dir, and whether evaluation jobs (local, slurm_docker, slurm_conda) can write to the top level of that results_dir."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "shinka-inspect/context-bundle-fence-breakout",
+    "title": "shinka-inspect context bundle lets generated program text and program stdout escape their code fences in the file a coding agent is told to load",
+    "description": "The shinka-inspect skill builds a Markdown 'context bundle' from a ShinkaEvolve results database and instructs the coding agent to load it as its planning context. Two fields in that bundle are authored by the lowest-trust principal in the system: `code` (the LLM-generated program) and `text_feedback` (in this repository's glue, the last 1500 characters the generated program printed). The renderer places each inside a fixed three-backtick fence and does nothing else: no escaping of backtick runs, no fence sized to the content, no marker that the content is untrusted. A program that contains or prints a line of three backticks ends the fence, and everything after it is emitted as ordinary top-level Markdown next to the framework-authored 'Run Metadata' and 'Ranking' sections, so it is indistinguishable from bundle structure or operator notes. The consumer is a different principal with different authority: the operator's coding agent (Claude Code/Codex per the docs), which the sibling shinka-run skill drives through shell commands and, on request, an autonomous multi-batch loop. The script also accepts any results directory or SQLite path, so a database produced in a contained backend, on another machine, or by another person reaches the same agent context. Attacker: whoever controls generated program text or its stdout (a mutation model endpoint, including the documented local/<model>@http(s)://host form, or the author of a shared results DB). Affected principal: the operator, through the agent session's tool authority. This is reported as needs_validation because only the delimiter failure is deterministic and source-visible; whether an agent acts on the escaped text is runtime behaviour, and when generation ran unsandboxed on the same host the generated program already executed as the operator, which limits the added authority to what only the agent session holds. Reviewer note: Not re-traced line by line by the parent. Kept because the locally testable part is deterministic: whether program text containing a backtick run closes the fence in the rendered bundle. What an agent then does with that text is not part of the claim to be reproduced.",
+    "claimed_root_cause": "inspect_best_programs.py:_render_markdown interpolates untrusted database text (text_feedback and code) between fixed ``` fences without neutralising embedded fence delimiters or labelling provenance, and SKILL.md directs the resulting file to be loaded into a tool-capable agent's context as trusted planning material.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "benchmarks/evaluation.py",
+        "line": 77,
+        "scope": "evaluate",
+        "description": "The generated program's combined stdout/stderr tail (last 1500 characters) is stored verbatim in metrics['output_tail']; the program body itself is the second attacker-authored value."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/shinka_evaluate.py",
+        "line": 27,
+        "scope": "module",
+        "description": "The output tail is embedded in `feedback` (lines 23-25) and written as metrics.json text_feedback (line 29) with no filtering."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/utils/general.py",
+        "line": 76,
+        "scope": "load_results",
+        "description": "The runner loads metrics.json from the evaluation results directory."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "line": 4130,
+        "scope": "ShinkaEvolveRunner (completed-job persistence)",
+        "description": "text_feedback is taken from the loaded metrics and stored on the Program row (line 4171) regardless of evo_config.use_text_feedback."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "line": 4165,
+        "scope": "ShinkaEvolveRunner (completed-job persistence)",
+        "description": "The LLM-generated source file is read back and stored as Program.code in the programs table."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/utils/load_df.py",
+        "line": 108,
+        "scope": "load_programs_to_df",
+        "description": "code (line 108) and text_feedback (line 123) are copied unchanged from the SQLite row into the DataFrame returned to the skill script."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+        "line": 275,
+        "scope": "_render_markdown",
+        "description": "text_feedback is appended between a fixed ```text opener (274) and ``` closer (276) with only .strip() applied."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+        "line": 281,
+        "scope": "_render_markdown",
+        "description": "The program code (length-truncated only, line 256) is appended between a fixed ```<language> opener (280) and ``` closer (282); an embedded fence line ends the block early."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+        "line": 315,
+        "scope": "main",
+        "description": "The assembled Markdown is written to <results_dir>/shinka_inspect_context.md (or --out)."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/ShinkaEvolve/skills/shinka-inspect/SKILL.md",
+        "line": 48,
+        "scope": "Workflow step 4",
+        "description": "The skill instructs the coding agent to load the output file into its context and use it as the artifact for next-step mutation planning (lines 48-50)."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+        "line": 280,
+        "description": "Strongest control present: a fixed three-backtick fence around the code (280-282) and around feedback (274-276). No escaping, no adaptive fence length, no untrusted-content label anywhere in _render_markdown (198-285)."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+        "line": 153,
+        "description": "_truncate is the only transformation applied to code; it limits length and appends a marker but does not alter fence characters."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+        "line": 110,
+        "description": "_resolve_db_path accepts any directory or .sqlite/.db path, so a results database not produced by the current operator or host is rendered the same way."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/skills/shinka-inspect/SKILL.md",
+        "line": 3,
+        "description": "Skill description: 'Load top-performing Shinka programs into agent context'; the file contains no statement that the bundled program text is untrusted data, and no tool scope."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/docs/agentic_usage.md",
+        "line": 180,
+        "description": "Documentation states the bundle is 'designed to be loaded directly into coding-agent context'."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/skills/shinka-run/SKILL.md",
+        "line": 113,
+        "description": "Capability side: the companion skill has the same agent launch shell commands (lines 62-79) and permits continuing across batches without re-asking when the user requested autonomous execution."
+      },
+      {
+        "file": "baselines/shinka_evaluate.py",
+        "line": 24,
+        "description": "This repository's ShinkaEvolve evaluator copies the generated program's output tail into text_feedback, making the feedback block program-controlled."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation was permitted in this run (no approved sandbox), so the fence breakout in a rendered bundle is established from source only.",
+      "Whether the consuming coding agent treats Markdown that escaped the fence as instructions, and which tools it may use without approval at that moment, is agent runtime and model behaviour that is not observable from the repository; the repository contains no deterministic control either way.",
+      "Deployment fact: whether the results database being inspected was produced by generated code that already ran unsandboxed under the same uid and host as the agent session (added authority is then limited to what only the agent session holds), or came from a contained backend, another host or another person."
+    ],
+    "validation_plan": {
+      "local": "Inside the no-network sandbox, with ShinkaEvolve importable and pandas present, create a temporary directory containing programs.sqlite with a `programs` table (columns id, code, language, parent_id, generation, timestamp, combined_score, correct, text_feedback, metadata, public_metrics, private_metrics, archive_inspiration_ids, top_k_inspiration_ids, embedding, complexity, code_diff) and two dummy rows with correct=1: row A code = 'x = 1' followed by a newline, a line of three backticks, a blank line, the line '## SHINKA-INSPECT-POC-CODE', a line '```python' and 'y = 2'; row A text_feedback = 'ok', newline, a line of three backticks, blank line, the line '## SHINKA-INSPECT-POC-FEEDBACK', and a line '```text'; row B is a control with code 'z = 3' and empty feedback. JSON columns hold '{}' or '[]'. Run `python baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py --results-dir <tmp> --out <scratch>/bundle.md`. Then scan bundle.md line by line with a fence tracker that toggles on every line beginning with three backticks. Single observable: the lines '## SHINKA-INSPECT-POC-CODE' and '## SHINKA-INSPECT-POC-FEEDBACK' are reached while the tracker state is 'outside fence', while the control row's 'z = 3' is inside a fence. No agent, credential or network is involved.",
+      "deployment": "Owner-observed: confirm which agent runtime and permission mode load shinka_inspect_context.md in practice, whether shell commands are pre-approved or an autonomous shinka-run loop is used in that session, and whether results directories from other hosts, container/Slurm backends or other people are ever passed to --results-dir."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "shinka-webui/cors-wildcard-json-api",
+    "title": "Every JSON endpoint answers with Access-Control-Allow-Origin: *, letting any web page the operator visits read run data through the operator's browser",
+    "description": "Lower-trust principal: a web page from an unrelated origin opened in the browser the operator uses for the web UI (including when the operator correctly uses an SSH tunnel and a firewalled host). Accepted action: a simple cross-origin GET (fetch or XHR without credentials or custom headers) to http://localhost:<port>/... Control that should stop it: the browser same-origin policy, which the server switches off by sending Access-Control-Allow-Origin: * on every JSON response; there is no Origin check and no secret in the URL. Crossed boundary: foreign web origin to operator data. Readable cross-origin: /list_databases, /get_programs, /get_programs_summary, /get_program_details (program source), /get_system_prompts, /get_meta_files, /get_meta_content, /get_plots, /get_database_stats, and, combined with shinka-webui/db-path-traversal, Shinka databases and meta files outside the served directory. Not readable cross-origin: /plot_file/ bodies, the PDF download, error bodies and static files (no CORS header). The page needs the port number; 8000 is the default and 8888 is the documented value. Reviewer note: Parent review confirmed send_json_response sets Access-Control-Allow-Origin: * (visualization.py:1681) for every JSON endpoint; the server uses no credentials, so any origin the operator's browser visits can read these responses if the browser can reach the port.",
+    "claimed_root_cause": "send_json_response unconditionally emits Access-Control-Allow-Origin: * for an unauthenticated API whose only intended client is the same-origin web UI, so the wildcard serves no functional purpose and removes the one browser-side barrier.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 274,
+        "scope": "DatabaseRequestHandler.do_GET",
+        "description": "A cross-origin simple GET issued by a foreign page in the operator's browser is routed like any other request; the Origin header is never read."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 571,
+        "scope": "DatabaseRequestHandler.handle_get_programs_summary",
+        "description": "Program summaries (including full metadata) are passed to send_json_response; the other data handlers do the same."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1681,
+        "scope": "DatabaseRequestHandler.send_json_response",
+        "description": "Access-Control-Allow-Origin: * is attached to the response, so the browser hands the body to the foreign page's script."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1674,
+        "description": "send_json_response is the single helper used by all JSON endpoints, so the wildcard applies to every one of them."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1016,
+        "description": "Limit: the /plot_file/ response sets only Content-Type, Content-Length and Cache-Control, so it is not readable cross-origin."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 34,
+        "description": "DEFAULT_PORT is 8000, a predictable target for a foreign page."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 3924,
+        "description": "The shipped front end calls the API with same-origin relative URLs, so it does not need any CORS header."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation exists: this run forbids executing target code because the required OS sandbox is not available.",
+      "Browser policy fact: whether the operator's browser lets a page from a public origin send requests to a loopback or private address without a prompt (Local/Private Network Access enforcement differs by browser and version). Pages served from another local or intranet origin are not subject to that restriction.",
+      "Deployment fact: sensitivity of the run data (program source, stored prompts and responses, costs) for this operator."
+    ],
+    "validation_plan": {
+      "local": "In a no-network sandbox, build the handler as tests/test_visualization_meta.py does but record send_header calls in a list and set wfile=io.BytesIO(); call handler.send_json_response({'k': 'SENTINEL_JSON'}). Expected observable: the recorded headers contain ('Access-Control-Allow-Origin', '*') and wfile contains SENTINEL_JSON. Optional isolated-loopback variant with an empty dummy directory: GET /list_databases with header 'Origin: http://other.test' returns that same header.",
+      "deployment": "Owner check only: with the web UI running, open a page from a different origin in the browser normally used for it and run fetch('http://localhost:<port>/list_databases').then(r => r.text()) in the console; note whether the browser returns the body, blocks it, or shows a local-network permission prompt."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "shinka-webui/db-path-traversal",
+    "title": "db_path query value is joined to search_root without containment, exposing Shinka databases, prompt databases and meta_*.txt files anywhere on the host",
+    "description": "Lower-trust principal: any client that can send a GET to the web UI (network client, or a cross-origin page because these responses carry Access-Control-Allow-Origin: *). Accepted input: the db_path query value on ten endpoints, plus generation/processed_count. Control that should stop it: _get_actual_db_path, which the handlers call first and which is a no-op. Crossed boundary: the operator chose one directory (search_root) to expose; the client reads outside it. What is actually reachable, established from source: (1) /get_programs, /get_programs_summary, /get_program_details, /get_program_count and /get_database_stats return the contents (program source, metrics, metadata including stored LLM prompts/responses and logs) of any sqlite file with the Shinka 'programs' schema that the server uid can read, addressed by absolute path or '../'; (2) /get_system_prompts returns prompts.sqlite from the same out-of-root directory; (3) /get_meta_files lists meta_<int>.txt in an arbitrary directory and returns absolute server paths; /get_meta_content returns the text of such a file; (4) /download_meta_pdf returns meta_<value>.txt and, only where a directory named meta_* already exists, any reachable .txt file; (5) /get_plots lists image file names in any directory ending in results/plots; (6) status differences reveal whether arbitrary files and directories exist and whether a file is a sqlite database. Not reachable through db_path alone: arbitrary non-sqlite files (they produce only an sqlite error string). Variant with a different precondition: path values stored inside a database (attempt_log details.failure_json_path) and inside the referenced failure.json (artifacts.generated_code_path) are also joined to search_root without containment and the referenced file is returned as 'code', so a crafted database placed on the server's disk turns /get_program_details into an arbitrary text-file read; in normal runs those values are written by the framework. Reviewer note: Parent review confirmed _get_actual_db_path returns its argument unchanged and that os.path.join(self.search_root, actual_db_path) at :449 is followed only by an existence check before the database is opened.",
+    "claimed_root_cause": "No function confines request- or database-supplied relative paths to search_root: _get_actual_db_path returns its input unchanged and every handler passes the result straight to os.path.join(self.search_root, ...), where an absolute value replaces the root and '..' segments are never normalised or checked.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 284,
+        "scope": "DatabaseRequestHandler.do_GET",
+        "description": "db_path is taken verbatim from the query string of an unauthenticated GET /get_programs."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 438,
+        "scope": "DatabaseRequestHandler.handle_get_programs",
+        "description": "The value passes through _get_actual_db_path, which returns it unchanged (definition at line 428-430)."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 449,
+        "scope": "DatabaseRequestHandler.handle_get_programs",
+        "description": "os.path.join(self.search_root, actual_db_path): an absolute value discards search_root, '../' climbs out of it; only os.path.exists is checked afterwards."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 464,
+        "scope": "DatabaseRequestHandler.handle_get_programs",
+        "description": "The out-of-root file is opened as a read-only ProgramDatabase and all programs are loaded."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 486,
+        "scope": "DatabaseRequestHandler.handle_get_programs",
+        "description": "The full program list (code, metrics, metadata) is serialised to the client with Access-Control-Allow-Origin: *."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 430,
+        "description": "_get_actual_db_path body is 'return db_path'; its docstring calls it a no-op."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 546,
+        "description": "Sibling join site in handle_get_programs_summary; the same pattern repeats at lines 616, 694, 785, 843, 891, 948, 1035 and 1134."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 859,
+        "description": "handle_get_meta_content opens meta_<processed_count>.txt under the attacker-chosen directory and returns its text."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 863,
+        "description": "int(processed_count) limits this endpoint to integer-like file suffixes; it is the only value check on any of these parameters."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 815,
+        "description": "handle_get_meta_files returns the absolute filesystem path of each meta file to the client."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 953,
+        "description": "handle_get_plots interpolates the raw generation value into a path component, allowing '../' after an existing gen_<N> directory."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1145,
+        "description": "handle_get_database_stats opens the attacker-chosen path with a plain read-write sqlite3.connect and returns the sqlite error text for non-database files."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 134,
+        "description": "Variant: generated_code_path from failure.json is joined to search_root without containment and the file is later read and returned as 'code' (read at line 196)."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/database/dbase.py",
+        "line": 338,
+        "description": "Strongest visible control: ProgramDatabase read-only mode opens the file with mode=ro, which prevents writes but not out-of-root reads."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation exists: this run forbids executing target code because the required OS sandbox is not available.",
+      "Deployment fact: whether Shinka-format databases or meta_*.txt files that the operator did not intend to publish exist outside the served directory on the same host.",
+      "Deployment fact: whether any client other than the operator can reach the port, or which browser policy applies to cross-origin reads of the JSON endpoints."
+    ],
+    "validation_plan": {
+      "local": "In a no-network sandbox, create temp tree T with T/root (empty, used as search_root), T/outside/meta/meta_5.txt containing 'SENTINEL_META', and T/outside/p.sqlite created with the stdlib sqlite3 module: CREATE TABLE programs(generation INTEGER, correct INTEGER, combined_score REAL, timestamp REAL, metadata TEXT) plus one row (7, 1, 0.5, 1.0, '{}'). Build the handler as tests/test_visualization_meta.py does (search_root=str(T/'root'), capture send_json_response and send_error). Step 1: handler.handle_get_meta_content('../outside/p.sqlite', '5'); expected observable: captured JSON has content == 'SENTINEL_META'. Step 2: handler.handle_get_database_stats(str(T/'outside'/'p.sqlite')) (absolute path); expected: captured JSON has program_count == 1 and max_generation == 7. Either result proves a read outside search_root."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "shinka-webui/dom-xss-llm-derived-fields",
+    "title": "viz_tree.html writes model-derived patch names, descriptions, thoughts and meta summaries into innerHTML without escaping",
+    "description": "Source: text produced by the code-proposing model (the <NAME> and <DESCRIPTION> blocks of its reply, stored as metadata.patch_name and metadata.patch_description), by the meta-summariser model (meta_<N>.txt), by prompt evolution (system prompt name/description) and metadata.thought; equally, any of these fields in a results directory the operator received from someone else. Sink: innerHTML and d3 .html() in viz_tree.html. Browser policy that should stop it: none is present (no CSP, no sanitizer); the page's own escapeHtml helper is applied to code, logs, text feedback and metadata values but not to these fields. Affected origin/session: the web UI origin in the operator's browser (http://localhost:<port>, typically on the operator's workstation behind an SSH tunnel, which is a different machine from the one running generated code). Observable effect: markup such as an img element with an error handler placed in a patch name runs script when the operator hovers a tree node, selects a node, opens the best-path view, or opens the Meta tab. Because viz_tree.html auto-loads the database named in the db_path URL parameter and auto-selects the node named in selected_node, opening a single link is enough to render a chosen node. Script running in that origin can call the same-origin endpoints, including /plot_file/ (not readable cross-origin) and the db_path traversal, read files under the launch directory such as .env and send them to another host, since nothing restricts outbound requests. The program table truncates patch_name to 15 characters, which limits that one sink; index.html and compare.html do not render model-derived text. Reviewer note: Parent review confirmed the patch_name path: extracted from the model reply (core/async_runner.py:1938), stored in metadata (:1981), returned by /get_programs_summary, and written into innerHTML as <h3>${agentName}...</h3> at viz_tree.html:5688-5693 without escaping. The other listed fields were not re-traced by the parent.",
+    "claimed_root_cause": "HTML is assembled with template literals and assigned to innerHTML, and escaping is applied field by field; patch_name, patch_description, thought (via marked.parse), meta file text (via marked.parse and a hand-written markdown replacer), system-prompt name/description and several ids were left out, and marked is used without any sanitiser.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "line": 1938,
+        "scope": "initial-program and patch generation",
+        "description": "patch_name is extracted verbatim from between <NAME> tags of the model's reply (regex in shinka/llm/llm.py line 883, no character filtering); the same is done for patch_description at line 1941."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "line": 1981,
+        "scope": "initial-program and patch generation",
+        "description": "The value is stored in the program's metadata dictionary, which is persisted to the sqlite programs table."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 571,
+        "scope": "DatabaseRequestHandler.handle_get_programs_summary",
+        "description": "/get_programs_summary returns each program with its full parsed metadata as JSON."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 3924,
+        "scope": "loadDatabase",
+        "description": "The front end fetches the summaries and keeps them as window.treeData; selecting a node passes its record to displayNodeDetails."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 5688,
+        "scope": "displayNodeDetails",
+        "description": "agentName is taken from data.metadata.patch_name with no escaping."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 5692,
+        "scope": "displayNodeDetails",
+        "description": "The node-summary element's innerHTML is set to a template containing <h3>${agentName} ...</h3>."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 4786,
+        "description": "Tree-node hover tooltip inserts patchName (from line 4758) through d3 .html() without escaping, while the adjacent failure fields are escaped."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 5857,
+        "description": "patch_description is interpolated raw into the node details HTML, which is assigned to innerHTML at line 6022."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 6009,
+        "description": "metadata.thought is passed through marked.parse and inserted via the same innerHTML assignment."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 3042,
+        "description": "Meta tab sink: sectionContent.innerHTML receives marked.parse output (lines 3073, 3076) and the unescaped program-summary formatter output (line 2914) built from meta_<N>.txt text."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 10681,
+        "description": "Best-path timeline inserts patch_name and patch_description (line 10679) through d3 .html()."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 17656,
+        "description": "System-prompt name and description (line 17660) are interpolated raw into detailsPanel.innerHTML, while prompt_text in the same template is escaped."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 5634,
+        "description": "Strongest visible control: escapeHtml is applied to program code (and to logs, text feedback and metadata values elsewhere), showing escaping was intended but is incomplete."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 2077,
+        "description": "marked is loaded unpinned from a CDN with no sanitiser library alongside it; there is no Content-Security-Policy in the page or in the server's headers."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+        "line": 9167,
+        "description": "The selected_node URL parameter auto-selects a node after load, and db_path from the URL is loaded even if not in the server's list (line 3433), so no click is required."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation exists: this run forbids executing target code, and a browser test additionally needs local copies of the CDN libraries (d3, Chart.js, marked, highlight.js, Plotly) because the sandbox has no network.",
+      "Renderer fact: behaviour of the marked version actually delivered by the unpinned CDN URL for raw HTML input (current releases pass it through) must be observed in a browser.",
+      "Deployment fact: whether the operator views results whose text fields come from a less trusted source than their own account (model output steered by untrusted task content, or a results directory supplied by a third party)."
+    ],
+    "validation_plan": {
+      "local": "Function-level check without a browser or network: with Node.js, read baselines/ShinkaEvolve/shinka/webui/viz_tree.html, extract the source text of the two pure string functions formatProgramSummaries and processSimpleMarkdown (they start at the lines 'function formatProgramSummaries(content) {' and 'function processSimpleMarkdown(text) {'), evaluate them in an empty vm context, and call formatProgramSummaries('Program Name: <img src=x onerror=XSS_MARKER>\\nImplementation: a'). Expected observable: the returned string contains the unescaped substring '<img src=x onerror=XSS_MARKER>'; source line 3042 assigns that string to innerHTML. Optional end-to-end check when a sandboxed headless browser with locally served copies of the CDN scripts is available: create a dummy results directory with a programs.sqlite holding one program whose metadata.patch_name is '<img src=x onerror=\"document.title=`XSS_MARKER`\">', serve it on isolated loopback, open /viz_tree.html?db_path=<that db>&selected_node=<its id>, and observe document.title becoming XSS_MARKER."
+    }
+  },
+  {
+    "verdict": "rejected",
+    "fingerprint": "shinka-webui/meta-pdf-html-injection",
+    "title": "Meta summary text is converted to HTML without sanitisation and rendered by wkhtmltopdf on the server when a PDF is requested",
+    "description": "Lower-trust principal: the author of meta_<N>.txt, which in a normal run is the meta-summariser model's output and in a shared-results scenario is whoever produced the results directory the operator is viewing. Accepted input: the file text. Control that should stop it: none; Python-Markdown passes raw HTML through and the result is interpolated into a full HTML document. Sink: that document is written to a temp file and opened by wkhtmltopdf (JavaScript enabled by default, file:// origin) or, failing that, pandoc. Crossed boundary: file content to a headless browser running with the web UI process's filesystem and network position. Any GET /download_meta_pdf triggers it, including from an unauthenticated network client, and the rendered PDF is returned to the requester. If the installed wkhtmltopdf permits local file access or network requests from a local document, injected markup such as an iframe/img/script could place local file content into the PDF or make requests to internal addresses. Bounds established from source: the subprocess calls use argument lists with temp-file paths only, so there is no command injection; the request-supplied 'generation' value is also interpolated unescaped into the document but is reachable only when a file literally named meta_<value>.txt exists; wkhtmltopdf and pandoc are optional external tools that are not installed by the package, and when both are missing the raw text is returned instead. Note that on the host where the evolution itself runs, generated programs already execute as the same user, so the added reach matters mainly when results are viewed on a different machine or come from a third party.",
+    "claimed_root_cause": "_generate_pdf builds the renderer input by concatenating markdown.markdown(meta_text) (raw HTML allowed) and the request's generation string into an HTML template with no escaping or sanitising, then hands it to a browser-engine converter without disabling JavaScript, local file access or network access.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/ShinkaEvolve/shinka/core/summarizer.py",
+        "line": 760,
+        "scope": "meta summary writer",
+        "description": "Model-produced summaries, scratchpad and recommendations are written verbatim to results_dir/meta/meta_<count>.txt."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 908,
+        "scope": "DatabaseRequestHandler.handle_download_meta_pdf",
+        "description": "An unauthenticated GET /download_meta_pdf reads the meta file text and passes it to _generate_pdf (line 913)."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1338,
+        "scope": "DatabaseRequestHandler._generate_pdf",
+        "description": "markdown.markdown converts the text; raw HTML in the input is preserved."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1492,
+        "scope": "DatabaseRequestHandler._generate_pdf",
+        "description": "The converted HTML is interpolated unescaped into the document body, which is written to a temp .html file at line 1501."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1510,
+        "scope": "DatabaseRequestHandler._generate_pdf",
+        "description": "wkhtmltopdf renders the temp file with only page-size and margin options; the output PDF is returned to the requester."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1340,
+        "description": "Only the 'extra' and 'nl2br' extensions are enabled; no sanitising extension or post-filter is applied."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1512,
+        "description": "The wkhtmltopdf argument list has no --disable-javascript, --disable-local-file-access or --disable-external-links option."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1563,
+        "description": "Fallback converter is pandoc with the same HTML file; argument list form, so no shell injection."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1369,
+        "description": "The request's generation/processed_count string is also placed unescaped in the document title and heading (line 1490), bounded by the file-existence check at line 902."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 930,
+        "description": "The converter output is sent back to whoever made the request."
+      }
+    ],
+    "reason": "No principal gains a result across a boundary. The author of the meta text is the model, which never receives the PDF: it is returned to the requester. The model's generated programs already run as the operator by design, so script or file inclusion inside wkhtmltopdf adds no capability for it. A requester who can reach the endpoint already has the broader file reads recorded as shinka-webui/plot-file-unrestricted-read and shinka-webui/db-path-traversal. The command line is a fixed argv list, so there is no command injection. Kept as a hardening note: escape or sanitise the HTML and pass --disable-local-file-access / --disable-javascript."
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "shinka-webui/plot-file-unrestricted-read",
+    "title": "/plot_file/ returns any file under the search root (by default the launch directory that holds .env) and its prefix check admits sibling directories and symlinks",
+    "description": "Lower-trust principal: any client that can send an HTTP GET to the web UI port (the server listens on all interfaces without authentication; see shinka-webui/wildcard-bind-no-auth). Accepted input: the URL path after /plot_file/. Control that should stop it: the 'Security check: ensure the path is within search_root' in handle_serve_plot_file. Crossed boundary: network client to operator files. The handler is meant to serve plot images that /get_plots lists (png/gif/jpg/jpeg only), but it applies no extension or sub-directory restriction, so every regular file under search_root is returned as application/octet-stream. search_root defaults to the current working directory, and the documented quick start runs 'shinka_visualize --port 8888' with no directory from the project/launch directory, which is also where the docs tell the operator to keep a .env file with provider API keys and where shinka loads it from. GET /plot_file/.env would then return those keys. Three further weaknesses in the same check: (1) containment is a string startswith on abspath values with no trailing separator, so a root of .../results also admits .../results_old/ or .../results.bak via '../results_old/...'; (2) abspath does not resolve symlinks, so a link placed inside the root is followed out of it; (3) existence is tested before containment, so 404 versus 403 tells the client whether an arbitrary host path exists. Limits: paths outside the root that do not share its string prefix are refused; the response carries no CORS header, so a cross-origin page cannot read it directly (a same-origin script, see shinka-webui/dom-xss-llm-derived-fields, can). Reviewer note: Parent review re-read handle_serve_plot_file (visualization.py:981-1020): the only containment is abspath(...).startswith(abspath(search_root)) at :997, with no trailing separator and no file-type allowlist; search_root defaults to the current working directory (main(), :1750-1757).",
+    "claimed_root_cause": "handle_serve_plot_file treats 'inside search_root by string prefix' as the whole authorisation decision: it has no file-type or plots-directory allowlist, compares un-normalised prefixes without a path separator, uses abspath instead of realpath, and checks existence before containment.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 333,
+        "scope": "DatabaseRequestHandler.do_GET",
+        "description": "Any GET whose path starts with /plot_file/ is dispatched to handle_serve_plot_file with no caller check."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 985,
+        "scope": "DatabaseRequestHandler.handle_serve_plot_file",
+        "description": "The remainder of the URL path is percent-decoded into rel_path, so encoded '../' sequences survive any client-side normalisation."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 987,
+        "scope": "DatabaseRequestHandler.handle_serve_plot_file",
+        "description": "rel_path is joined to search_root; no extension, directory or file-type restriction is applied."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 997,
+        "scope": "DatabaseRequestHandler.handle_serve_plot_file",
+        "description": "Containment is abspath(abs_path).startswith(abspath(search_root)) with no trailing separator and no symlink resolution."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1012,
+        "scope": "DatabaseRequestHandler.handle_serve_plot_file",
+        "description": "The file is opened in binary mode and its full content is written to the response."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1753,
+        "description": "root_directory defaults to os.getcwd(), so search_root is the launch directory unless the operator passes a results directory."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/docs/webui.md",
+        "line": 43,
+        "description": "Documented remote launch is 'shinka_visualize --port 8888' with no directory argument."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/docs/getting_started.md",
+        "line": 71,
+        "description": "Docs instruct the operator to create a .env file with provider API keys in the project root."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/env.py",
+        "line": 18,
+        "description": "shinka loads .env from the launch (current working) directory, the same directory the web UI serves by default."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 961,
+        "description": "The listing endpoint restricts plots to .png/.gif/.jpg/.jpeg, showing the intended scope that the serving endpoint does not enforce."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1009,
+        "description": "Unknown extensions fall back to application/octet-stream instead of being rejected."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 990,
+        "description": "os.path.exists runs before the containment check, giving a 404-versus-403 existence oracle for any host path."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation exists: this run forbids executing target code because the required OS sandbox is not available.",
+      "Deployment fact: whether the operator starts shinka_visualize from a directory that contains .env or other non-plot files, or always passes a results directory.",
+      "Deployment fact: whether the port is reachable by any client other than the operator (host firewall, shared host or cluster network)."
+    ],
+    "validation_plan": {
+      "local": "In a no-network sandbox, create a temp tree T with T/root/.env containing 'DUMMY_KEY=SENTINEL_ENV', T/root_sibling/note.txt containing 'SENTINEL_SIBLING', and T/other/x (empty). Build the handler as tests/test_visualization_meta.py does (DatabaseRequestHandler.__new__, search_root=str(T/'root'), stub send_response/send_header/end_headers, record send_error calls, wfile=io.BytesIO(); stub the 'markdown' module if it is not installed). Step 1: set handler.path='/plot_file/.env' and call handle_serve_plot_file(); expected observable: wfile contains SENTINEL_ENV. Step 2: reset wfile, set handler.path='/plot_file/..%2Froot_sibling%2Fnote.txt'; expected: wfile contains SENTINEL_SIBLING. Step 3: path '/plot_file/..%2Fother%2Fx' records send_error(403) while '/plot_file/..%2Fother%2Fmissing' records send_error(404). Any one of steps 1 or 2 proves the boundary result; stop there.",
+      "deployment": "Owner check only: from the directory normally used to start shinka_visualize, list which non-image files (for example .env, configs, keys) sit under it, and confirm from a second machine on the same network whether the web UI port accepts connections."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "shinka-webui/wildcard-bind-no-auth",
+    "title": "Web UI listens on all interfaces with no authentication while the documentation describes access through an SSH tunnel to localhost",
+    "description": "Lower-trust principal: any host that can open a TCP connection to the operator's machine on the chosen port (other users of a shared GPU server or cluster network, other devices on the same LAN). Accepted action: any GET request. Control that should stop it: none in source; the listening address is the empty string (all IPv4 interfaces) and there is no option to change it, no token, and no Host or Origin validation. The documentation's remote workflow starts the server on the remote machine and reaches it through 'ssh -L 8888:localhost:8888', which only requires a loopback listener and leads an operator to assume the service is tunnel-only; the same page separately shows a cluster tunnel to a compute node's own address and a one-line 'never expose ports publicly' note. Crossed boundary: network client to operator data. Affected resources: every evolved program, metric, stored LLM prompt/response and log in the served databases, system prompts, meta summaries, and through the two file-handling candidates (shinka-webui/plot-file-unrestricted-read, shinka-webui/db-path-traversal) any file under the launch directory such as .env and Shinka databases elsewhere on the host. The absence of Host validation also leaves the loopback case open to DNS rebinding from a web page. This candidate is limited to exposure of the read-only API; no state-changing endpoint exists. Reviewer note: Parent review confirmed ReusableTCPServer((\"\", port), ...) at visualization.py:1740 and that main() offers no option to choose the bind address; docs/webui.md:189 tells users to rely on SSH tunnels and never expose the port, which the bind address does not enforce.",
+    "claimed_root_cause": "start_server hard-codes the bind address to \"\" and the request handler has no notion of a caller, so reachability of the port is the only access control and it is wider than the documented localhost/SSH-tunnel model.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1740,
+        "scope": "start_server",
+        "description": "ReusableTCPServer((\"\", port), handler_factory) listens on every IPv4 interface; main() offers no host option."
+      },
+      {
+        "kind": "propagation",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 274,
+        "scope": "DatabaseRequestHandler.do_GET",
+        "description": "Requests are routed purely on path and query; there is no authentication, token, Host or Origin check on any branch."
+      },
+      {
+        "kind": "sink",
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1685,
+        "scope": "DatabaseRequestHandler.send_json_response",
+        "description": "Database contents are written to whichever peer connected."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1741,
+        "description": "The startup banner itself prints 'Serving http://0.0.0.0:{port}'."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1818,
+        "description": "The only operator hint is 'remember to forward the port if this is a remote host', which implies a tunnel rather than direct exposure."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/docs/webui.md",
+        "line": 46,
+        "description": "Documented remote access is an SSH local forward to localhost:8888 on the remote host."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/docs/webui.md",
+        "line": 140,
+        "description": "Cluster example forwards to compute-node:8888, which works only because the server is not loopback-bound; every other cluster user can reach the same address."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/docs/webui.md",
+        "line": 189,
+        "description": "Strongest visible control is advisory text: 'Use SSH tunnels for remote access; never expose ports publicly'."
+      },
+      {
+        "file": "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+        "line": 1012,
+        "description": "Example of what an unauthenticated peer can obtain: /plot_file/ opens and returns files under the launch directory."
+      }
+    ],
+    "blockers": [
+      "No bounded local observation exists: this run forbids executing target code because the required OS sandbox is not available.",
+      "Deployment fact: whether the operator's host firewall or network placement lets any other principal connect to the port; source cannot show this."
+    ],
+    "validation_plan": {
+      "local": "In a sandbox with only an isolated loopback interface, import shinka.webui.visualization, monkeypatch socketserver.TCPServer.serve_forever with a function that stores self.socket.getsockname() in a list and returns, then call start_server(0, <empty temp dir>). Expected observable: the stored address is ('0.0.0.0', <port>), not 127.0.0.1. Optional second observable with the real serve loop on loopback and a dummy empty directory: a GET /list_databases sent with no credentials or special headers returns HTTP 200 and a JSON list.",
+      "deployment": "Owner check only: while shinka_visualize is running, run 'ss -ltnp' on the host to see the listening address, and try the URL from a second machine or a second user account on the same network."
+    }
+  }
+]

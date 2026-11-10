@@ -1,0 +1,52 @@
+{
+  "run_id": "swarmevolve-cyber-run-1",
+  "repo": "Topabaem05/SwarmEvolve-cyber",
+  "target": "/home/user/SwarmEvolve-cyber",
+  "source_ref": {
+    "commit": "a944b3db6c7d040d4c062825a70a2616d1df02a8",
+    "branch": "claude/youthful-dijkstra-iqbm0x",
+    "worktree_dirty": false
+  },
+  "profile": "quick",
+  "scope_paths": [
+    "benchmarks/",
+    "baselines/"
+  ],
+  "budget": 26,
+  "execution_policy": "sandboxed-source-and-local-only",
+  "selected_companion_files": [
+    "AI-AND-LLM.md",
+    "CLIENT-SIDE.md",
+    "WEB-PROTOCOL-AND-AUTH.md",
+    "SUPPLY-CHAIN-AND-RELEASE.md"
+  ],
+  "prior_run_paths": [],
+  "prior_runs_note": "No prior coverage-ledger.json or findings.json exists for this repo.",
+  "shared_file_owners": {
+    "run-metadata.json": "parent",
+    "architecture.md": "parent",
+    "coverage-ledger.json": "parent",
+    "findings.json": "parent",
+    "REPORT.md": "parent",
+    "FINDINGS-DETAIL.md": "parent",
+    "NEEDS-VALIDATION.md": "parent"
+  },
+  "skill_dir": "/home/user/cloudflare/security-audit-skill/skills/security-audit",
+  "skill_commit": "c1c8a8c1471069fb0e188eeaff69b8e8db6564a8",
+  "run_status": "incomplete",
+  "deviations": [
+    "Hunter and verifier prompts reference the skill's blocks, hunting method, promotion procedure and schema by file path with a mandatory-read instruction (hunters) or restate them in a shared brief (verifiers) instead of pasting them verbatim into each prompt.",
+    "No target code was executed in this run. The host has no container runtime, and proof-of-concept execution is reserved for the owner-approved sandbox pipeline (security/DESIGN.md). Every candidate is therefore needs_validation or rejected; none can be confirmed in this run.",
+    "Agents write their structured result to their own scratch directory and return a short summary; the parent reads the file.",
+    "The user asked to stop spawning agents after the hunter wave. The 12 verifier agents and the final coverage-critic agent were therefore not run. The parent, which hunted none of the candidates, reviewed all 23 itself by re-reading the decisive source lines, and performed the coverage review itself. This is weaker than one fresh verifier per candidate: the parent re-read the decisive lines of each trace, not every cited line, and checked the rest programmatically (file exists, line in range, trace order)."
+  ],
+  "agents_spent": {
+    "reconnaissance": 4,
+    "hunters": 7,
+    "critics": 0,
+    "verifiers": 0,
+    "total": 11,
+    "budget": 26
+  },
+  "incomplete_reason": "final_coverage_critic_agent_and_independent_verifier_agents_not_run; parent performed both reviews; no clean-coverage claim"
+}

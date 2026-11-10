@@ -1,0 +1,845 @@
+{
+  "schema_version": "1.0",
+  "note": "Chain candidates are hypotheses for investigation. None of them is a finding.",
+  "limits": {
+    "max_length": 4,
+    "max_successors_per_step": 4,
+    "beam_width": 64,
+    "max_candidates": 200
+  },
+  "pruned": {
+    "beam": 32,
+    "successors": 4,
+    "candidates": 0
+  },
+  "candidates": [
+    {
+      "chain_id": "chain_3a2be96c8d58d3eb",
+      "entry_profile": "adjacent-network-client",
+      "attacker": "A client on a network that can reach the ShinkaEvolve viewer port.",
+      "ordered_node_ids": [
+        "shinka-webui/wildcard-bind-no-auth",
+        "shinka-webui/db-path-traversal"
+      ],
+      "bindings": [
+        {
+          "consumer": "shinka-webui/wildcard-bind-no-auth",
+          "required": [
+            "controlled_request",
+            "network-to-shinka-viewer-port"
+          ],
+          "provider": "entry:adjacent-network-client"
+        },
+        {
+          "consumer": "shinka-webui/db-path-traversal",
+          "required": [
+            "controlled_request",
+            "shinka-viewer-json-api"
+          ],
+          "provider": "shinka-webui/wildcard-bind-no-auth"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "none",
+        "availability": "none",
+        "what": "programs, prompts and meta text of runs outside the served directory"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "shinka-webui/wildcard-bind-no-auth",
+        "shinka-webui/db-path-traversal"
+      ]
+    },
+    {
+      "chain_id": "chain_771c552ba3ae66cf",
+      "entry_profile": "adjacent-network-client",
+      "attacker": "A client on a network that can reach the ShinkaEvolve viewer port.",
+      "ordered_node_ids": [
+        "shinka-webui/wildcard-bind-no-auth",
+        "shinka-webui/plot-file-unrestricted-read"
+      ],
+      "bindings": [
+        {
+          "consumer": "shinka-webui/wildcard-bind-no-auth",
+          "required": [
+            "controlled_request",
+            "network-to-shinka-viewer-port"
+          ],
+          "provider": "entry:adjacent-network-client"
+        },
+        {
+          "consumer": "shinka-webui/plot-file-unrestricted-read",
+          "required": [
+            "controlled_request",
+            "shinka-viewer-file-api"
+          ],
+          "provider": "shinka-webui/wildcard-bind-no-auth"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "none",
+        "availability": "none",
+        "what": "operator files under the launch directory, such as .env"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "shinka-webui/wildcard-bind-no-auth",
+        "shinka-webui/plot-file-unrestricted-read"
+      ]
+    },
+    {
+      "chain_id": "chain_517373064555a337",
+      "entry_profile": "artifact-supplier",
+      "attacker": "Someone who gives the operator a results directory, checkpoint or database to open or resume.",
+      "ordered_node_ids": [
+        "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection"
+      ],
+      "bindings": [
+        {
+          "consumer": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+          "required": [
+            "relative_file_write",
+            "openevolve-checkpoint-content"
+          ],
+          "provider": "entry:artifact-supplier"
+        },
+        {
+          "consumer": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+          "required": [
+            "controlled_request",
+            "openevolve-visualizer-port"
+          ],
+          "provider": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "high",
+        "availability": "high",
+        "what": "an attacker-written program run as the operator (manual mode only)"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection"
+      ]
+    },
+    {
+      "chain_id": "chain_334f8a223ba52e24",
+      "entry_profile": "artifact-supplier",
+      "attacker": "Someone who gives the operator a results directory, checkpoint or database to open or resume.",
+      "ordered_node_ids": [
+        "shinka-webui/dom-xss-llm-derived-fields",
+        "shinka-webui/db-path-traversal"
+      ],
+      "bindings": [
+        {
+          "consumer": "shinka-webui/dom-xss-llm-derived-fields",
+          "required": [
+            "relative_file_write",
+            "shinka-results-content"
+          ],
+          "provider": "entry:artifact-supplier"
+        },
+        {
+          "consumer": "shinka-webui/db-path-traversal",
+          "required": [
+            "controlled_request",
+            "shinka-viewer-json-api"
+          ],
+          "provider": "shinka-webui/dom-xss-llm-derived-fields"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "none",
+        "availability": "none",
+        "what": "programs, prompts and meta text of runs outside the served directory"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "shinka-webui/dom-xss-llm-derived-fields",
+        "shinka-webui/db-path-traversal"
+      ]
+    },
+    {
+      "chain_id": "chain_bb7e7935657c6b8b",
+      "entry_profile": "artifact-supplier",
+      "attacker": "Someone who gives the operator a results directory, checkpoint or database to open or resume.",
+      "ordered_node_ids": [
+        "shinka-webui/dom-xss-llm-derived-fields",
+        "shinka-webui/plot-file-unrestricted-read"
+      ],
+      "bindings": [
+        {
+          "consumer": "shinka-webui/dom-xss-llm-derived-fields",
+          "required": [
+            "relative_file_write",
+            "shinka-results-content"
+          ],
+          "provider": "entry:artifact-supplier"
+        },
+        {
+          "consumer": "shinka-webui/plot-file-unrestricted-read",
+          "required": [
+            "controlled_request",
+            "shinka-viewer-file-api"
+          ],
+          "provider": "shinka-webui/dom-xss-llm-derived-fields"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "none",
+        "availability": "none",
+        "what": "operator files under the launch directory, such as .env"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "shinka-webui/dom-xss-llm-derived-fields",
+        "shinka-webui/plot-file-unrestricted-read"
+      ]
+    },
+    {
+      "chain_id": "chain_caec8c3739377bb5",
+      "entry_profile": "artifact-supplier",
+      "attacker": "Someone who gives the operator a results directory, checkpoint or database to open or resume.",
+      "ordered_node_ids": [
+        "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+        "benchmarks-evaluation/eval-log-writable-by-evaluated-program"
+      ],
+      "bindings": [
+        {
+          "consumer": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+          "required": [
+            "relative_file_write",
+            "openevolve-checkpoint-content"
+          ],
+          "provider": "entry:artifact-supplier"
+        },
+        {
+          "consumer": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+          "required": [
+            "controlled_request",
+            "openevolve-visualizer-port"
+          ],
+          "provider": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text"
+        },
+        {
+          "consumer": "benchmarks-evaluation/eval-log-writable-by-evaluated-program",
+          "required": [
+            "code_execution",
+            "evaluated-program"
+          ],
+          "provider": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "any record in the shared score log"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+        "benchmarks-evaluation/eval-log-writable-by-evaluated-program"
+      ]
+    },
+    {
+      "chain_id": "chain_5c2ed15f95f768d4",
+      "entry_profile": "artifact-supplier",
+      "attacker": "Someone who gives the operator a results directory, checkpoint or database to open or resume.",
+      "ordered_node_ids": [
+        "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+        "benchmarks-evaluation/inband-metrics-marker-forgery"
+      ],
+      "bindings": [
+        {
+          "consumer": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+          "required": [
+            "relative_file_write",
+            "openevolve-checkpoint-content"
+          ],
+          "provider": "entry:artifact-supplier"
+        },
+        {
+          "consumer": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+          "required": [
+            "controlled_request",
+            "openevolve-visualizer-port"
+          ],
+          "provider": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text"
+        },
+        {
+          "consumer": "benchmarks-evaluation/inband-metrics-marker-forgery",
+          "required": [
+            "code_execution",
+            "evaluated-program"
+          ],
+          "provider": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "the score recorded for the program"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+        "benchmarks-evaluation/inband-metrics-marker-forgery"
+      ]
+    },
+    {
+      "chain_id": "chain_b49e512fc63b684f",
+      "entry_profile": "artifact-supplier",
+      "attacker": "Someone who gives the operator a results directory, checkpoint or database to open or resume.",
+      "ordered_node_ids": [
+        "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+        "benchmarks-scientific-cases/reference-answers-readable-by-program"
+      ],
+      "bindings": [
+        {
+          "consumer": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+          "required": [
+            "relative_file_write",
+            "openevolve-checkpoint-content"
+          ],
+          "provider": "entry:artifact-supplier"
+        },
+        {
+          "consumer": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+          "required": [
+            "controlled_request",
+            "openevolve-visualizer-port"
+          ],
+          "provider": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text"
+        },
+        {
+          "consumer": "benchmarks-scientific-cases/reference-answers-readable-by-program",
+          "required": [
+            "code_execution",
+            "evaluated-program"
+          ],
+          "provider": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "the score of a scientific-computing problem"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+        "benchmarks-scientific-cases/reference-answers-readable-by-program"
+      ]
+    },
+    {
+      "chain_id": "chain_7aee39b7e21c240b",
+      "entry_profile": "cross-site-page",
+      "attacker": "A web page open in the browser of an operator who runs a web UI.",
+      "ordered_node_ids": [
+        "shinka-webui/cors-wildcard-json-api",
+        "shinka-webui/db-path-traversal"
+      ],
+      "bindings": [
+        {
+          "consumer": "shinka-webui/cors-wildcard-json-api",
+          "required": [
+            "controlled_request",
+            "operator-browser"
+          ],
+          "provider": "entry:cross-site-page"
+        },
+        {
+          "consumer": "shinka-webui/db-path-traversal",
+          "required": [
+            "controlled_request",
+            "shinka-viewer-json-api"
+          ],
+          "provider": "shinka-webui/cors-wildcard-json-api"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "none",
+        "availability": "none",
+        "what": "programs, prompts and meta text of runs outside the served directory"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "shinka-webui/cors-wildcard-json-api",
+        "shinka-webui/db-path-traversal"
+      ]
+    },
+    {
+      "chain_id": "chain_91e8fabfe90b601c",
+      "entry_profile": "evaluated-program",
+      "attacker": "An LLM-generated program during its own evaluation. Running it is the design; its entry capabilities are what that design already grants.",
+      "ordered_node_ids": [
+        "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection"
+      ],
+      "bindings": [
+        {
+          "consumer": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+          "required": [
+            "relative_file_write",
+            "openevolve-checkpoint-content"
+          ],
+          "provider": "entry:evaluated-program"
+        },
+        {
+          "consumer": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+          "required": [
+            "controlled_request",
+            "openevolve-visualizer-port"
+          ],
+          "provider": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "high",
+        "availability": "high",
+        "what": "an attacker-written program run as the operator (manual mode only)"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection"
+      ]
+    },
+    {
+      "chain_id": "chain_ca80c8d589a90bd7",
+      "entry_profile": "evaluated-program",
+      "attacker": "An LLM-generated program during its own evaluation. Running it is the design; its entry capabilities are what that design already grants.",
+      "ordered_node_ids": [
+        "shinka-webui/dom-xss-llm-derived-fields",
+        "shinka-webui/db-path-traversal"
+      ],
+      "bindings": [
+        {
+          "consumer": "shinka-webui/dom-xss-llm-derived-fields",
+          "required": [
+            "relative_file_write",
+            "shinka-results-content"
+          ],
+          "provider": "entry:evaluated-program"
+        },
+        {
+          "consumer": "shinka-webui/db-path-traversal",
+          "required": [
+            "controlled_request",
+            "shinka-viewer-json-api"
+          ],
+          "provider": "shinka-webui/dom-xss-llm-derived-fields"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "none",
+        "availability": "none",
+        "what": "programs, prompts and meta text of runs outside the served directory"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "shinka-webui/dom-xss-llm-derived-fields",
+        "shinka-webui/db-path-traversal"
+      ]
+    },
+    {
+      "chain_id": "chain_12a06e2b830c18c5",
+      "entry_profile": "evaluated-program",
+      "attacker": "An LLM-generated program during its own evaluation. Running it is the design; its entry capabilities are what that design already grants.",
+      "ordered_node_ids": [
+        "shinka-webui/dom-xss-llm-derived-fields",
+        "shinka-webui/plot-file-unrestricted-read"
+      ],
+      "bindings": [
+        {
+          "consumer": "shinka-webui/dom-xss-llm-derived-fields",
+          "required": [
+            "relative_file_write",
+            "shinka-results-content"
+          ],
+          "provider": "entry:evaluated-program"
+        },
+        {
+          "consumer": "shinka-webui/plot-file-unrestricted-read",
+          "required": [
+            "controlled_request",
+            "shinka-viewer-file-api"
+          ],
+          "provider": "shinka-webui/dom-xss-llm-derived-fields"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "high",
+        "integrity": "none",
+        "availability": "none",
+        "what": "operator files under the launch directory, such as .env"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "shinka-webui/dom-xss-llm-derived-fields",
+        "shinka-webui/plot-file-unrestricted-read"
+      ]
+    },
+    {
+      "chain_id": "chain_9f1df8b4a36645eb",
+      "entry_profile": "network-path-attacker",
+      "attacker": "An attacker on the network path between a framework and a remote model endpoint.",
+      "ordered_node_ids": [
+        "codeevolve/config-template-verify-ssl-false",
+        "benchmarks-evaluation/eval-log-writable-by-evaluated-program"
+      ],
+      "bindings": [
+        {
+          "consumer": "codeevolve/config-template-verify-ssl-false",
+          "required": [
+            "controlled_request",
+            "tls-path-to-model-endpoint"
+          ],
+          "provider": "entry:network-path-attacker"
+        },
+        {
+          "consumer": "benchmarks-evaluation/eval-log-writable-by-evaluated-program",
+          "required": [
+            "code_execution",
+            "evaluated-program"
+          ],
+          "provider": "codeevolve/config-template-verify-ssl-false"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "any record in the shared score log"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "codeevolve/config-template-verify-ssl-false",
+        "benchmarks-evaluation/eval-log-writable-by-evaluated-program"
+      ]
+    },
+    {
+      "chain_id": "chain_03de220a3dc1a7c3",
+      "entry_profile": "network-path-attacker",
+      "attacker": "An attacker on the network path between a framework and a remote model endpoint.",
+      "ordered_node_ids": [
+        "codeevolve/config-template-verify-ssl-false",
+        "benchmarks-evaluation/inband-metrics-marker-forgery"
+      ],
+      "bindings": [
+        {
+          "consumer": "codeevolve/config-template-verify-ssl-false",
+          "required": [
+            "controlled_request",
+            "tls-path-to-model-endpoint"
+          ],
+          "provider": "entry:network-path-attacker"
+        },
+        {
+          "consumer": "benchmarks-evaluation/inband-metrics-marker-forgery",
+          "required": [
+            "code_execution",
+            "evaluated-program"
+          ],
+          "provider": "codeevolve/config-template-verify-ssl-false"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "the score recorded for the program"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "codeevolve/config-template-verify-ssl-false",
+        "benchmarks-evaluation/inband-metrics-marker-forgery"
+      ]
+    },
+    {
+      "chain_id": "chain_8c79b9e9f28f7650",
+      "entry_profile": "network-path-attacker",
+      "attacker": "An attacker on the network path between a framework and a remote model endpoint.",
+      "ordered_node_ids": [
+        "codeevolve/config-template-verify-ssl-false",
+        "benchmarks-scientific-cases/reference-answers-readable-by-program"
+      ],
+      "bindings": [
+        {
+          "consumer": "codeevolve/config-template-verify-ssl-false",
+          "required": [
+            "controlled_request",
+            "tls-path-to-model-endpoint"
+          ],
+          "provider": "entry:network-path-attacker"
+        },
+        {
+          "consumer": "benchmarks-scientific-cases/reference-answers-readable-by-program",
+          "required": [
+            "code_execution",
+            "evaluated-program"
+          ],
+          "provider": "codeevolve/config-template-verify-ssl-false"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "the score of a scientific-computing problem"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "codeevolve/config-template-verify-ssl-false",
+        "benchmarks-scientific-cases/reference-answers-readable-by-program"
+      ]
+    },
+    {
+      "chain_id": "chain_a5378d256689b22a",
+      "entry_profile": "other-local-user",
+      "attacker": "Another account on the host that runs the benchmark.",
+      "ordered_node_ids": [
+        "baselines-glue/vllm-localhost-endpoint-impersonation",
+        "benchmarks-evaluation/eval-log-writable-by-evaluated-program"
+      ],
+      "bindings": [
+        {
+          "consumer": "baselines-glue/vllm-localhost-endpoint-impersonation",
+          "required": [
+            "controlled_request",
+            "localhost-listener"
+          ],
+          "provider": "entry:other-local-user"
+        },
+        {
+          "consumer": "benchmarks-evaluation/eval-log-writable-by-evaluated-program",
+          "required": [
+            "code_execution",
+            "evaluated-program"
+          ],
+          "provider": "baselines-glue/vllm-localhost-endpoint-impersonation"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "any record in the shared score log"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "baselines-glue/vllm-localhost-endpoint-impersonation",
+        "benchmarks-evaluation/eval-log-writable-by-evaluated-program"
+      ]
+    },
+    {
+      "chain_id": "chain_b02557cca76a4571",
+      "entry_profile": "other-local-user",
+      "attacker": "Another account on the host that runs the benchmark.",
+      "ordered_node_ids": [
+        "baselines-glue/vllm-localhost-endpoint-impersonation",
+        "benchmarks-evaluation/inband-metrics-marker-forgery"
+      ],
+      "bindings": [
+        {
+          "consumer": "baselines-glue/vllm-localhost-endpoint-impersonation",
+          "required": [
+            "controlled_request",
+            "localhost-listener"
+          ],
+          "provider": "entry:other-local-user"
+        },
+        {
+          "consumer": "benchmarks-evaluation/inband-metrics-marker-forgery",
+          "required": [
+            "code_execution",
+            "evaluated-program"
+          ],
+          "provider": "baselines-glue/vllm-localhost-endpoint-impersonation"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "the score recorded for the program"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "baselines-glue/vllm-localhost-endpoint-impersonation",
+        "benchmarks-evaluation/inband-metrics-marker-forgery"
+      ]
+    },
+    {
+      "chain_id": "chain_4b6edf0d18f01f31",
+      "entry_profile": "other-local-user",
+      "attacker": "Another account on the host that runs the benchmark.",
+      "ordered_node_ids": [
+        "baselines-glue/vllm-localhost-endpoint-impersonation",
+        "benchmarks-scientific-cases/reference-answers-readable-by-program"
+      ],
+      "bindings": [
+        {
+          "consumer": "baselines-glue/vllm-localhost-endpoint-impersonation",
+          "required": [
+            "controlled_request",
+            "localhost-listener"
+          ],
+          "provider": "entry:other-local-user"
+        },
+        {
+          "consumer": "benchmarks-scientific-cases/reference-answers-readable-by-program",
+          "required": [
+            "code_execution",
+            "evaluated-program"
+          ],
+          "provider": "baselines-glue/vllm-localhost-endpoint-impersonation"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "the score of a scientific-computing problem"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "baselines-glue/vllm-localhost-endpoint-impersonation",
+        "benchmarks-scientific-cases/reference-answers-readable-by-program"
+      ]
+    },
+    {
+      "chain_id": "chain_7bd74732ce2e6c41",
+      "entry_profile": "other-local-user",
+      "attacker": "Another account on the host that runs the benchmark.",
+      "ordered_node_ids": [
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+        "benchmarks-evaluation/eval-log-writable-by-evaluated-program"
+      ],
+      "bindings": [
+        {
+          "consumer": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+          "required": [
+            "controlled_request",
+            "openevolve-visualizer-port"
+          ],
+          "provider": "entry:other-local-user"
+        },
+        {
+          "consumer": "benchmarks-evaluation/eval-log-writable-by-evaluated-program",
+          "required": [
+            "code_execution",
+            "evaluated-program"
+          ],
+          "provider": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "any record in the shared score log"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+        "benchmarks-evaluation/eval-log-writable-by-evaluated-program"
+      ]
+    },
+    {
+      "chain_id": "chain_dbb6ceefe982e603",
+      "entry_profile": "other-local-user",
+      "attacker": "Another account on the host that runs the benchmark.",
+      "ordered_node_ids": [
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+        "benchmarks-evaluation/inband-metrics-marker-forgery"
+      ],
+      "bindings": [
+        {
+          "consumer": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+          "required": [
+            "controlled_request",
+            "openevolve-visualizer-port"
+          ],
+          "provider": "entry:other-local-user"
+        },
+        {
+          "consumer": "benchmarks-evaluation/inband-metrics-marker-forgery",
+          "required": [
+            "code_execution",
+            "evaluated-program"
+          ],
+          "provider": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "the score recorded for the program"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+        "benchmarks-evaluation/inband-metrics-marker-forgery"
+      ]
+    },
+    {
+      "chain_id": "chain_525901b09cc8ed5a",
+      "entry_profile": "other-local-user",
+      "attacker": "Another account on the host that runs the benchmark.",
+      "ordered_node_ids": [
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+        "benchmarks-scientific-cases/reference-answers-readable-by-program"
+      ],
+      "bindings": [
+        {
+          "consumer": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+          "required": [
+            "controlled_request",
+            "openevolve-visualizer-port"
+          ],
+          "provider": "entry:other-local-user"
+        },
+        {
+          "consumer": "benchmarks-scientific-cases/reference-answers-readable-by-program",
+          "required": [
+            "code_execution",
+            "evaluated-program"
+          ],
+          "provider": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection"
+        }
+      ],
+      "expected_terminal_impact": {
+        "confidentiality": "none",
+        "integrity": "high",
+        "availability": "none",
+        "what": "the score of a scientific-computing problem"
+      },
+      "status": "blocked_on_unconfirmed_components",
+      "blocked_on": [
+        "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+        "benchmarks-scientific-cases/reference-answers-readable-by-program"
+      ]
+    }
+  ]
+}

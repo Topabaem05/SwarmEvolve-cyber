@@ -1,0 +1,52 @@
+# ZeroMDASH agent config for this repository. NOT RUN: written from the ZeroMDASH README and
+# demo/zeromdash.oss.demo.yaml at commit 9cb2752. Check it against the version you install.
+#
+# It needs a coding-agent runtime with its own credentials (Claude Code here) and starts many
+# agents. The top_K values below keep the fan-out small on purpose; raise them deliberately.
+
+common_focus: >
+  Research benchmark for LLM-guided evolutionary program search: a shared scoring harness
+  (benchmarks/) and three vendored frameworks (baselines/openevolve, baselines/ShinkaEvolve,
+  baselines/CodeEvolve) with glue scripts. Executing LLM-generated programs as the operator is the
+  documented design and is NOT a finding by itself. Look for a different harmed principal or
+  resource: integrity of recorded benchmark scores (EVAL_LOG and the metrics marker); the framework
+  parent process across the evaluation timeout and across runs; operator files reachable through
+  the two unauthenticated web UIs; the operator's browser origin; another local user on a shared
+  host; someone who supplies a results directory or checkpoint that is later opened or resumed.
+  Out of scope: baselines/*/examples, baselines/*/tests, baselines/*/docs, assets. The vendored
+  .github/workflows are not active in this repository. Source analysis only: do not start servers,
+  run the benchmarks, install dependencies, or contact any external or deployed endpoint.
+
+max_concurrency: 2
+
+top_K:
+  spec: 2
+  vuln: 4
+  patch: 2
+  feature: 2
+  chain: 4
+
+chain:
+  enabled: true
+  max_length: 4
+  max_successors_per_capability: 4
+  beam_width: 64
+  max_candidates_before_top_k: 200
+  max_battle_rounds: 2
+
+node:
+  analyze_attack_surface:
+    runtime: claude_code
+    focus: "Start from the preset attack surface. Extend the seams and invariants; do not restate them."
+  investigate_subtask:
+    runtime: claude_code
+  critic_subtask:
+    runtime: claude_code
+  plan_chains:
+    runtime: claude_code
+  chain_investigate_subtask:
+    runtime: claude_code
+  chain_critic_subtask:
+    runtime: claude_code
+  summary:
+    runtime: claude_code

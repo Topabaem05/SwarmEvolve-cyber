@@ -1,0 +1,313 @@
+{
+  "units": [
+    {
+      "coverage_id": "baselines%2FShinkaEvolve%2Fshinka%2Flaunch%2Fslurm.py%23submit::baselines%2FShinkaEvolve%2Fshinka%2Fllm%2Fproviders%2Fheadless.py%23shlex.join::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Injection",
+      "disposition": "candidate",
+      "reviewed_paths": [
+        "baselines/CodeEvolve/src/codeevolve/evaluator.py",
+        "baselines/ShinkaEvolve/shinka/cli/run.py",
+        "baselines/ShinkaEvolve/shinka/cli/run_config.py",
+        "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+        "baselines/ShinkaEvolve/shinka/edit/async_apply.py",
+        "baselines/ShinkaEvolve/shinka/env.py",
+        "baselines/ShinkaEvolve/shinka/launch/local.py",
+        "baselines/ShinkaEvolve/shinka/launch/scheduler.py",
+        "baselines/ShinkaEvolve/shinka/launch/slurm.py",
+        "baselines/ShinkaEvolve/shinka/launch_hydra.py",
+        "baselines/ShinkaEvolve/shinka/llm/providers/headless.py",
+        "baselines/ShinkaEvolve/shinka/model_availability.py",
+        "baselines/ShinkaEvolve/shinka/utils/utils_hydra.py",
+        "baselines/ShinkaEvolve/shinka/utils/wolfram.py",
+        "baselines/codeevolve_evaluate.py",
+        "baselines/openevolve/openevolve/evaluator.py",
+        "baselines/openevolve/openevolve/llm/claude_code.py",
+        "baselines/openevolve/openevolve/llm/codex_app_server.py",
+        "baselines/openevolve/openevolve/llm/copilot_cli.py",
+        "baselines/openevolve/openevolve/llm/ensemble.py",
+        "baselines/openevolve/openevolve/llm/openai.py",
+        "baselines/openevolve/openevolve/process_parallel.py",
+        "baselines/openevolve_entry.py",
+        "baselines/openevolve_evaluator.py",
+        "baselines/run_baseline.sh",
+        "baselines/run_codeevolve.py",
+        "baselines/run_openevolve.py",
+        "baselines/run_shinkaevolve.py",
+        "baselines/setup_baselines.sh",
+        "baselines/shinka_evaluate.py",
+        "benchmarks/evaluation.py",
+        "benchmarks/run_evaluator.py"
+      ],
+      "checks": [
+        {
+          "agent_id": "hunter-command-construction",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/launch/slurm.py",
+            "baselines/ShinkaEvolve/shinka/launch/scheduler.py",
+            "baselines/ShinkaEvolve/shinka/launch/local.py",
+            "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+            "baselines/ShinkaEvolve/shinka/cli/run.py",
+            "baselines/ShinkaEvolve/shinka/cli/run_config.py",
+            "baselines/ShinkaEvolve/shinka/launch_hydra.py",
+            "baselines/ShinkaEvolve/shinka/utils/utils_hydra.py",
+            "baselines/run_shinkaevolve.py"
+          ],
+          "invariant": "Every value interpolated unquoted into the sbatch script templates and the `bash -lc` strings of shinka/launch (env exports, `\" \".join(cmd)`, log_dir, image/image_name, docker_flags, image_tar_path, modules, conda_env, activate_script, partition/time/cpus/gpus/mem, extra sbatch kwargs) originates from the operator's own job/evolution configuration and never from LLM output, a DB/results-dir value, a directory-walk config or a remote client.",
+          "method": "source",
+          "result": "Holds; refuted as a finding. Origins traced: (1) eval_env for `export K=V` / `-e K=V` (slurm.py:20,27,481) comes only from JobScheduler._build_eval_env (scheduler.py:205-216): fixed keys with values '1'/'0', 'FALSE', 'PASSIVE' and str(max(1,int(n))) - no external string. (2) cmd (slurm.py:271,352,446,489) comes from JobScheduler._build_command (scheduler.py:152-203): 'python' or sys.executable/job.python_executable, job.eval_program_path, exec_fname_t, results_dir_t and job.extra_cmd_args. exec_fname_t/results_dir_t are built in async_runner.py:1594-1602 and 2605-2607 as f\"{results_dir}/gen_{generation}/main.{lang_ext}\" and \".../results\": results_dir is evo_config.results_dir (operator), generation is an int, lang_ext is a fixed map lookup of evo_config.language. The LLM chooses no file name, patch name or path component that reaches cmd or log_dir (patch names are only stored/printed). (3) image, docker_flags, image_tar_path, modules, conda_env, activate_script, partition, time, cpus, gpus, mem are dataclass fields of the JobConfig passed to the runner (scheduler.py:241-270), populated from the operator's hydra config (launch_hydra.py:14, utils_hydra.py:73), from the operator-named --config file / --set overrides (cli/run.py:471-488, run_config.py:48-56; the config path is explicit, not discovered by a walk), or from Python API arguments. (4) job ids used with squeue/scancel are sbatch stdout tokens passed as list argv (slurm.py:284,375,510-511; scheduler.py:451-452). The local path used by this repository's glue (run_shinkaevolve.py:56, LocalJobConfig without conda_env/activate_script) never reaches slurm.py: local.submit runs a list argv with no shell (local.py:105-113); the activate_script variant uses shlex.join for the python command (scheduler.py:200). The .hydra/config.yaml directory walk (utils_hydra.py:16-32) feeds eval_hydra only, not job command construction (peer-owned resume/deserialization unit). Same-principal quoting gaps recorded under hardening.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-command-construction",
+          "reviewed_paths": [
+            "baselines/ShinkaEvolve/shinka/llm/providers/headless.py",
+            "baselines/ShinkaEvolve/shinka/model_availability.py",
+            "baselines/ShinkaEvolve/shinka/core/async_runner.py",
+            "baselines/ShinkaEvolve/shinka/env.py"
+          ],
+          "invariant": "The `shell=True` / create_subprocess_shell invocation in headless.py cannot receive shell syntax from the model string, the prompt, the work dir or the SHINKA_HEADLESS_COMMAND prefix, and no LLM-derived text is placed on the command line.",
+          "method": "source",
+          "result": "Holds; refuted as a finding. The shell string is always shlex.join(command) executed by /bin/sh (headless.py:212-219, 247-252), so every token is POSIX-quoted. Token origins: prefix = shlex.split(os.getenv('SHINKA_HEADLESS_COMMAND', default)) (headless.py:39-43) - process environment, i.e. the operator's shell or the cwd/package .env loaded with override=True (env.py:17-26); it selects the executable by design but cannot add shell syntax after re-quoting. agent / agent_model / effort come from parse_headless_model (headless.py:64-95) applied to the configured llm_models entry (operator config); the shell path is taken only when agent == 'claude' (headless.py:180-181) and effort is allowlisted (headless.py:85). --prompt-file is <work_dir>/headless_prompts/prompt_<uuid4>.md and --work-dir is the results dir (headless.py:144-147, 161; async_runner.py:209-213). LLM/program-derived text is written only into the prompt file body (headless.py:148-151), never into argv. check_headless_available uses list argv (headless.py:99-107; called from model_availability.py:185). The claude agent is started with `--allow read-only` (headless.py:169-170).",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-command-construction",
+          "reviewed_paths": [
+            "baselines/openevolve/openevolve/llm/claude_code.py",
+            "baselines/openevolve/openevolve/llm/copilot_cli.py",
+            "baselines/openevolve/openevolve/llm/codex_app_server.py",
+            "baselines/openevolve/openevolve/llm/ensemble.py",
+            "baselines/CodeEvolve/src/codeevolve/evaluator.py",
+            "baselines/ShinkaEvolve/shinka/edit/async_apply.py",
+            "baselines/ShinkaEvolve/shinka/utils/wolfram.py"
+          ],
+          "invariant": "The remaining process-spawn sites of the three baseline packages build list argv without a shell, and no LLM-controlled value can become an option or an executable name.",
+          "method": "source",
+          "result": "Holds; refuted as a finding. claude_code.py:67-80,118-125: list argv ['claude','-p','--model',cfg.name,...,'--system-prompt',system_message,'--max-budget-usd',str(budget)]; the user prompt goes through stdin; model/cwd/budget come from the model config, kwargs are not supplied by callers (process_parallel.py:209-212 passes only system_message/messages). copilot_cli.py:118-147,151-157: list argv; the prompt is the value of '-p' (single argv element, no shell), effort allowlisted (copilot_cli.py:133), '--allow-all-tools' only when the operator's config sets allow_all_tools. codex_app_server.py:269-270,352-359: argv is [cfg.codex_bin,'app-server']; the prompt travels as JSON-RPC over stdin with approvalPolicy 'never' and a read-only sandbox (codex_app_server.py:284-288). Provider selection is config-only (ensemble.py:43-47). CodeEvolve evaluator.py:298-305 spawns [sys.executable, eval_path, tmp code file, tmp results file] as list argv. ShinkaEvolve validators (async_apply.py:150-244) pass the fixed gen_N/main.<ext> path as one argv element; the Wolfram check embeds that path through escape_wolfram_string and, on WSL only, shlex.quote (wolfram.py:83-100).",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-command-construction",
+          "reviewed_paths": [
+            "baselines/run_baseline.sh",
+            "baselines/setup_baselines.sh",
+            "baselines/run_openevolve.py",
+            "baselines/run_shinkaevolve.py",
+            "baselines/run_codeevolve.py",
+            "baselines/openevolve_entry.py",
+            "baselines/openevolve_evaluator.py",
+            "baselines/shinka_evaluate.py",
+            "baselines/codeevolve_evaluate.py"
+          ],
+          "invariant": "Unquoted expansions, the echo-built run.json and the pkill pattern in the glue scripts are fed only by the operator's own positional arguments/environment, and no lower-trust reader or writer is involved.",
+          "method": "source",
+          "result": "Holds; refuted as a finding. framework, problem, model, budget and seed are the five positional arguments of run_baseline.sh (line 17); out is derived from them plus `date` (line 18). No other script in the repository invokes run_baseline.sh or the run_*.py drivers (repository-wide grep: only README.md:53 and the scripts' own usage comments), so no file-, results- or LLM-derived value reaches these expansions. run.json and end.json (lines 56, 64) are written but read by no code in the repository. `pkill -P $$` (line 39) matches by parent pid only and takes no pattern from input. The Python drivers use argparse values in list argv / execv (run_openevolve.py:49-52, run_codeevolve.py:67-69) and yaml.safe_load/safe_dump. setup_baselines.sh interpolates only ${PYTHON313} from the operator environment (line 25). All are same-principal; quoting and arithmetic-expansion notes are under hardening.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-command-construction",
+          "reviewed_paths": [
+            "baselines/run_baseline.sh",
+            "baselines/run_openevolve.py",
+            "baselines/run_shinkaevolve.py",
+            "baselines/run_codeevolve.py"
+          ],
+          "invariant": "A network client that can reach the vLLM OpenAI-compatible endpoint started by run_baseline.sh cannot influence the programs the framework generates and executes.",
+          "method": "source",
+          "result": "No complete source trace; recorded as hardening, not a candidate. run_baseline.sh:34 runs `vllm serve \"$@\" --port $port` and the callers at lines 47 and 50-51 pass only the model, --runner, --max-model-len, --gpu-memory-utilization, --enable-prefix-caching and --reasoning-parser: no --host and no --api-key, and the clients use the placeholder key 'EMPTY' (run_baseline.sh:22, run_openevolve.py:37, run_codeevolve.py:60, run_shinkaevolve.py:52). The bind interface is therefore whatever vLLM uses when --host is omitted; vLLM is not vendored and its version is not pinned in the repository (setup_baselines.sh:17 takes it from the main environment), so the bind address is a deployment/dependency fact that source cannot settle. Independently of that fact, the step from 'unauthenticated client of the API' to 'controls generated programs' is not present in source: an OpenAI-compatible client receives only responses to its own requests, and the flags passed enable no state-changing server feature (no LoRA runtime loading, no tool parser, no dev-mode endpoints). What a reachable client could do is consume GPU time during a wall-clock-budgeted run and read /v1/models and /metrics. The exact missing fact for any stronger claim is a vLLM server capability, in the deployed version and with these flags, by which one API client alters completions returned to another. The separate case of a listener impersonating the endpoint on the loopback port is the candidate below.",
+          "artifact": null
+        },
+        {
+          "agent_id": "hunter-command-construction",
+          "reviewed_paths": [
+            "baselines/run_baseline.sh",
+            "baselines/run_openevolve.py",
+            "baselines/run_shinkaevolve.py",
+            "baselines/run_codeevolve.py",
+            "baselines/openevolve/openevolve/llm/openai.py",
+            "baselines/openevolve/openevolve/process_parallel.py",
+            "baselines/openevolve/openevolve/evaluator.py",
+            "baselines/openevolve_evaluator.py",
+            "benchmarks/evaluation.py",
+            "benchmarks/run_evaluator.py"
+          ],
+          "invariant": "The process whose completions become executed programs is the vLLM server that run_baseline.sh itself started; another local principal cannot stand in for it on `localhost:<port>`.",
+          "method": "source",
+          "result": "Not enforced in source; candidate baselines-glue/vllm-localhost-endpoint-impersonation. The port is obtained by bind-and-release (run_baseline.sh:29,42), vLLM is started in the background on it (line 34), and the readiness loop returns success as soon as anything answers `curl -s localhost:$port/v1/models` - the probe runs before the `kill -0 $server` liveness test, has no -f, and never checks that the responder is the started child (line 36). The frameworks then send every prompt to http://localhost:<port>/v1 with the key 'EMPTY' and execute the returned code through the shared evaluation under the operator's uid and environment (run_openevolve.py:37; process_parallel.py:209,283,364; evaluator.py:260,455; openevolve_evaluator.py:11; benchmarks/evaluation.py:43-46; run_evaluator.py:12). Whether a second local principal exists on the host and can take the port (before vLLM listens, or on the IPv6 loopback that an IPv4-only bind leaves free) is not source-visible; see the candidate's blockers.",
+          "artifact": null
+        }
+      ],
+      "candidate_fingerprints": [
+        "baselines-glue/vllm-localhost-endpoint-impersonation"
+      ],
+      "unresolved": []
+    }
+  ],
+  "candidates": [
+    {
+      "proposed_verdict": "needs_validation",
+      "fingerprint": "baselines-glue/vllm-localhost-endpoint-impersonation",
+      "title": "run_baseline.sh accepts any listener on localhost:<port> as the model server, so another local user can supply the programs the operator executes",
+      "description": "Lower-trust principal: a second unprivileged local user (or other workload sharing the host network namespace) on the GPU host where the operator runs baselines/run_baseline.sh. Accepted input: HTTP responses from whichever process is listening on `localhost:<port>`. Control that should stop it: the launcher should only hand the frameworks an endpoint that is provably the vLLM child it started (and the frameworks should authenticate that endpoint); the only visible checks are a `curl -s localhost:$port/v1/models` probe and a `kill -0 $server` liveness test that is evaluated after the probe has already returned success. Boundary crossed: local user A to code execution as operator B. Affected resource: the operator's account (files, environment variables including any provider keys, EVAL_LOG score integrity), because every completion returned by the endpoint is turned into a program and executed by benchmarks/evaluation.py with the operator's environment.\n\nSource-visible mechanics: (1) free_port binds ('', 0), prints the number and releases the socket; the number is reused later for `vllm serve ... --port $port`, where it is visible in the process arguments. For shinkaevolve the main port is chosen before the embedding server is started and only used after that server is up. (2) `serve` backgrounds vLLM and loops: `curl -s localhost:$port/v1/models > /dev/null && return 0; kill -0 $server || break`. Any HTTP responder satisfies the probe (no -f, no identity check), and success is returned without consulting the child's state, so a vLLM child that failed to bind because the port was taken goes unnoticed. (3) All three drivers configure the framework with `http://localhost:<port>/v1` and the placeholder key 'EMPTY'; vLLM is started without --host and without --api-key, so neither side authenticates the other and the hostname is resolved by each client. (4) The completion text becomes child_code and is executed by the shared evaluation as a subprocess that inherits the operator environment.\n\nTwo ways a foreign listener can end up answering, both needing local validation: (a) binding 127.0.0.1:<port> between the `vllm serve` exec (port visible in process arguments) and vLLM's own listen; (b) binding [::1]:<port> at any time if vLLM's default bind covers IPv4 only, with clients that resolve `localhost` to ::1 first. This is not the documented 'generated code runs unsandboxed' trade-off: the party choosing the code is a different local principal than the operator and the operator's own model.",
+      "claimed_root_cause": "baselines/run_baseline.sh treats 'something answers HTTP on localhost:<port>' as proof that its own vLLM child is serving: the port is picked by bind-and-release, the readiness probe is evaluated before (and independently of) the child liveness test, and the server/clients share no secret and use the ambiguous hostname `localhost`, so the identity of the endpoint whose output is executed is never established.",
+      "trace": [
+        {
+          "kind": "entrypoint",
+          "file": "baselines/run_baseline.sh",
+          "line": 36,
+          "scope": "serve",
+          "description": "Readiness loop: `curl -s localhost:$port/v1/models > /dev/null && return 0` succeeds for any HTTP responder on that port and returns before `kill -0 $server` is consulted; a foreign listener's response is accepted here as 'vLLM is up'."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/run_baseline.sh",
+          "line": 58,
+          "scope": "main script, case $framework",
+          "description": "The same port is handed to the framework driver (`--port $port`); lines 59 and 60 do the same for shinkaevolve (plus --embed-port) and codeevolve."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/run_openevolve.py",
+          "line": 37,
+          "scope": "module level, config['llm']",
+          "description": "OpenEvolve is configured with api_base `http://localhost:{port}/v1` and api_key 'EMPTY'; no credential or identity ties the client to the vLLM child."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/llm/openai.py",
+          "line": 86,
+          "scope": "OpenAILLM.__init__",
+          "description": "AsyncOpenAI client is created with base_url=self.api_base; all completions are requested from whichever process holds that address."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/process_parallel.py",
+          "line": 209,
+          "scope": "_run_iteration_worker",
+          "description": "llm_response is obtained from the endpoint via _worker_llm_ensemble.generate_with_context."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/process_parallel.py",
+          "line": 283,
+          "scope": "_run_iteration_worker",
+          "description": "Diff blocks extracted from the response are applied to the parent program to form child_code (full-rewrite mode takes the response's code block instead)."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/process_parallel.py",
+          "line": 364,
+          "scope": "_run_iteration_worker",
+          "description": "child_code is passed to _worker_evaluator.evaluate_program."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve/openevolve/evaluator.py",
+          "line": 455,
+          "scope": "Evaluator._direct_evaluate",
+          "description": "The code is written to a temp file (line 260) and the configured evaluate function is called with its path."
+        },
+        {
+          "kind": "propagation",
+          "file": "baselines/openevolve_evaluator.py",
+          "line": 11,
+          "scope": "evaluate",
+          "description": "The glue evaluator forwards the program path to the shared benchmarks evaluation."
+        },
+        {
+          "kind": "propagation",
+          "file": "benchmarks/evaluation.py",
+          "line": 43,
+          "scope": "evaluate",
+          "description": "subprocess.Popen runs run_evaluator.py on the program with env={**os.environ, ...} (line 46): the operator's uid and full environment, no isolation beyond a temp cwd and a 60 s limit."
+        },
+        {
+          "kind": "sink",
+          "file": "benchmarks/run_evaluator.py",
+          "line": 12,
+          "scope": "module level",
+          "description": "module.evaluate(program_path) runs the problem evaluator, which imports/executes the program text supplied by the endpoint."
+        }
+      ],
+      "evidence": [
+        {
+          "file": "baselines/run_baseline.sh",
+          "line": 29,
+          "description": "free_port: `s.bind(('', 0)); print(s.getsockname()[1])` - the socket is released when the helper exits, so the returned port is unreserved until vLLM binds it."
+        },
+        {
+          "file": "baselines/run_baseline.sh",
+          "line": 34,
+          "description": "`vllm serve \"$@\" --port $port >> $log 2>&1 &` - started in the background with the port in its arguments, without --host and without --api-key; a bind failure is only written to the log."
+        },
+        {
+          "file": "baselines/run_baseline.sh",
+          "line": 36,
+          "description": "Strongest visible control: probe then liveness. The probe has no -f and no responder identity check, and `return 0` short-circuits before `kill -0 $server`."
+        },
+        {
+          "file": "baselines/run_baseline.sh",
+          "line": 42,
+          "description": "`port=$(free_port)` is taken before the optional embedding server is started and awaited (lines 46-47) and is only bound at line 50."
+        },
+        {
+          "file": "baselines/run_baseline.sh",
+          "line": 22,
+          "description": "`OPENAI_API_KEY=EMPTY` is exported: the clients present a placeholder, so no shared secret exists between launcher, server and frameworks."
+        },
+        {
+          "file": "baselines/run_shinkaevolve.py",
+          "line": 33,
+          "description": "ShinkaEvolve path of the same root cause: every LLM role uses `local/{model}@http://localhost:{port}/v1` (embedding endpoint at line 45)."
+        },
+        {
+          "file": "baselines/run_codeevolve.py",
+          "line": 60,
+          "description": "CodeEvolve path of the same root cause: API_BASE=`http://localhost:{port}/v1`, API_KEY='EMPTY'."
+        },
+        {
+          "file": "benchmarks/evaluation.py",
+          "line": 46,
+          "description": "The evaluated program inherits the operator's whole environment (`env={**os.environ, **SINGLE_THREAD}`)."
+        }
+      ],
+      "blockers": [
+        "No target code may be executed in this run (sandbox controls incomplete), so the readiness-gate behaviour of `serve` with a foreign listener and a failed/absent vLLM child has not been observed.",
+        "Deployment fact: whether the benchmark host has a second local principal (other user accounts, or unprivileged workloads sharing the host network namespace) that can read process arguments (/proc not mounted with hidepid) or probe loopback ports during a run.",
+        "Dependency fact (vLLM is not vendored and its version is not pinned in the repository): how long `vllm serve` takes from exec to listen() on --port, and which address family/interface it binds when --host is omitted (IPv4 wildcard only versus dual-stack); this decides whether 127.0.0.1:<port> can be taken first or [::1]:<port> stays free for the whole run.",
+        "Host fact: the order in which `localhost` resolves (::1 versus 127.0.0.1) for curl and for the OpenAI/httpx clients used by the three frameworks."
+      ],
+      "validation_plan": {
+        "local": "In the no-network sandbox with isolated loopback and dummy data only. Step 1 (readiness gate): create scratch/bin/vllm as a stub script that sleeps 3 seconds and exits 1 (stand-in for a vLLM child that could not bind) and put scratch/bin first on PATH. Start a dummy HTTP listener (python3 http.server subclass) on 127.0.0.1:P, P a free port, that answers every GET with the body {\"sentinel\":\"foreign-listener\"}. Copy lines 29-38 of baselines/run_baseline.sh (free_port and serve) verbatim into scratch/harness.sh and append: `serve P scratch/vllm.log dummy-model; echo \"serve_rc=$?\" > scratch/poc_marker`. Run it under `bash` with `set -u`, 30 s wall-clock limit. Observable that proves the boundary result: scratch/poc_marker contains `serve_rc=0` and stdout does not contain 'vLLM did not start', although the stub child exited 1 and never listened. Step 2 (address-family split): bind a dummy listener on 0.0.0.0:P2 answering {\"sentinel\":\"own-server\"} (stand-in for an IPv4-wildcard bind), then try to bind a second listener on [::1]:P2 answering {\"sentinel\":\"foreign-listener\"}; write to scratch/poc_family whether the second bind succeeded and which sentinel is returned by `curl -s localhost:P2/v1/models` and by Python `urllib.request.urlopen('http://localhost:P2/v1/models')`. Stop all listeners afterwards. Nothing beyond these marker files is produced.",
+        "deployment": "Owner-observed on the benchmark host during one run: record the listening address of the vLLM process for the run's port (`ss -ltnp`), the output of `getent ahosts localhost`, whether other user accounts or shared-network containers exist on the host, whether /proc is mounted with hidepid, and whether a host firewall filters the port from other machines."
+      }
+    }
+  ],
+  "hardening": [
+    "baselines/run_baseline.sh:34,47,50 - `vllm serve` is started without --host and without --api-key, and the clients use the key 'EMPTY'. Whether the port is reachable from other machines depends on vLLM's default bind when --host is omitted (not source-visible; vLLM is unpinned and unvendored). No source path lets a remote API client alter completions served to the framework, so this is exposure of GPU capacity and of /v1/models and /metrics, not a candidate. Pass `--host 127.0.0.1` and a per-run random `--api-key`, hand that key to the three drivers instead of 'EMPTY', and use 127.0.0.1 instead of `localhost` in run_openevolve.py:37, run_shinkaevolve.py:33,45 and run_codeevolve.py:60.",
+    "baselines/run_baseline.sh:36 - make the readiness check fail closed: test `kill -0 $server` before accepting the probe, use `curl -sf`, and after the loop confirm the child is still alive (or have vLLM listen on a unix socket / a pre-bound inherited socket instead of a released port from free_port at line 29).",
+    "baselines/run_baseline.sh:17-19,26,43,50,55-60 - positional arguments are expanded unquoted (`mkdir -p $out`, `basename $model`, `[ $framework = ... ]`, `--problem $problem --model $model --output $out`) and `$((budget * 60))` performs bash arithmetic evaluation on a raw argument. Only the operator supplies these values (same principal), so this is robustness: quote every expansion, validate framework against the three names, require problem to match a directory name under benchmarks/problems, and require budget/seed to match ^[0-9]+$.",
+    "baselines/run_baseline.sh:56,64 - run.json/end.json are assembled with echo and raw interpolation of problem, model, budget, seed and the nvidia-smi GPU name; a quote or backslash in any of them yields invalid or restructured JSON. No code in the repository reads these files today; write them with `python -c 'json.dump(...)'` so later analysis tooling can rely on them.",
+    "baselines/ShinkaEvolve/shinka/launch/slurm.py:20,27,133-134,155,183,228-250,259,271,329,340,352,441-447,475,481,489 - env exports, `\" \".join(cmd)`, log_dir, image, docker_flags, image_tar_path, modules and sbatch kwargs are formatted into shell text without shlex.quote. All values are operator job/evolution config (same principal; results_dir with a space or metacharacter breaks the job or self-injects). Use shlex.join(cmd) and shlex.quote for each interpolated value, as scheduler.py:200 already does for the local activate_script path.",
+    "baselines/ShinkaEvolve/shinka/launch/slurm.py:49-50,64-68 and scheduler.py:196-200 - _escape_double_quotes only escapes `\"`; inside the resulting double-quoted `source \"...\"` string `$(...)`, backticks and `\\` are still interpreted. Operator-controlled today; prefer shlex.quote. Also slurm.py:259 and 340 append `#SBATCH --k=v` entries without a newline, so more than one extra sbatch kwarg produces a single malformed directive (correctness).",
+    "baselines/ShinkaEvolve/shinka/llm/providers/headless.py:212-219,247-252 - `shell=True` / create_subprocess_shell is used only for the claude agent and only with shlex.join output; it adds nothing over list argv and should be dropped so a future edit cannot introduce an unquoted token.",
+    "baselines/ShinkaEvolve/shinka/env.py:17-26 - `<cwd>/.env` and `<package root>/.env` are loaded with override=True at `import shinka`. They can replace PATH, PYTHONPATH, SHINKA_HEADLESS_COMMAND (headless.py:40) and WOLFRAMSCRIPT_BIN (utils/wolfram.py:20), which select the executables that later subprocess calls run. Consider override=False and an allowlist of keys (provider API keys) for the cwd file. See the `uncovered` entry.",
+    "baselines/openevolve/openevolve/llm/copilot_cli.py:118-121 - the whole prompt (system message plus prior programs and program output) is passed as one argv element: it is visible to other local users in the process list and is subject to the per-argument size limit that claude_code.py:82-83 already avoids by using stdin.",
+    "baselines/openevolve/openevolve/llm/claude_code.py:67-80,118-125 - `claude -p` is launched with no tool/permission restriction flags and with cwd defaulting to the framework's working directory, while the prompt contains program output fed back from evaluations; ShinkaEvolve's headless path passes `--allow read-only` (headless.py:169-170) and the codex backend sets a read-only sandbox (codex_app_server.py:286-287). Not used by this repository's glue (which uses the OpenAI-compatible provider); align the claude and copilot backends with an explicit read-only/no-tools setting and a dedicated empty cwd."
+  ],
+  "uncovered": [
+    {
+      "surface": "ShinkaEvolve dotenv auto-loading at import: `<cwd>/.env` and `<package root>/.env` loaded with override=True (shinka/env.py), re-invoked from shinka/__init__.py, llm/client.py, llm/constants.py, embed/client.py, cli/models.py and launch_hydra.py",
+      "boundary": "Author of on-disk state in the directory a shinka CLI is started from (a downloaded task or results directory) vs. the process environment that selects executables and endpoints (PATH, PYTHONPATH, SHINKA_HEADLESS_COMMAND, WOLFRAMSCRIPT_BIN, provider API base/keys)",
+      "subsystem": "baselines/ShinkaEvolve (shinka package import, CLIs shinka_run / shinka_launch / shinka_visualize)",
+      "attack_class": "Injection",
+      "starting_paths": [
+        "baselines/ShinkaEvolve/shinka/env.py",
+        "baselines/ShinkaEvolve/shinka/__init__.py",
+        "baselines/ShinkaEvolve/shinka/llm/providers/headless.py",
+        "baselines/ShinkaEvolve/shinka/utils/wolfram.py",
+        "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+      ],
+      "reason": "Found while tracing the origin of the SHINKA_HEADLESS_COMMAND prefix. It is a different boundary from command-string construction (environment override from a data directory, not shell quoting) and needs its own unit to decide whether a data-only workflow such as `shinka_visualize` run inside a received results directory lets that directory's .env choose executables later resolved through PATH (python/git/pandoc/wkhtmltopdf/npx) or redirect provider endpoints and keys. Not assessed here beyond confirming the load order and override=True; within this repository's glue the cwd is the operator's own repository root (run_baseline.sh:15)."
+    }
+  ]
+}
