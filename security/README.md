@@ -24,6 +24,7 @@
 | `redteam/DESIGN.md` | 다음 실행을 위한 레드팀 운영 설계: seam 단위 헌터, 에이전트 간 공유 보드, 체인 계획 |
 | `redteam/registry/` | 도메인 불변식 레지스트리, 후보 21건의 capability 뷰, 체인 가설 21개 |
 | `redteam/board.py`, `redteam/chains.py` | 공유 보드와 체인 플래너 |
+| `redteam/teamplan.py`, `redteam/plans/` | 코드베이스에서 라운드별 팀 규모와 배정을 계산하는 플래너(기본 하한 30명)와 그 산출 계획 |
 | `redteam/briefs/` | 헌터·비평가 프롬프트 v2 |
 | `redteam/zeromdash/` | ZeroMDASH를 직접 돌릴 때 쓰는 설정 (실행해 보지 않음) |
 | `../.oss-scanner/` | 샌드박스 이미지 레시피, 위협 모델 |

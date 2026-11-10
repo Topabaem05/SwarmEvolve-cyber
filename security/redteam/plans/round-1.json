@@ -1,0 +1,2871 @@
+{
+  "schema_version": "1.0",
+  "round": 1,
+  "note": "A plan only. No agent was started. Shard boundaries and risk hits are heuristics for dividing work, not findings.",
+  "codebase": {
+    "files": 329,
+    "loc": 80021,
+    "risk_hits": 1132,
+    "by_subsystem": {
+      "baselines": {
+        "files": 9,
+        "loc": 318,
+        "risk_hits": 9
+      },
+      "baselines/CodeEvolve": {
+        "files": 59,
+        "loc": 8007,
+        "risk_hits": 107
+      },
+      "baselines/ShinkaEvolve": {
+        "files": 147,
+        "loc": 54718,
+        "risk_hits": 745
+      },
+      "baselines/openevolve": {
+        "files": 60,
+        "loc": 13565,
+        "risk_hits": 171
+      },
+      "benchmarks": {
+        "files": 3,
+        "loc": 171,
+        "risk_hits": 27
+      },
+      "benchmarks/calibration": {
+        "files": 9,
+        "loc": 323,
+        "risk_hits": 4
+      },
+      "benchmarks/problems": {
+        "files": 42,
+        "loc": 2919,
+        "risk_hits": 69
+      }
+    }
+  },
+  "parameters": {
+    "min_team": 30,
+    "max_team": 120,
+    "weight_per_hunter": 2500,
+    "risk_weight": 40,
+    "critic_ratio": 3,
+    "chain_top_k": 8,
+    "chain_mode": "include-blocked",
+    "max_concurrency": 30,
+    "scope": [
+      "benchmarks",
+      "baselines"
+    ],
+    "exclude": [
+      "/examples/",
+      "/tests/",
+      "/docs/",
+      "/assets/",
+      "/node_modules/",
+      "/problems/eoh-problems/"
+    ]
+  },
+  "demand": {
+    "seam_units": 11,
+    "lead_units": 0,
+    "deferred_units": 6,
+    "shard_units": 63,
+    "chain_groups": 7,
+    "units_completed_earlier": 0
+  },
+  "sizing": {
+    "hunters": 80,
+    "second_opinion_hunters": 0,
+    "critics": 27,
+    "chain_investigators": 7,
+    "team": 114,
+    "reason": "demand within limits",
+    "rough_token_estimate": 27930000,
+    "token_estimate_basis": "245000 tokens per agent, the mean of the seven run-1 hunters"
+  },
+  "phases": [
+    {
+      "phase": "hunt",
+      "waves": [
+        [
+          "r1-h001-seam-program-stdout-to-score",
+          "r1-h002-seam-program-env-to-log",
+          "r1-h003-seam-evaluation-to-later-eva",
+          "r1-h004-seam-child-result-to-evaluat",
+          "r1-h005-seam-stored-text-to-dom",
+          "r1-h006-seam-ui-script-to-same-origi",
+          "r1-h007-seam-network-to-viewer",
+          "r1-h008-seam-model-endpoint-identity",
+          "r1-h009-seam-saved-state-to-runner",
+          "r1-h010-seam-generated-text-to-agent",
+          "r1-h011-seam-launch-dir-env",
+          "r1-h012-deferred-09fb2d9e",
+          "r1-h013-deferred-0d44d2c2",
+          "r1-h014-deferred-15d616d6",
+          "r1-h015-deferred-40261bd4",
+          "r1-h016-deferred-2a3d0bc1",
+          "r1-h017-deferred-5fde1fd0",
+          "r1-h018-shard-059",
+          "r1-h019-shard-035",
+          "r1-h020-shard-037",
+          "r1-h021-shard-038",
+          "r1-h022-shard-022",
+          "r1-h023-shard-023",
+          "r1-h024-shard-021",
+          "r1-h025-shard-027",
+          "r1-h026-shard-008",
+          "r1-h027-shard-002",
+          "r1-h028-shard-016",
+          "r1-h029-shard-017",
+          "r1-h030-shard-018"
+        ],
+        [
+          "r1-h031-shard-026",
+          "r1-h032-shard-020",
+          "r1-h033-shard-050",
+          "r1-h034-shard-061",
+          "r1-h035-shard-014",
+          "r1-h036-shard-057",
+          "r1-h037-shard-001",
+          "r1-h038-shard-051",
+          "r1-h039-shard-019",
+          "r1-h040-shard-003",
+          "r1-h041-shard-062",
+          "r1-h042-shard-054",
+          "r1-h043-shard-004",
+          "r1-h044-shard-060",
+          "r1-h045-shard-033",
+          "r1-h046-shard-007",
+          "r1-h047-shard-063",
+          "r1-h048-shard-029",
+          "r1-h049-shard-049",
+          "r1-h050-shard-052",
+          "r1-h051-shard-053",
+          "r1-h052-shard-015",
+          "r1-h053-shard-024",
+          "r1-h054-shard-039",
+          "r1-h055-shard-040",
+          "r1-h056-shard-041",
+          "r1-h057-shard-042",
+          "r1-h058-shard-043",
+          "r1-h059-shard-044",
+          "r1-h060-shard-045"
+        ],
+        [
+          "r1-h061-shard-046",
+          "r1-h062-shard-047",
+          "r1-h063-shard-034",
+          "r1-h064-shard-025",
+          "r1-h065-shard-006",
+          "r1-h066-shard-031",
+          "r1-h067-shard-048",
+          "r1-h068-shard-055",
+          "r1-h069-shard-036",
+          "r1-h070-shard-058",
+          "r1-h071-shard-056",
+          "r1-h072-shard-009",
+          "r1-h073-shard-030",
+          "r1-h074-shard-005",
+          "r1-h075-shard-013",
+          "r1-h076-shard-010",
+          "r1-h077-shard-011",
+          "r1-h078-shard-012",
+          "r1-h079-shard-028",
+          "r1-h080-shard-032"
+        ]
+      ]
+    },
+    {
+      "phase": "critique",
+      "waves": [
+        [
+          "r1-c001",
+          "r1-c002",
+          "r1-c003",
+          "r1-c004",
+          "r1-c005",
+          "r1-c006",
+          "r1-c007",
+          "r1-c008",
+          "r1-c009",
+          "r1-c010",
+          "r1-c011",
+          "r1-c012",
+          "r1-c013",
+          "r1-c014",
+          "r1-c015",
+          "r1-c016",
+          "r1-c017",
+          "r1-c018",
+          "r1-c019",
+          "r1-c020",
+          "r1-c021",
+          "r1-c022",
+          "r1-c023",
+          "r1-c024",
+          "r1-c025",
+          "r1-c026",
+          "r1-c027"
+        ]
+      ],
+      "after": "hunt"
+    },
+    {
+      "phase": "chain",
+      "waves": [
+        [
+          "r1-k001-openevolve-visualizer-sideba",
+          "r1-k002-shinka-webui-dom-xss-llm-der",
+          "r1-k003-baselines-glue-vllm-localhos",
+          "r1-k004-codeevolve-config-template-v",
+          "r1-k005-openevolve-visualizer-manual",
+          "r1-k006-shinka-webui-wildcard-bind-n",
+          "r1-k007-shinka-webui-cors-wildcard-j"
+        ]
+      ],
+      "after": "critique"
+    }
+  ],
+  "agents": [
+    {
+      "agent_id": "r1-h001-seam-program-stdout-to-score",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SEAM-program-stdout-to-scorer",
+        "kind": "seam",
+        "priority": 0,
+        "title": "The program and the evaluator write to one stdout stream, and the scorer reads the score from it.",
+        "topics": [
+          "SEAM-program-stdout-to-scorer",
+          "INV-score-origin"
+        ],
+        "starting_paths": [
+          "benchmarks/evaluation.py",
+          "benchmarks/run_evaluator.py"
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SEAM-program-stdout-to-scorer",
+        "INV-score-origin"
+      ]
+    },
+    {
+      "agent_id": "r1-h002-seam-program-env-to-log",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SEAM-program-env-to-log",
+        "kind": "seam",
+        "priority": 0,
+        "title": "The log path travels to the program in its environment.",
+        "topics": [
+          "SEAM-program-env-to-log",
+          "INV-log-append-only-by-scorer"
+        ],
+        "starting_paths": [
+          "benchmarks/evaluation.py"
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SEAM-program-env-to-log",
+        "INV-log-append-only-by-scorer"
+      ]
+    },
+    {
+      "agent_id": "r1-h003-seam-evaluation-to-later-eva",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SEAM-evaluation-to-later-evaluation",
+        "kind": "seam",
+        "priority": 0,
+        "title": "A file left in the shared temp directory by one evaluation, or by a process that outlived it, is imported by a later evaluation of another program, problem or framework.",
+        "topics": [
+          "SEAM-evaluation-to-later-evaluation",
+          "INV-import-path-trusted",
+          "INV-eval-time-bound"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/openevolve/evaluator.py",
+          "benchmarks/problems/circle_packing_26/evaluator.py"
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SEAM-evaluation-to-later-evaluation",
+        "INV-import-path-trusted",
+        "INV-eval-time-bound"
+      ]
+    },
+    {
+      "agent_id": "r1-h004-seam-child-result-to-evaluat",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SEAM-child-result-to-evaluator",
+        "kind": "seam",
+        "priority": 0,
+        "title": "The one evaluator that isolates the program in a child reads the child result with pickle.",
+        "topics": [
+          "SEAM-child-result-to-evaluator",
+          "INV-deserialize-trusted-only",
+          "INV-score-origin"
+        ],
+        "starting_paths": [
+          "benchmarks/problems/circle_packing_26/evaluator.py"
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SEAM-child-result-to-evaluator",
+        "INV-deserialize-trusted-only",
+        "INV-score-origin"
+      ]
+    },
+    {
+      "agent_id": "r1-h005-seam-stored-text-to-dom",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SEAM-stored-text-to-dom",
+        "kind": "seam",
+        "priority": 0,
+        "title": "A field written by the model is safe in the database and becomes script when a UI renders it.",
+        "topics": [
+          "SEAM-stored-text-to-dom",
+          "INV-ui-text-not-markup"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/viz_tree.html",
+          "baselines/openevolve/scripts/static/js/sidebar.js",
+          "baselines/openevolve/scripts/visualizer.py"
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SEAM-stored-text-to-dom",
+        "INV-ui-text-not-markup"
+      ]
+    },
+    {
+      "agent_id": "r1-h006-seam-ui-script-to-same-origi",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SEAM-ui-script-to-same-origin-api",
+        "kind": "seam",
+        "priority": 0,
+        "title": "Script running in a UI page can call the same-origin endpoints that an outside page cannot read: the viewer file endpoints, the manual-mode task list and answer endpoint.",
+        "topics": [
+          "SEAM-ui-script-to-same-origin-api",
+          "INV-viewer-root-containment",
+          "INV-llm-reply-origin"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/visualization.py",
+          "baselines/openevolve/scripts/manual.py"
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SEAM-ui-script-to-same-origin-api",
+        "INV-viewer-root-containment",
+        "INV-llm-reply-origin"
+      ]
+    },
+    {
+      "agent_id": "r1-h007-seam-network-to-viewer",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SEAM-network-to-viewer",
+        "kind": "seam",
+        "priority": 0,
+        "title": "Reachability of the port is the only thing between an outside client and the file-reading handlers.",
+        "topics": [
+          "SEAM-network-to-viewer",
+          "INV-viewer-operator-only",
+          "INV-viewer-root-containment"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SEAM-network-to-viewer",
+        "INV-viewer-operator-only",
+        "INV-viewer-root-containment"
+      ]
+    },
+    {
+      "agent_id": "r1-h008-seam-model-endpoint-identity",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SEAM-model-endpoint-identity",
+        "kind": "seam",
+        "priority": 0,
+        "title": "Whoever answers on the port, or sits on an unverified TLS path, writes every program the operator then runs.",
+        "topics": [
+          "SEAM-model-endpoint-identity",
+          "INV-llm-reply-origin"
+        ],
+        "starting_paths": [
+          "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+          "baselines/run_baseline.sh"
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SEAM-model-endpoint-identity",
+        "INV-llm-reply-origin"
+      ]
+    },
+    {
+      "agent_id": "r1-h009-seam-saved-state-to-runner",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SEAM-saved-state-to-runner",
+        "kind": "seam",
+        "priority": 0,
+        "title": "A results or checkpoint directory looks like data and is loaded as code.",
+        "topics": [
+          "SEAM-saved-state-to-runner",
+          "INV-deserialize-trusted-only"
+        ],
+        "starting_paths": [
+          "baselines/CodeEvolve/src/codeevolve/utils/ckpt.py",
+          "baselines/ShinkaEvolve/shinka/llm/prioritization.py"
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SEAM-saved-state-to-runner",
+        "INV-deserialize-trusted-only"
+      ]
+    },
+    {
+      "agent_id": "r1-h010-seam-generated-text-to-agent",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SEAM-generated-text-to-agent",
+        "kind": "seam",
+        "priority": 0,
+        "title": "Program text and program output are placed in fixed-length code fences in a file an agent is told to load.",
+        "topics": [
+          "SEAM-generated-text-to-agent",
+          "INV-agent-context-provenance"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py"
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SEAM-generated-text-to-agent",
+        "INV-agent-context-provenance"
+      ]
+    },
+    {
+      "agent_id": "r1-h011-seam-launch-dir-env",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SEAM-launch-dir-env",
+        "kind": "seam",
+        "priority": 0,
+        "title": "Not investigated in run-1 (deferred unit): a .env file in the launch directory overrides the process environment when shinka is imported.",
+        "topics": [
+          "SEAM-launch-dir-env",
+          "INV-llm-reply-origin"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/env.py"
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SEAM-launch-dir-env",
+        "INV-llm-reply-origin"
+      ]
+    },
+    {
+      "agent_id": "r1-h012-deferred-09fb2d9e",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "DEFERRED-09fb2d9e",
+        "kind": "deferred",
+        "priority": 1,
+        "title": "CodeEvolve core: CLI, evolution loop, island processes, LM clients",
+        "topics": [
+          "DEFERRED-09fb2d9e"
+        ],
+        "starting_paths": [
+          "baselines/CodeEvolve/src/codeevolve"
+        ],
+        "attack_class": "Wildcard"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "DEFERRED-09fb2d9e"
+      ]
+    },
+    {
+      "agent_id": "r1-h013-deferred-0d44d2c2",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "DEFERRED-0d44d2c2",
+        "kind": "deferred",
+        "priority": 1,
+        "title": "ShinkaEvolve import-time dotenv loading of <cwd>/.env with override=True",
+        "topics": [
+          "DEFERRED-0d44d2c2"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/env.py",
+          "baselines/ShinkaEvolve/shinka/__init__.py",
+          "baselines/ShinkaEvolve/shinka/llm/client.py"
+        ],
+        "attack_class": "Chained vulnerabilities and trust boundaries"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "DEFERRED-0d44d2c2"
+      ]
+    },
+    {
+      "agent_id": "r1-h014-deferred-15d616d6",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "DEFERRED-15d616d6",
+        "kind": "deferred",
+        "priority": 1,
+        "title": "ShinkaEvolve core outside the web UI: database, embeddings, pricing catalog fetch and cache, summarizers, CLI",
+        "topics": [
+          "DEFERRED-15d616d6"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/pricing",
+          "baselines/ShinkaEvolve/shinka/database",
+          "baselines/ShinkaEvolve/shinka/embed",
+          "baselines/ShinkaEvolve/shinka/core",
+          "baselines/ShinkaEvolve/shinka/cli"
+        ],
+        "attack_class": "Wildcard"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "DEFERRED-15d616d6"
+      ]
+    },
+    {
+      "agent_id": "r1-h015-deferred-40261bd4",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "DEFERRED-40261bd4",
+        "kind": "deferred",
+        "priority": 1,
+        "title": "OpenEvolve core: controller, process_parallel workers, config loading, artifact storage",
+        "topics": [
+          "DEFERRED-40261bd4"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/openevolve/controller.py",
+          "baselines/openevolve/openevolve/process_parallel.py",
+          "baselines/openevolve/openevolve/config.py",
+          "baselines/openevolve/openevolve/database.py"
+        ],
+        "attack_class": "Wildcard"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "DEFERRED-40261bd4"
+      ]
+    },
+    {
+      "agent_id": "r1-h016-deferred-2a3d0bc1",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "DEFERRED-2a3d0bc1",
+        "kind": "deferred",
+        "priority": 1,
+        "title": "OpenEvolve CLI agent LLM backends (claude -p, copilot, codex app-server): tool authority of the spawned agent",
+        "topics": [
+          "DEFERRED-2a3d0bc1"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/openevolve/llm/claude_code.py",
+          "baselines/openevolve/openevolve/llm/copilot_cli.py",
+          "baselines/openevolve/openevolve/llm/codex_app_server.py"
+        ],
+        "attack_class": "Excessive agency and confused-deputy authority"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "DEFERRED-2a3d0bc1"
+      ]
+    },
+    {
+      "agent_id": "r1-h017-deferred-5fde1fd0",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "DEFERRED-5fde1fd0",
+        "kind": "deferred",
+        "priority": 1,
+        "title": "Benchmark calibration scripts and reference generation",
+        "topics": [
+          "DEFERRED-5fde1fd0"
+        ],
+        "starting_paths": [
+          "benchmarks/calibration"
+        ],
+        "attack_class": "Business logic"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "DEFERRED-5fde1fd0"
+      ]
+    },
+    {
+      "agent_id": "r1-h018-shard-059",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-059",
+        "kind": "shard",
+        "priority": 2,
+        "title": "benchmarks: 3 file(s)",
+        "topics": [
+          "SHARD-059"
+        ],
+        "starting_paths": [
+          "benchmarks/evaluation.py",
+          "benchmarks/run_evaluator.py",
+          "benchmarks/scientific_cases.py"
+        ],
+        "loc": 171,
+        "risk_hits": 27,
+        "risk_density": 0.1579,
+        "subsystem": "benchmarks"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-059"
+      ]
+    },
+    {
+      "agent_id": "r1-h019-shard-035",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-035",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 4 file(s)",
+        "topics": [
+          "SHARD-035"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/utils/languages.py",
+          "baselines/ShinkaEvolve/shinka/utils/load_df.py",
+          "baselines/ShinkaEvolve/shinka/utils/utils_hydra.py",
+          "baselines/ShinkaEvolve/shinka/utils/wolfram.py"
+        ],
+        "loc": 807,
+        "risk_hits": 42,
+        "risk_density": 0.052,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-035"
+      ]
+    },
+    {
+      "agent_id": "r1-h020-shard-037",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-037",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-037"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+        ],
+        "loc": 800,
+        "risk_hits": 41,
+        "risk_density": 0.0512,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "1/2",
+        "approx_nonblank_line_range": [
+          1,
+          800
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-037"
+      ]
+    },
+    {
+      "agent_id": "r1-h021-shard-038",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-038",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-038"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/visualization.py"
+        ],
+        "loc": 800,
+        "risk_hits": 41,
+        "risk_density": 0.0512,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "2/2",
+        "approx_nonblank_line_range": [
+          801,
+          1600
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-038"
+      ]
+    },
+    {
+      "agent_id": "r1-h022-shard-022",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-022",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-022"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/database/prompt_dbase.py"
+        ],
+        "loc": 578,
+        "risk_hits": 28,
+        "risk_density": 0.0484,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "1/2",
+        "approx_nonblank_line_range": [
+          1,
+          578
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-022"
+      ]
+    },
+    {
+      "agent_id": "r1-h023-shard-023",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-023",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-023"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/database/prompt_dbase.py"
+        ],
+        "loc": 578,
+        "risk_hits": 28,
+        "risk_density": 0.0484,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "2/2",
+        "approx_nonblank_line_range": [
+          579,
+          1156
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-023"
+      ]
+    },
+    {
+      "agent_id": "r1-h024-shard-021",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-021",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-021"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/database/parents.py"
+        ],
+        "loc": 764,
+        "risk_hits": 33,
+        "risk_density": 0.0432,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-021"
+      ]
+    },
+    {
+      "agent_id": "r1-h025-shard-027",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-027",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 3 file(s)",
+        "topics": [
+          "SHARD-027"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/llm/client.py",
+          "baselines/ShinkaEvolve/shinka/llm/constants.py",
+          "baselines/ShinkaEvolve/shinka/llm/kwargs.py"
+        ],
+        "loc": 643,
+        "risk_hits": 27,
+        "risk_density": 0.042,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-027"
+      ]
+    },
+    {
+      "agent_id": "r1-h026-shard-008",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-008",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 17 file(s)",
+        "topics": [
+          "SHARD-008"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/mkdocs.yml",
+          "baselines/ShinkaEvolve/.github/ISSUE_TEMPLATE/bug_report.yml",
+          "baselines/ShinkaEvolve/.github/ISSUE_TEMPLATE/config.yml",
+          "baselines/ShinkaEvolve/.github/ISSUE_TEMPLATE/feature_request.yml",
+          "baselines/ShinkaEvolve/.github/workflows/ci.yml",
+          "baselines/ShinkaEvolve/.github/workflows/claude.yml",
+          "baselines/ShinkaEvolve/.github/workflows/docs-release.yml",
+          "baselines/ShinkaEvolve/.github/workflows/integration.yml",
+          "baselines/ShinkaEvolve/.github/workflows/pypi-release.yml",
+          "baselines/ShinkaEvolve/shinka/__init__.py",
+          "baselines/ShinkaEvolve/shinka/azure_openai_config.py",
+          "baselines/ShinkaEvolve/shinka/defaults.py",
+          "baselines/ShinkaEvolve/shinka/env.py",
+          "baselines/ShinkaEvolve/shinka/eval_hydra.py",
+          "baselines/ShinkaEvolve/shinka/google_genai.py",
+          "baselines/ShinkaEvolve/shinka/launch_hydra.py",
+          "baselines/ShinkaEvolve/shinka/local_openai_config.py"
+        ],
+        "loc": 910,
+        "risk_hits": 36,
+        "risk_density": 0.0396,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-008"
+      ]
+    },
+    {
+      "agent_id": "r1-h027-shard-002",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-002",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/CodeEvolve: 19 file(s)",
+        "topics": [
+          "SHARD-002"
+        ],
+        "starting_paths": [
+          "baselines/CodeEvolve/environment.yml",
+          "baselines/CodeEvolve/.github/workflows/ci.yml",
+          "baselines/CodeEvolve/configs/templates/config_gemini.yaml",
+          "baselines/CodeEvolve/configs/templates/config_mock.yaml",
+          "baselines/CodeEvolve/configs/templates/config_qwen.yaml",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/autocorrelation_problems/first_autocorr_ineq/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/autocorrelation_problems/first_autocorr_ineq/input/src/init_program.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/autocorrelation_problems/second_autocorr_ineq/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/autocorrelation_problems/second_autocorr_ineq/input/src/init_program.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/heilbronn_problems/heilbronn_convex/13/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/heilbronn_problems/heilbronn_convex/13/input/src/init_program.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/heilbronn_problems/heilbronn_convex/14/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/heilbronn_problems/heilbronn_convex/14/input/src/init_program.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/heilbronn_problems/heilbronn_triangle/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/heilbronn_problems/heilbronn_triangle/input/src/init_program.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/kissing_number/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/kissing_number/input/src/init_program.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/minimizing_max_min_dist/2/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/minimizing_max_min_dist/2/input/src/init_program.py"
+        ],
+        "loc": 948,
+        "risk_hits": 35,
+        "risk_density": 0.0369,
+        "subsystem": "baselines/CodeEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-002"
+      ]
+    },
+    {
+      "agent_id": "r1-h028-shard-016",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-016",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-016"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/database/dbase.py"
+        ],
+        "loc": 933,
+        "risk_hits": 34,
+        "risk_density": 0.0364,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "1/3",
+        "approx_nonblank_line_range": [
+          1,
+          933
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-016"
+      ]
+    },
+    {
+      "agent_id": "r1-h029-shard-017",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-017",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-017"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/database/dbase.py"
+        ],
+        "loc": 933,
+        "risk_hits": 34,
+        "risk_density": 0.0364,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "2/3",
+        "approx_nonblank_line_range": [
+          934,
+          1866
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-017"
+      ]
+    },
+    {
+      "agent_id": "r1-h030-shard-018",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-018",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-018"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/database/dbase.py"
+        ],
+        "loc": 933,
+        "risk_hits": 34,
+        "risk_density": 0.0364,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "3/3",
+        "approx_nonblank_line_range": [
+          1867,
+          2799
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-018"
+      ]
+    },
+    {
+      "agent_id": "r1-h031-shard-026",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-026",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 2 file(s)",
+        "topics": [
+          "SHARD-026"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/launch/slurm.py",
+          "baselines/ShinkaEvolve/shinka/llm/__init__.py"
+        ],
+        "loc": 494,
+        "risk_hits": 18,
+        "risk_density": 0.0364,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-026"
+      ]
+    },
+    {
+      "agent_id": "r1-h032-shard-020",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-020",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-020"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/database/islands.py"
+        ],
+        "loc": 891,
+        "risk_hits": 31,
+        "risk_density": 0.0348,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-020"
+      ]
+    },
+    {
+      "agent_id": "r1-h033-shard-050",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-050",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/openevolve: 3 file(s)",
+        "topics": [
+          "SHARD-050"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/openevolve/api.py",
+          "baselines/openevolve/openevolve/cli.py",
+          "baselines/openevolve/openevolve/coevolution.py"
+        ],
+        "loc": 1012,
+        "risk_hits": 35,
+        "risk_density": 0.0346,
+        "subsystem": "baselines/openevolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-050"
+      ]
+    },
+    {
+      "agent_id": "r1-h034-shard-061",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-061",
+        "kind": "shard",
+        "priority": 2,
+        "title": "benchmarks/problems: 16 file(s)",
+        "topics": [
+          "SHARD-061"
+        ],
+        "starting_paths": [
+          "benchmarks/problems/burgers_1d/evaluator.py",
+          "benchmarks/problems/burgers_1d/initial_program.py",
+          "benchmarks/problems/circle_packing_26/evaluator.py",
+          "benchmarks/problems/circle_packing_26/initial_program.py",
+          "benchmarks/problems/circle_packing_rectangle_21/evaluator.py",
+          "benchmarks/problems/circle_packing_rectangle_21/initial_program.py",
+          "benchmarks/problems/convection_diffusion_2d/evaluator.py",
+          "benchmarks/problems/convection_diffusion_2d/initial_program.py",
+          "benchmarks/problems/erdos_minimum_overlap/evaluator.py",
+          "benchmarks/problems/erdos_minimum_overlap/initial_program.py",
+          "benchmarks/problems/first_autocorrelation/evaluator.py",
+          "benchmarks/problems/first_autocorrelation/initial_program.py",
+          "benchmarks/problems/heilbronn_convex_13/evaluator.py",
+          "benchmarks/problems/heilbronn_convex_13/initial_program.py",
+          "benchmarks/problems/heilbronn_convex_14/evaluator.py",
+          "benchmarks/problems/heilbronn_convex_14/initial_program.py"
+        ],
+        "loc": 1065,
+        "risk_hits": 35,
+        "risk_density": 0.0329,
+        "subsystem": "benchmarks/problems"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-061"
+      ]
+    },
+    {
+      "agent_id": "r1-h035-shard-014",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-014",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 2 file(s)",
+        "topics": [
+          "SHARD-014"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/core/wrap_eval.py",
+          "baselines/ShinkaEvolve/shinka/database/__init__.py"
+        ],
+        "loc": 473,
+        "risk_hits": 15,
+        "risk_density": 0.0317,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-014"
+      ]
+    },
+    {
+      "agent_id": "r1-h036-shard-057",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-057",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/openevolve: 4 file(s)",
+        "topics": [
+          "SHARD-057"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/scripts/manual.py",
+          "baselines/openevolve/scripts/visualizer.py",
+          "baselines/openevolve/scripts/static/js/graph.js",
+          "baselines/openevolve/scripts/static/js/list.js"
+        ],
+        "loc": 1038,
+        "risk_hits": 30,
+        "risk_density": 0.0289,
+        "subsystem": "baselines/openevolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-057"
+      ]
+    },
+    {
+      "agent_id": "r1-h037-shard-001",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-001",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines: 9 file(s)",
+        "topics": [
+          "SHARD-001"
+        ],
+        "starting_paths": [
+          "baselines/codeevolve_evaluate.py",
+          "baselines/openevolve_entry.py",
+          "baselines/openevolve_evaluator.py",
+          "baselines/run_baseline.sh",
+          "baselines/run_codeevolve.py",
+          "baselines/run_openevolve.py",
+          "baselines/run_shinkaevolve.py",
+          "baselines/setup_baselines.sh",
+          "baselines/shinka_evaluate.py"
+        ],
+        "loc": 318,
+        "risk_hits": 9,
+        "risk_density": 0.0283,
+        "subsystem": "baselines"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-001"
+      ]
+    },
+    {
+      "agent_id": "r1-h038-shard-051",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-051",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/openevolve: 2 file(s)",
+        "topics": [
+          "SHARD-051"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/openevolve/config.py",
+          "baselines/openevolve/openevolve/controller.py"
+        ],
+        "loc": 945,
+        "risk_hits": 23,
+        "risk_density": 0.0243,
+        "subsystem": "baselines/openevolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-051"
+      ]
+    },
+    {
+      "agent_id": "r1-h039-shard-019",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-019",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 3 file(s)",
+        "topics": [
+          "SHARD-019"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/database/display.py",
+          "baselines/ShinkaEvolve/shinka/database/inspirations.py",
+          "baselines/ShinkaEvolve/shinka/database/island_sampler.py"
+        ],
+        "loc": 1138,
+        "risk_hits": 26,
+        "risk_density": 0.0228,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-019"
+      ]
+    },
+    {
+      "agent_id": "r1-h040-shard-003",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-003",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/CodeEvolve: 18 file(s)",
+        "topics": [
+          "SHARD-003"
+        ],
+        "starting_paths": [
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/minimizing_max_min_dist/3/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/minimizing_max_min_dist/3/input/src/init_program.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/packing_problems/circle_packing_rect/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/packing_problems/circle_packing_rect/input/src/init_program.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/packing_problems/circle_packing_square/26/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/packing_problems/circle_packing_square/26/input/src/init_program.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/packing_problems/circle_packing_square/32/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/packing_problems/circle_packing_square/32/input/src/init_program.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/packing_problems/hexagon_packing/11/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/packing_problems/hexagon_packing/11/input/src/init_program.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/packing_problems/hexagon_packing/12/input/evaluate.py",
+          "baselines/CodeEvolve/problems/alphaevolve_math_problems/packing_problems/hexagon_packing/12/input/src/init_program.py",
+          "baselines/CodeEvolve/problems/templates/python/input/evaluate.py",
+          "baselines/CodeEvolve/problems/templates/python/input/src/init_program.py",
+          "baselines/CodeEvolve/scripts/run.sh",
+          "baselines/CodeEvolve/scripts/run_mock.sh",
+          "baselines/CodeEvolve/src/codeevolve/__init__.py",
+          "baselines/CodeEvolve/src/codeevolve/cli.py"
+        ],
+        "loc": 1247,
+        "risk_hits": 28,
+        "risk_density": 0.0225,
+        "subsystem": "baselines/CodeEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-003"
+      ]
+    },
+    {
+      "agent_id": "r1-h041-shard-062",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-062",
+        "kind": "shard",
+        "priority": 2,
+        "title": "benchmarks/problems: 21 file(s)",
+        "topics": [
+          "SHARD-062"
+        ],
+        "starting_paths": [
+          "benchmarks/problems/heilbronn_triangle_11/evaluator.py",
+          "benchmarks/problems/heilbronn_triangle_11/initial_program.py",
+          "benchmarks/problems/helmholtz_2d/evaluator.py",
+          "benchmarks/problems/helmholtz_2d/initial_program.py",
+          "benchmarks/problems/hexagon_packing_11/evaluator.py",
+          "benchmarks/problems/hexagon_packing_11/initial_program.py",
+          "benchmarks/problems/hexagon_packing_12/evaluator.py",
+          "benchmarks/problems/hexagon_packing_12/initial_program.py",
+          "benchmarks/problems/kissing_number_11/evaluator.py",
+          "benchmarks/problems/kissing_number_11/initial_program.py",
+          "benchmarks/problems/min_max_distance_14_3d/evaluator.py",
+          "benchmarks/problems/min_max_distance_14_3d/initial_program.py",
+          "benchmarks/problems/min_max_distance_16_2d/evaluator.py",
+          "benchmarks/problems/min_max_distance_16_2d/initial_program.py",
+          "benchmarks/problems/nonnormal_eigenvalues/evaluator.py",
+          "benchmarks/problems/nonnormal_eigenvalues/initial_program.py",
+          "benchmarks/problems/second_autocorrelation/evaluator.py",
+          "benchmarks/problems/second_autocorrelation/initial_program.py",
+          "benchmarks/problems/sparse_linear_systems/evaluator.py",
+          "benchmarks/problems/sparse_linear_systems/initial_program.py",
+          "benchmarks/problems/sums_differences/evaluator.py"
+        ],
+        "loc": 1334,
+        "risk_hits": 28,
+        "risk_density": 0.021,
+        "subsystem": "benchmarks/problems"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-062"
+      ]
+    },
+    {
+      "agent_id": "r1-h042-shard-054",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-054",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/openevolve: 6 file(s)",
+        "topics": [
+          "SHARD-054"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/openevolve/embedding.py",
+          "baselines/openevolve/openevolve/evaluation_result.py",
+          "baselines/openevolve/openevolve/evaluator.py",
+          "baselines/openevolve/openevolve/evolution_trace.py",
+          "baselines/openevolve/openevolve/novelty_judge.py",
+          "baselines/openevolve/openevolve/population.py"
+        ],
+        "loc": 1447,
+        "risk_hits": 24,
+        "risk_density": 0.0166,
+        "subsystem": "baselines/openevolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-054"
+      ]
+    },
+    {
+      "agent_id": "r1-h043-shard-004",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-004",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/CodeEvolve: 2 file(s)",
+        "topics": [
+          "SHARD-004"
+        ],
+        "starting_paths": [
+          "baselines/CodeEvolve/src/codeevolve/database.py",
+          "baselines/CodeEvolve/src/codeevolve/evaluator.py"
+        ],
+        "loc": 920,
+        "risk_hits": 12,
+        "risk_density": 0.013,
+        "subsystem": "baselines/CodeEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-004"
+      ]
+    },
+    {
+      "agent_id": "r1-h044-shard-060",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-060",
+        "kind": "shard",
+        "priority": 2,
+        "title": "benchmarks/calibration: 9 file(s)",
+        "topics": [
+          "SHARD-060"
+        ],
+        "starting_paths": [
+          "benchmarks/calibration/burgers_1d_cole_hopf.py",
+          "benchmarks/calibration/burgers_1d_spectral.py",
+          "benchmarks/calibration/convection_diffusion_2d_expert.py",
+          "benchmarks/calibration/helmholtz_2d_expert.py",
+          "benchmarks/calibration/make_pde_references.py",
+          "benchmarks/calibration/nonnormal_eigenvalues_expert.py",
+          "benchmarks/calibration/run_calibration.sh",
+          "benchmarks/calibration/sparse_linear_systems_expert.py",
+          "benchmarks/calibration/sparse_linear_systems_splu.py"
+        ],
+        "loc": 323,
+        "risk_hits": 4,
+        "risk_density": 0.0124,
+        "subsystem": "benchmarks/calibration"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-060"
+      ]
+    },
+    {
+      "agent_id": "r1-h045-shard-033",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-033",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 12 file(s)",
+        "topics": [
+          "SHARD-033"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/plots/plot_time.py",
+          "baselines/ShinkaEvolve/shinka/pricing/__init__.py",
+          "baselines/ShinkaEvolve/shinka/pricing/catalog.py",
+          "baselines/ShinkaEvolve/shinka/pricing/normalization.py",
+          "baselines/ShinkaEvolve/shinka/pricing/rendering.py",
+          "baselines/ShinkaEvolve/shinka/prompts/__init__.py",
+          "baselines/ShinkaEvolve/shinka/prompts/prompts_base.py",
+          "baselines/ShinkaEvolve/shinka/prompts/prompts_cross.py",
+          "baselines/ShinkaEvolve/shinka/prompts/prompts_diff.py",
+          "baselines/ShinkaEvolve/shinka/prompts/prompts_fix.py",
+          "baselines/ShinkaEvolve/shinka/prompts/prompts_full.py",
+          "baselines/ShinkaEvolve/shinka/prompts/prompts_init.py"
+        ],
+        "loc": 1695,
+        "risk_hits": 20,
+        "risk_density": 0.0118,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-033"
+      ]
+    },
+    {
+      "agent_id": "r1-h046-shard-007",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-007",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/CodeEvolve: 5 file(s)",
+        "topics": [
+          "SHARD-007"
+        ],
+        "starting_paths": [
+          "baselines/CodeEvolve/src/codeevolve/utils/cli_setup.py",
+          "baselines/CodeEvolve/src/codeevolve/utils/constants.py",
+          "baselines/CodeEvolve/src/codeevolve/utils/lock.py",
+          "baselines/CodeEvolve/src/codeevolve/utils/logging.py",
+          "baselines/CodeEvolve/src/codeevolve/utils/parsing.py"
+        ],
+        "loc": 1125,
+        "risk_hits": 13,
+        "risk_density": 0.0116,
+        "subsystem": "baselines/CodeEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-007"
+      ]
+    },
+    {
+      "agent_id": "r1-h047-shard-063",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-063",
+        "kind": "shard",
+        "priority": 2,
+        "title": "benchmarks/problems: 5 file(s)",
+        "topics": [
+          "SHARD-063"
+        ],
+        "starting_paths": [
+          "benchmarks/problems/sums_differences/initial_program.py",
+          "benchmarks/problems/third_autocorrelation/evaluator.py",
+          "benchmarks/problems/third_autocorrelation/initial_program.py",
+          "benchmarks/problems/uncertainty_inequality/evaluator.py",
+          "benchmarks/problems/uncertainty_inequality/initial_program.py"
+        ],
+        "loc": 520,
+        "risk_hits": 6,
+        "risk_density": 0.0115,
+        "subsystem": "benchmarks/problems"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-063"
+      ]
+    },
+    {
+      "agent_id": "r1-h048-shard-029",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-029",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 10 file(s)",
+        "topics": [
+          "SHARD-029"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/llm/providers/anthropic.py",
+          "baselines/ShinkaEvolve/shinka/llm/providers/deepseek.py",
+          "baselines/ShinkaEvolve/shinka/llm/providers/errors.py",
+          "baselines/ShinkaEvolve/shinka/llm/providers/gemini.py",
+          "baselines/ShinkaEvolve/shinka/llm/providers/headless.py",
+          "baselines/ShinkaEvolve/shinka/llm/providers/local_openai.py",
+          "baselines/ShinkaEvolve/shinka/llm/providers/model_resolver.py",
+          "baselines/ShinkaEvolve/shinka/llm/providers/openai.py",
+          "baselines/ShinkaEvolve/shinka/llm/providers/pricing.py",
+          "baselines/ShinkaEvolve/shinka/llm/providers/result.py"
+        ],
+        "loc": 1730,
+        "risk_hits": 19,
+        "risk_density": 0.011,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-029"
+      ]
+    },
+    {
+      "agent_id": "r1-h049-shard-049",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-049",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/openevolve: 15 file(s)",
+        "topics": [
+          "SHARD-049"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/.pre-commit-config.yaml",
+          "baselines/openevolve/Dockerfile",
+          "baselines/openevolve/Makefile",
+          "baselines/openevolve/openevolve-run.py",
+          "baselines/openevolve/setup.py",
+          "baselines/openevolve/.github/workflows/claude.yml",
+          "baselines/openevolve/.github/workflows/python-test.yml",
+          "baselines/openevolve/.github/workflows/release.yml",
+          "baselines/openevolve/.github/workflows/security-scan.yml",
+          "baselines/openevolve/configs/default_config.yaml",
+          "baselines/openevolve/configs/early_stopping_example.yaml",
+          "baselines/openevolve/configs/island_config_example.yaml",
+          "baselines/openevolve/configs/island_examples.yaml",
+          "baselines/openevolve/openevolve/__init__.py",
+          "baselines/openevolve/openevolve/_version.py"
+        ],
+        "loc": 775,
+        "risk_hits": 8,
+        "risk_density": 0.0103,
+        "subsystem": "baselines/openevolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-049"
+      ]
+    },
+    {
+      "agent_id": "r1-h050-shard-052",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-052",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/openevolve: 1 file(s)",
+        "topics": [
+          "SHARD-052"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/openevolve/database.py"
+        ],
+        "loc": 1177,
+        "risk_hits": 12,
+        "risk_density": 0.0102,
+        "subsystem": "baselines/openevolve",
+        "part": "1/2",
+        "approx_nonblank_line_range": [
+          1,
+          1177
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-052"
+      ]
+    },
+    {
+      "agent_id": "r1-h051-shard-053",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-053",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/openevolve: 1 file(s)",
+        "topics": [
+          "SHARD-053"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/openevolve/database.py"
+        ],
+        "loc": 1177,
+        "risk_hits": 12,
+        "risk_density": 0.0102,
+        "subsystem": "baselines/openevolve",
+        "part": "2/2",
+        "approx_nonblank_line_range": [
+          1178,
+          2354
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-053"
+      ]
+    },
+    {
+      "agent_id": "r1-h052-shard-015",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-015",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 2 file(s)",
+        "topics": [
+          "SHARD-015"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/database/async_dbase.py",
+          "baselines/ShinkaEvolve/shinka/database/complexity.py"
+        ],
+        "loc": 1338,
+        "risk_hits": 13,
+        "risk_density": 0.0097,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-015"
+      ]
+    },
+    {
+      "agent_id": "r1-h053-shard-024",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-024",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 8 file(s)",
+        "topics": [
+          "SHARD-024"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/edit/__init__.py",
+          "baselines/ShinkaEvolve/shinka/edit/apply_diff.py",
+          "baselines/ShinkaEvolve/shinka/edit/apply_full.py",
+          "baselines/ShinkaEvolve/shinka/edit/async_apply.py",
+          "baselines/ShinkaEvolve/shinka/edit/marker_validation.py",
+          "baselines/ShinkaEvolve/shinka/edit/summary.py",
+          "baselines/ShinkaEvolve/shinka/embed/__init__.py",
+          "baselines/ShinkaEvolve/shinka/embed/client.py"
+        ],
+        "loc": 1594,
+        "risk_hits": 15,
+        "risk_density": 0.0094,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-024"
+      ]
+    },
+    {
+      "agent_id": "r1-h054-shard-039",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-039",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-039"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/viz_tree.html"
+        ],
+        "loc": 1748,
+        "risk_hits": 16,
+        "risk_density": 0.0092,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "1/9",
+        "approx_nonblank_line_range": [
+          1,
+          1748
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-039"
+      ]
+    },
+    {
+      "agent_id": "r1-h055-shard-040",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-040",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-040"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/viz_tree.html"
+        ],
+        "loc": 1748,
+        "risk_hits": 16,
+        "risk_density": 0.0092,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "2/9",
+        "approx_nonblank_line_range": [
+          1749,
+          3496
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-040"
+      ]
+    },
+    {
+      "agent_id": "r1-h056-shard-041",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-041",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-041"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/viz_tree.html"
+        ],
+        "loc": 1748,
+        "risk_hits": 16,
+        "risk_density": 0.0092,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "3/9",
+        "approx_nonblank_line_range": [
+          3497,
+          5244
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-041"
+      ]
+    },
+    {
+      "agent_id": "r1-h057-shard-042",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-042",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-042"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/viz_tree.html"
+        ],
+        "loc": 1748,
+        "risk_hits": 16,
+        "risk_density": 0.0092,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "4/9",
+        "approx_nonblank_line_range": [
+          5245,
+          6992
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-042"
+      ]
+    },
+    {
+      "agent_id": "r1-h058-shard-043",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-043",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-043"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/viz_tree.html"
+        ],
+        "loc": 1748,
+        "risk_hits": 16,
+        "risk_density": 0.0092,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "5/9",
+        "approx_nonblank_line_range": [
+          6993,
+          8740
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-043"
+      ]
+    },
+    {
+      "agent_id": "r1-h059-shard-044",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-044",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-044"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/viz_tree.html"
+        ],
+        "loc": 1748,
+        "risk_hits": 16,
+        "risk_density": 0.0092,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "6/9",
+        "approx_nonblank_line_range": [
+          8741,
+          10488
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-044"
+      ]
+    },
+    {
+      "agent_id": "r1-h060-shard-045",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-045",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-045"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/viz_tree.html"
+        ],
+        "loc": 1748,
+        "risk_hits": 16,
+        "risk_density": 0.0092,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "7/9",
+        "approx_nonblank_line_range": [
+          10489,
+          12236
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-045"
+      ]
+    },
+    {
+      "agent_id": "r1-h061-shard-046",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-046",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-046"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/viz_tree.html"
+        ],
+        "loc": 1748,
+        "risk_hits": 16,
+        "risk_density": 0.0092,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "8/9",
+        "approx_nonblank_line_range": [
+          12237,
+          13984
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-046"
+      ]
+    },
+    {
+      "agent_id": "r1-h062-shard-047",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-047",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-047"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/viz_tree.html"
+        ],
+        "loc": 1748,
+        "risk_hits": 16,
+        "risk_density": 0.0092,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "9/9",
+        "approx_nonblank_line_range": [
+          13985,
+          15729
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-047"
+      ]
+    },
+    {
+      "agent_id": "r1-h063-shard-034",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-034",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 9 file(s)",
+        "topics": [
+          "SHARD-034"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/prompts/prompts_meta.py",
+          "baselines/ShinkaEvolve/shinka/prompts/prompts_novelty.py",
+          "baselines/ShinkaEvolve/shinka/prompts/prompts_prompt_evo.py",
+          "baselines/ShinkaEvolve/shinka/tools/__init__.py",
+          "baselines/ShinkaEvolve/shinka/tools/pricing/__init__.py",
+          "baselines/ShinkaEvolve/shinka/tools/pricing/generate_csvs.py",
+          "baselines/ShinkaEvolve/shinka/utils/__init__.py",
+          "baselines/ShinkaEvolve/shinka/utils/eval_stop.py",
+          "baselines/ShinkaEvolve/shinka/utils/general.py"
+        ],
+        "loc": 1334,
+        "risk_hits": 11,
+        "risk_density": 0.0082,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-034"
+      ]
+    },
+    {
+      "agent_id": "r1-h064-shard-025",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-025",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 6 file(s)",
+        "topics": [
+          "SHARD-025"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/embed/embedding.py",
+          "baselines/ShinkaEvolve/shinka/embed/providers/__init__.py",
+          "baselines/ShinkaEvolve/shinka/embed/providers/pricing.py",
+          "baselines/ShinkaEvolve/shinka/launch/__init__.py",
+          "baselines/ShinkaEvolve/shinka/launch/local.py",
+          "baselines/ShinkaEvolve/shinka/launch/scheduler.py"
+        ],
+        "loc": 1302,
+        "risk_hits": 10,
+        "risk_density": 0.0077,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-025"
+      ]
+    },
+    {
+      "agent_id": "r1-h065-shard-006",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-006",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/CodeEvolve: 9 file(s)",
+        "topics": [
+          "SHARD-006"
+        ],
+        "starting_paths": [
+          "baselines/CodeEvolve/src/codeevolve/islands/sync.py",
+          "baselines/CodeEvolve/src/codeevolve/lm/__init__.py",
+          "baselines/CodeEvolve/src/codeevolve/lm/base.py",
+          "baselines/CodeEvolve/src/codeevolve/lm/openai.py",
+          "baselines/CodeEvolve/src/codeevolve/prompt/__init__.py",
+          "baselines/CodeEvolve/src/codeevolve/prompt/sampler.py",
+          "baselines/CodeEvolve/src/codeevolve/prompt/template.py",
+          "baselines/CodeEvolve/src/codeevolve/utils/__init__.py",
+          "baselines/CodeEvolve/src/codeevolve/utils/ckpt.py"
+        ],
+        "loc": 1576,
+        "risk_hits": 12,
+        "risk_density": 0.0076,
+        "subsystem": "baselines/CodeEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-006"
+      ]
+    },
+    {
+      "agent_id": "r1-h066-shard-031",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-031",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 3 file(s)",
+        "topics": [
+          "SHARD-031"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/plots/__init__.py",
+          "baselines/ShinkaEvolve/shinka/plots/code_path_anim.py",
+          "baselines/ShinkaEvolve/shinka/plots/plot_costs.py"
+        ],
+        "loc": 1687,
+        "risk_hits": 12,
+        "risk_density": 0.0071,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-031"
+      ]
+    },
+    {
+      "agent_id": "r1-h067-shard-048",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-048",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 5 file(s)",
+        "topics": [
+          "SHARD-048"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/skills/shinka-convert/scripts/run_evo.py",
+          "baselines/ShinkaEvolve/skills/shinka-convert/scripts/shinka.yaml",
+          "baselines/ShinkaEvolve/skills/shinka-inspect/scripts/inspect_best_programs.py",
+          "baselines/ShinkaEvolve/skills/shinka-setup/scripts/run_evo.py",
+          "baselines/ShinkaEvolve/skills/shinka-setup/scripts/shinka.yaml"
+        ],
+        "loc": 436,
+        "risk_hits": 3,
+        "risk_density": 0.0069,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-048"
+      ]
+    },
+    {
+      "agent_id": "r1-h068-shard-055",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-055",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/openevolve: 11 file(s)",
+        "topics": [
+          "SHARD-055"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/openevolve/process_parallel.py",
+          "baselines/openevolve/openevolve/selection.py",
+          "baselines/openevolve/openevolve/test_regional_endpoint.py",
+          "baselines/openevolve/openevolve/llm/__init__.py",
+          "baselines/openevolve/openevolve/llm/base.py",
+          "baselines/openevolve/openevolve/llm/claude_code.py",
+          "baselines/openevolve/openevolve/llm/codex_app_server.py",
+          "baselines/openevolve/openevolve/llm/copilot_cli.py",
+          "baselines/openevolve/openevolve/llm/ensemble.py",
+          "baselines/openevolve/openevolve/llm/openai.py",
+          "baselines/openevolve/openevolve/prompt/__init__.py"
+        ],
+        "loc": 2037,
+        "risk_hits": 11,
+        "risk_density": 0.0054,
+        "subsystem": "baselines/openevolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-055"
+      ]
+    },
+    {
+      "agent_id": "r1-h069-shard-036",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-036",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 2 file(s)",
+        "topics": [
+          "SHARD-036"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/webui/compare.html",
+          "baselines/ShinkaEvolve/shinka/webui/index.html"
+        ],
+        "loc": 1511,
+        "risk_hits": 8,
+        "risk_density": 0.0053,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-036"
+      ]
+    },
+    {
+      "agent_id": "r1-h070-shard-058",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-058",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/openevolve: 9 file(s)",
+        "topics": [
+          "SHARD-058"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/scripts/static/js/main.js",
+          "baselines/openevolve/scripts/static/js/mainUI.js",
+          "baselines/openevolve/scripts/static/js/manual.js",
+          "baselines/openevolve/scripts/static/js/performance.js",
+          "baselines/openevolve/scripts/static/js/sidebar.js",
+          "baselines/openevolve/scripts/static/js/state.js",
+          "baselines/openevolve/scripts/templates/index.html",
+          "baselines/openevolve/scripts/templates/manual_page.html",
+          "baselines/openevolve/scripts/templates/program_page.html"
+        ],
+        "loc": 2059,
+        "risk_hits": 9,
+        "risk_density": 0.0044,
+        "subsystem": "baselines/openevolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-058"
+      ]
+    },
+    {
+      "agent_id": "r1-h071-shard-056",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-056",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/openevolve: 9 file(s)",
+        "topics": [
+          "SHARD-056"
+        ],
+        "starting_paths": [
+          "baselines/openevolve/openevolve/prompt/sampler.py",
+          "baselines/openevolve/openevolve/prompt/templates.py",
+          "baselines/openevolve/openevolve/utils/__init__.py",
+          "baselines/openevolve/openevolve/utils/async_utils.py",
+          "baselines/openevolve/openevolve/utils/code_utils.py",
+          "baselines/openevolve/openevolve/utils/format_utils.py",
+          "baselines/openevolve/openevolve/utils/logging_utils.py",
+          "baselines/openevolve/openevolve/utils/metrics_utils.py",
+          "baselines/openevolve/openevolve/utils/trace_export_utils.py"
+        ],
+        "loc": 1898,
+        "risk_hits": 8,
+        "risk_density": 0.0042,
+        "subsystem": "baselines/openevolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-056"
+      ]
+    },
+    {
+      "agent_id": "r1-h072-shard-009",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-009",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-009"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/core/async_novelty_judge.py"
+        ],
+        "loc": 240,
+        "risk_hits": 1,
+        "risk_density": 0.0042,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-009"
+      ]
+    },
+    {
+      "agent_id": "r1-h073-shard-030",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-030",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 33 file(s)",
+        "topics": [
+          "SHARD-030"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/logo.py",
+          "baselines/ShinkaEvolve/shinka/model_availability.py",
+          "baselines/ShinkaEvolve/shinka/release_check.py",
+          "baselines/ShinkaEvolve/shinka/telemetry_safety.py",
+          "baselines/ShinkaEvolve/shinka/wandb_logging.py",
+          "baselines/ShinkaEvolve/shinka/wandb_metrics.py",
+          "baselines/ShinkaEvolve/shinka/cli/__init__.py",
+          "baselines/ShinkaEvolve/shinka/cli/launch.py",
+          "baselines/ShinkaEvolve/shinka/cli/models.py",
+          "baselines/ShinkaEvolve/shinka/cli/run.py",
+          "baselines/ShinkaEvolve/shinka/cli/run_config.py",
+          "baselines/ShinkaEvolve/shinka/configs/__init__.py",
+          "baselines/ShinkaEvolve/shinka/configs/config.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/cluster/__init__.py",
+          "baselines/ShinkaEvolve/shinka/configs/cluster/gcp.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/cluster/local.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/cluster/remote.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/database/__init__.py",
+          "baselines/ShinkaEvolve/shinka/configs/database/island_large.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/database/island_medium.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/database/island_small.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/evolution/__init__.py",
+          "baselines/ShinkaEvolve/shinka/configs/evolution/large_budget.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/evolution/medium_budget.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/evolution/small_budget.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/task/__init__.py",
+          "baselines/ShinkaEvolve/shinka/configs/task/circle_packing.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/task/novelty_generator.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/variant/__init__.py",
+          "baselines/ShinkaEvolve/shinka/configs/variant/circle_packing_example.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/variant/default.yaml",
+          "baselines/ShinkaEvolve/shinka/configs/variant/novelty_generator_example.yaml",
+          "baselines/ShinkaEvolve/shinka/core/__init__.py"
+        ],
+        "loc": 2129,
+        "risk_hits": 8,
+        "risk_density": 0.0038,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-030"
+      ]
+    },
+    {
+      "agent_id": "r1-h074-shard-005",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-005",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/CodeEvolve: 6 file(s)",
+        "topics": [
+          "SHARD-005"
+        ],
+        "starting_paths": [
+          "baselines/CodeEvolve/src/codeevolve/evolution.py",
+          "baselines/CodeEvolve/src/codeevolve/runner.py",
+          "baselines/CodeEvolve/src/codeevolve/scheduler.py",
+          "baselines/CodeEvolve/src/codeevolve/islands/__init__.py",
+          "baselines/CodeEvolve/src/codeevolve/islands/graph.py",
+          "baselines/CodeEvolve/src/codeevolve/islands/migration.py"
+        ],
+        "loc": 2191,
+        "risk_hits": 7,
+        "risk_density": 0.0032,
+        "subsystem": "baselines/CodeEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-005"
+      ]
+    },
+    {
+      "agent_id": "r1-h075-shard-013",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-013",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 8 file(s)",
+        "topics": [
+          "SHARD-013"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/core/async_summarizer.py",
+          "baselines/ShinkaEvolve/shinka/core/config.py",
+          "baselines/ShinkaEvolve/shinka/core/novelty_judge.py",
+          "baselines/ShinkaEvolve/shinka/core/pipeline_timing.py",
+          "baselines/ShinkaEvolve/shinka/core/prompt_evolver.py",
+          "baselines/ShinkaEvolve/shinka/core/runtime_slots.py",
+          "baselines/ShinkaEvolve/shinka/core/sampler.py",
+          "baselines/ShinkaEvolve/shinka/core/summarizer.py"
+        ],
+        "loc": 2276,
+        "risk_hits": 5,
+        "risk_density": 0.0022,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-013"
+      ]
+    },
+    {
+      "agent_id": "r1-h076-shard-010",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-010",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-010"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/core/async_runner.py"
+        ],
+        "loc": 1864,
+        "risk_hits": 3,
+        "risk_density": 0.0016,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "1/3",
+        "approx_nonblank_line_range": [
+          1,
+          1864
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-010"
+      ]
+    },
+    {
+      "agent_id": "r1-h077-shard-011",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-011",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-011"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/core/async_runner.py"
+        ],
+        "loc": 1864,
+        "risk_hits": 3,
+        "risk_density": 0.0016,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "2/3",
+        "approx_nonblank_line_range": [
+          1865,
+          3728
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-011"
+      ]
+    },
+    {
+      "agent_id": "r1-h078-shard-012",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-012",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 1 file(s)",
+        "topics": [
+          "SHARD-012"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/core/async_runner.py"
+        ],
+        "loc": 1864,
+        "risk_hits": 3,
+        "risk_density": 0.0016,
+        "subsystem": "baselines/ShinkaEvolve",
+        "part": "3/3",
+        "approx_nonblank_line_range": [
+          3729,
+          5591
+        ]
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-012"
+      ]
+    },
+    {
+      "agent_id": "r1-h079-shard-028",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-028",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 4 file(s)",
+        "topics": [
+          "SHARD-028"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/llm/llm.py",
+          "baselines/ShinkaEvolve/shinka/llm/prioritization.py",
+          "baselines/ShinkaEvolve/shinka/llm/query.py",
+          "baselines/ShinkaEvolve/shinka/llm/providers/__init__.py"
+        ],
+        "loc": 2234,
+        "risk_hits": 3,
+        "risk_density": 0.0013,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-028"
+      ]
+    },
+    {
+      "agent_id": "r1-h080-shard-032",
+      "role": "hunter",
+      "unit": {
+        "unit_id": "SHARD-032",
+        "kind": "shard",
+        "priority": 2,
+        "title": "baselines/ShinkaEvolve: 6 file(s)",
+        "topics": [
+          "SHARD-032"
+        ],
+        "starting_paths": [
+          "baselines/ShinkaEvolve/shinka/plots/plot_evals.py",
+          "baselines/ShinkaEvolve/shinka/plots/plot_lineage_tree.py",
+          "baselines/ShinkaEvolve/shinka/plots/plot_llm.py",
+          "baselines/ShinkaEvolve/shinka/plots/plot_pareto.py",
+          "baselines/ShinkaEvolve/shinka/plots/plot_similarity.py",
+          "baselines/ShinkaEvolve/shinka/plots/plot_throughput.py"
+        ],
+        "loc": 2217,
+        "risk_hits": 0,
+        "risk_density": 0.0,
+        "subsystem": "baselines/ShinkaEvolve"
+      },
+      "brief": "security/redteam/briefs/hunter-brief-v2.md",
+      "subscribe_topics": [
+        "SHARD-032"
+      ]
+    },
+    {
+      "agent_id": "r1-c001",
+      "role": "critic",
+      "reviews": [
+        "r1-h001-seam-program-stdout-to-score",
+        "r1-h028-shard-016",
+        "r1-h055-shard-040"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c002",
+      "role": "critic",
+      "reviews": [
+        "r1-h002-seam-program-env-to-log",
+        "r1-h029-shard-017",
+        "r1-h056-shard-041"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c003",
+      "role": "critic",
+      "reviews": [
+        "r1-h003-seam-evaluation-to-later-eva",
+        "r1-h030-shard-018",
+        "r1-h057-shard-042"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c004",
+      "role": "critic",
+      "reviews": [
+        "r1-h004-seam-child-result-to-evaluat",
+        "r1-h031-shard-026",
+        "r1-h058-shard-043"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c005",
+      "role": "critic",
+      "reviews": [
+        "r1-h005-seam-stored-text-to-dom",
+        "r1-h032-shard-020",
+        "r1-h059-shard-044"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c006",
+      "role": "critic",
+      "reviews": [
+        "r1-h006-seam-ui-script-to-same-origi",
+        "r1-h033-shard-050",
+        "r1-h060-shard-045"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c007",
+      "role": "critic",
+      "reviews": [
+        "r1-h007-seam-network-to-viewer",
+        "r1-h034-shard-061",
+        "r1-h061-shard-046"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c008",
+      "role": "critic",
+      "reviews": [
+        "r1-h008-seam-model-endpoint-identity",
+        "r1-h035-shard-014",
+        "r1-h062-shard-047"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c009",
+      "role": "critic",
+      "reviews": [
+        "r1-h009-seam-saved-state-to-runner",
+        "r1-h036-shard-057",
+        "r1-h063-shard-034"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c010",
+      "role": "critic",
+      "reviews": [
+        "r1-h010-seam-generated-text-to-agent",
+        "r1-h037-shard-001",
+        "r1-h064-shard-025"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c011",
+      "role": "critic",
+      "reviews": [
+        "r1-h011-seam-launch-dir-env",
+        "r1-h038-shard-051",
+        "r1-h065-shard-006"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c012",
+      "role": "critic",
+      "reviews": [
+        "r1-h012-deferred-09fb2d9e",
+        "r1-h039-shard-019",
+        "r1-h066-shard-031"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c013",
+      "role": "critic",
+      "reviews": [
+        "r1-h013-deferred-0d44d2c2",
+        "r1-h040-shard-003",
+        "r1-h067-shard-048"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c014",
+      "role": "critic",
+      "reviews": [
+        "r1-h014-deferred-15d616d6",
+        "r1-h041-shard-062",
+        "r1-h068-shard-055"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c015",
+      "role": "critic",
+      "reviews": [
+        "r1-h015-deferred-40261bd4",
+        "r1-h042-shard-054",
+        "r1-h069-shard-036"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c016",
+      "role": "critic",
+      "reviews": [
+        "r1-h016-deferred-2a3d0bc1",
+        "r1-h043-shard-004",
+        "r1-h070-shard-058"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c017",
+      "role": "critic",
+      "reviews": [
+        "r1-h017-deferred-5fde1fd0",
+        "r1-h044-shard-060",
+        "r1-h071-shard-056"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c018",
+      "role": "critic",
+      "reviews": [
+        "r1-h018-shard-059",
+        "r1-h045-shard-033",
+        "r1-h072-shard-009"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c019",
+      "role": "critic",
+      "reviews": [
+        "r1-h019-shard-035",
+        "r1-h046-shard-007",
+        "r1-h073-shard-030"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c020",
+      "role": "critic",
+      "reviews": [
+        "r1-h020-shard-037",
+        "r1-h047-shard-063",
+        "r1-h074-shard-005"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c021",
+      "role": "critic",
+      "reviews": [
+        "r1-h021-shard-038",
+        "r1-h048-shard-029",
+        "r1-h075-shard-013"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c022",
+      "role": "critic",
+      "reviews": [
+        "r1-h022-shard-022",
+        "r1-h049-shard-049",
+        "r1-h076-shard-010"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c023",
+      "role": "critic",
+      "reviews": [
+        "r1-h023-shard-023",
+        "r1-h050-shard-052",
+        "r1-h077-shard-011"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c024",
+      "role": "critic",
+      "reviews": [
+        "r1-h024-shard-021",
+        "r1-h051-shard-053",
+        "r1-h078-shard-012"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c025",
+      "role": "critic",
+      "reviews": [
+        "r1-h025-shard-027",
+        "r1-h052-shard-015",
+        "r1-h079-shard-028"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c026",
+      "role": "critic",
+      "reviews": [
+        "r1-h026-shard-008",
+        "r1-h053-shard-024",
+        "r1-h080-shard-032"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-c027",
+      "role": "critic",
+      "reviews": [
+        "r1-h027-shard-002",
+        "r1-h054-shard-039"
+      ],
+      "brief": "security/redteam/briefs/critic-brief.md"
+    },
+    {
+      "agent_id": "r1-k001-openevolve-visualizer-sideba",
+      "role": "chain-planner",
+      "first_node": "openevolve-visualizer/sidebar-innerhtml-unescaped-llm-text",
+      "chain_ids": [
+        "chain_517373064555a337",
+        "chain_caec8c3739377bb5",
+        "chain_5c2ed15f95f768d4",
+        "chain_b49e512fc63b684f",
+        "chain_91e8fabfe90b601c"
+      ],
+      "task": "Check each binding from source: is the capability the provider gains exactly what the consumer requires (same object, principal and origin)? Source only; nothing is executed."
+    },
+    {
+      "agent_id": "r1-k002-shinka-webui-dom-xss-llm-der",
+      "role": "chain-planner",
+      "first_node": "shinka-webui/dom-xss-llm-derived-fields",
+      "chain_ids": [
+        "chain_334f8a223ba52e24",
+        "chain_bb7e7935657c6b8b",
+        "chain_ca80c8d589a90bd7",
+        "chain_12a06e2b830c18c5"
+      ],
+      "task": "Check each binding from source: is the capability the provider gains exactly what the consumer requires (same object, principal and origin)? Source only; nothing is executed."
+    },
+    {
+      "agent_id": "r1-k003-baselines-glue-vllm-localhos",
+      "role": "chain-planner",
+      "first_node": "baselines-glue/vllm-localhost-endpoint-impersonation",
+      "chain_ids": [
+        "chain_a5378d256689b22a",
+        "chain_b02557cca76a4571",
+        "chain_4b6edf0d18f01f31"
+      ],
+      "task": "Check each binding from source: is the capability the provider gains exactly what the consumer requires (same object, principal and origin)? Source only; nothing is executed."
+    },
+    {
+      "agent_id": "r1-k004-codeevolve-config-template-v",
+      "role": "chain-planner",
+      "first_node": "codeevolve/config-template-verify-ssl-false",
+      "chain_ids": [
+        "chain_9f1df8b4a36645eb",
+        "chain_03de220a3dc1a7c3",
+        "chain_8c79b9e9f28f7650"
+      ],
+      "task": "Check each binding from source: is the capability the provider gains exactly what the consumer requires (same object, principal and origin)? Source only; nothing is executed."
+    },
+    {
+      "agent_id": "r1-k005-openevolve-visualizer-manual",
+      "role": "chain-planner",
+      "first_node": "openevolve-visualizer/manual-answer-unauthenticated-reply-injection",
+      "chain_ids": [
+        "chain_7bd74732ce2e6c41",
+        "chain_dbb6ceefe982e603",
+        "chain_525901b09cc8ed5a"
+      ],
+      "task": "Check each binding from source: is the capability the provider gains exactly what the consumer requires (same object, principal and origin)? Source only; nothing is executed."
+    },
+    {
+      "agent_id": "r1-k006-shinka-webui-wildcard-bind-n",
+      "role": "chain-planner",
+      "first_node": "shinka-webui/wildcard-bind-no-auth",
+      "chain_ids": [
+        "chain_3a2be96c8d58d3eb",
+        "chain_771c552ba3ae66cf"
+      ],
+      "task": "Check each binding from source: is the capability the provider gains exactly what the consumer requires (same object, principal and origin)? Source only; nothing is executed."
+    },
+    {
+      "agent_id": "r1-k007-shinka-webui-cors-wildcard-j",
+      "role": "chain-planner",
+      "first_node": "shinka-webui/cors-wildcard-json-api",
+      "chain_ids": [
+        "chain_7aee39b7e21c240b"
+      ],
+      "task": "Check each binding from source: is the capability the provider gains exactly what the consumer requires (same object, principal and origin)? Source only; nothing is executed."
+    }
+  ],
+  "deferred_units": []
+}
