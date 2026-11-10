@@ -57,7 +57,7 @@ python3 security/redteam/codex_round.py run --plan .redteam-runs/r1/plan.json --
 ```
 
 ```bash
-python3 security/redteam/codex_round.py run --plan .redteam-runs/r1/plan.json --run-dir .redteam-runs/r1
+python3 security/redteam/codex_round.py run --plan .redteam-runs/r1/plan.json --run-dir .redteam-runs/r1 --model <선택한 모델>
 ```
 
 실행 디렉터리 `.redteam-runs/`는 git이 무시한다. 통째로 커밋하지 않는다.
@@ -65,6 +65,20 @@ python3 security/redteam/codex_round.py run --plan .redteam-runs/r1/plan.json --
 ### 3.4 예약 작업
 
 데스크톱 앱의 예약 작업에는 `security-status`만 붙이는 것을 권한다. 예약 작업은 사람이 지켜보지 않는 상태로 기본 샌드박스 설정에서 돈다. 라운드 시작이나 푸시를 예약하지 않는다.
+
+## 모델: 스웜 전체가 한 가지 모델
+
+스웜은 **선택한 모델 하나를 여러 개 띄우는 방식**이다. 역할별로 다른 모델을 섞지 않는다.
+
+| 경로 | 어떤 모델로 도는가 | 어떻게 고정했나 |
+|---|---|---|
+| 스레드 안 서브에이전트 | 그 스레드에서 선택한 모델. Codex의 서브에이전트는 따로 지정하지 않으면 부모의 모델을 상속한다 | `.codex/agents/*.toml`에 `model`이 없고, `.codex/config.toml`에 `model`·`agents.default_subagent_model`이 없다. 스킬은 띄울 때 모델을 지정하지 말라고 지시한다 |
+| 별도 프로세스 (`codex_round.py`) | `--model`로 준 모델 하나. 생략하면 전원이 Codex 설정의 기본 모델 | 실행기가 같은 값을 모든 에이전트에 넘긴다. 계획 파일의 에이전트 항목에 `model`·`profile` 등이 있으면 실행을 거부한다 |
+
+- 별도 프로세스는 데스크톱 스레드에서 고른 모델을 **알지 못한다.** 스레드의 선택과 맞추려면 그 모델 이름을 `--model`로 한 번 넘겨야 한다. 스킬은 이름을 추측하지 않고 사용자에게 묻는다.
+- 추론 강도(reasoning effort)도 에이전트별로 지정하지 않는다. 스레드 안에서는 부모 설정을, 별도 프로세스에서는 Codex 설정의 기본을 따른다.
+- 이 정책은 테스트로 고정했다. 커스텀 에이전트 파일이나 프로젝트 설정에 모델 지정이 들어오면 `security/redteam/tests/test_codex_config.py`가 실패한다.
+- 스레드 안에서 조정자가 서브에이전트를 띄우며 모델을 직접 지정하는 것까지 막는 기술적 장치는 없다. 그 부분은 지시에 기댄다.
 
 ## 4. 별도 프로세스 실행기가 하는 일
 
@@ -168,6 +182,7 @@ Codex가 설치된 머신에서 순서대로 돌린다. 하나라도 기대와 �
 | 스킬 3개 | 머리말 형식만 확인. 실제 호출 미확인 |
 | `workspace-write`가 작업 디렉터리 밖 쓰기를 실제로 막는가 | 문서 근거. 직접 관찰하지 못했다. §7의 4번에서 확인 |
 | 서브에이전트 동시 실행 상한 | 문서에 기본값이 없다. 프로젝트 설정에서 6으로 잡았다 |
+| 서브에이전트가 부모 모델을 상속하는가 | 문서 근거. 실제 Codex에서 서브에이전트가 어떤 모델로 도는지는 관찰하지 못했다 |
 | 데스크톱 앱이 CLI와 같은 규칙으로 `AGENTS.md`를 찾는가 | 문서가 명시하지 않는다 |
 | Windows | 고려하지 않았다 |
 | 30명 이상 동시 실행 | 계정의 속도 제한·요금에 달려 있다. 시도하지 않았다 |

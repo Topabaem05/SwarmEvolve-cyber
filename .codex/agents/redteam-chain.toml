@@ -1,3 +1,5 @@
+# No `model` here on purpose: this agent inherits the model selected for the thread that spawns it,
+# so the whole swarm runs on one model.
 name = "redteam_chain"
 description = "Checks the bindings of chain candidates from source: whether the capability one lead gains is exactly what the next one requires. Use on ids from security/redteam/registry/chain-candidates.json."
 developer_instructions = """

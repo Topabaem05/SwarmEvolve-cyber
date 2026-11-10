@@ -16,6 +16,14 @@ A round is source analysis only. No agent executes code from `benchmarks/` or `b
 3. Show the user the printed summary: units, team composition, deferred units, and the token estimate. Say that the estimate is the run-1 average multiplied out, not a measurement.
 4. **Stop and wait for the user to confirm** the plan before starting any agent.
 
+## Model
+
+The whole swarm runs on one model: the one the user selected for this thread.
+
+- In-thread subagents inherit this thread's model. Do not name a model, reasoning effort or profile when you spawn them.
+- The runner starts separate Codex processes, which do not see this thread's selection. Ask the user which model they selected and pass it once as `--model <name>`; the runner applies it to every agent. If the user wants Codex's configured default instead, omit the flag. Do not guess a model name.
+- Never mix models inside a round, and never add a `model` field to a plan or to `.codex/agents/*.toml`.
+
 ## 2. Run
 
 Choose by team size.
@@ -26,7 +34,7 @@ Choose by team size.
 
 1. Inspect first: `python3 security/redteam/codex_round.py run --plan <plan> --run-dir .redteam-runs/<run-id> --dry-run`
 2. Tell the user to start the real run **from a terminal outside this thread**, and give them the command:
-   `python3 security/redteam/codex_round.py run --plan <plan> --run-dir .redteam-runs/<run-id>`
+   `python3 security/redteam/codex_round.py run --plan <plan> --run-dir .redteam-runs/<run-id> --model <selected model>`
    Started from inside this sandboxed thread, the child Codex processes have no network and cannot reach the model. Do not ask for full access to get around that.
 
 ## 3. Collect

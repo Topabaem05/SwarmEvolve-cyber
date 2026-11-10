@@ -8,6 +8,10 @@ approval_policy = "on-request"
 [sandbox_workspace_write]
 network_access = false
 
+# Swarm model policy: every subagent runs on the model selected for the thread that starts it.
+# Subagents inherit the parent's model unless something overrides it, so nothing here sets one:
+# no top-level `model`, no `agents.default_subagent_model`, and no `model` in .codex/agents/*.toml.
+# A test (security/redteam/tests/test_codex_config.py) fails if one is added.
 [agents]
 # In-thread subagents share the parent's sandbox, so keep this small.
 # Rounds of 30 or more agents use security/redteam/codex_round.py instead (one process per agent).

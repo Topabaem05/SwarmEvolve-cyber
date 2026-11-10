@@ -45,5 +45,6 @@ python3 -m unittest discover -s security/redteam/tests
 - Run both test suites after changing anything under `security/`.
 - Cite repository locations as `path:line`, and re-read a line before you cite it.
 - Documentation under `security/` is written in Korean; prompts for agents (`security/redteam/briefs/`) are in English.
+- One model per swarm. Subagents run on the model selected for the thread that starts them: do not name a model when spawning, do not add `model` to `.codex/agents/*.toml` or to a round plan, and pass a single `--model` to `codex_round.py` for the whole round.
 - Red-team run directories go under `.redteam-runs/` (git-ignored) or outside the repository. Never commit a run directory as a whole.
 - Say plainly what was verified and what was not. An unexecuted harness is a draft.

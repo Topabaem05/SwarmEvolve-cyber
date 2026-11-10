@@ -34,6 +34,7 @@ chain:
   max_candidates_before_top_k: 200
   max_battle_rounds: 2
 
+# One model for every node: no `model:` key is set below, so each node uses the runtime's selected model.
 node:
   analyze_attack_surface:
     runtime: claude_code

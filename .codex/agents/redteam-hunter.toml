@@ -1,3 +1,5 @@
+# No `model` here on purpose: this agent inherits the model selected for the thread that spawns it,
+# so the whole swarm runs on one model.
 name = "redteam_hunter"
 description = "Source-only security hunter for one seam or code unit of this repository. Use for red-team rounds; give it an agent id, a run directory and a unit."
 developer_instructions = """

@@ -184,6 +184,27 @@ class CodexRoundTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             runner.load_plan(bad)
 
+    def test_one_model_is_applied_to_every_agent(self):
+        s = self.go(make_plan([hunter("r1-h001"), hunter("r1-h002")]), model="selected-model")
+        self.assertEqual(s["model"], "selected-model")
+        for aid in ("r1-h001", "r1-h002"):
+            argv = self.invocation(aid)["argv"]
+            self.assertEqual(argv[argv.index("--model") + 1], "selected-model")
+            self.assertEqual(argv.count("--model"), 1)
+
+    def test_without_a_model_flag_no_agent_gets_one(self):
+        s = self.go(make_plan([hunter("r1-h001"), hunter("r1-h002")]))
+        self.assertIn("Codex default", s["model"])
+        for aid in ("r1-h001", "r1-h002"):
+            self.assertNotIn("--model", self.invocation(aid)["argv"])
+
+    def test_plan_that_sets_a_model_for_one_agent_is_rejected(self):
+        for key in ("model", "model_reasoning_effort", "profile"):
+            bad = Path(self.tmp.name) / f"plan-{key}.json"
+            bad.write_text(json.dumps(make_plan([hunter("r1-h001"), hunter("r1-h002", **{key: "other"})])))
+            with self.assertRaises(ValueError, msg=key):
+                runner.load_plan(bad)
+
     def test_run_directory_inside_an_unignored_part_of_the_target_is_refused(self):
         os.system(f"git -C {self.target} init -q")
         with self.assertRaises(ValueError):

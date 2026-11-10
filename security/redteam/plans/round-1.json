@@ -2,6 +2,10 @@
   "schema_version": "1.0",
   "round": 1,
   "note": "A plan only. No agent was started. Shard boundaries and risk hits are heuristics for dividing work, not findings.",
+  "model_policy": {
+    "mode": "same-model",
+    "note": "Every agent of the round runs on the one model the operator selected. Agent entries carry no model field, and the runner rejects a plan that adds one."
+  },
   "codebase": {
     "files": 329,
     "loc": 80021,

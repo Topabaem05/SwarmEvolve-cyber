@@ -1,3 +1,5 @@
+# No `model` here on purpose: this agent inherits the model selected for the thread that spawns it,
+# so the whole swarm runs on one model.
 name = "redteam_critic"
 description = "Independent critic that tries to refute the claims in a hunter's result file from source. Use after hunters finish; never give it a hunter's work that it produced itself."
 developer_instructions = """

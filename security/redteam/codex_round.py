@@ -20,6 +20,9 @@ benchmarks/, so the AGENTS.md, CLAUDE.md and skill files vendored there are not 
 (If the run directory is inside this repository, the repository's own root AGENTS.md and .codex/ layer
 apply too; they say the same thing as the rendered rules.)
 
+Every agent of a round runs on the same model: the one given with --model, or Codex's configured
+default when the flag is absent. A plan cannot set a model for an individual agent.
+
 Run this from a normal terminal. Started from inside a sandboxed Codex thread, the child processes
 would have no network and could not reach the model.
 
@@ -43,6 +46,8 @@ sys.path.insert(0, str(HERE))
 import board  # noqa: E402  (sibling module)
 
 MAX_RESULT_BYTES = 2 * 1024 * 1024
+# One model for the whole swarm: nothing in a plan may choose a model for a single agent.
+MODEL_KEYS = ("model", "model_reasoning_effort", "model_provider", "profile")
 RESULT_FILE = {"hunter": "result.json", "critic": "review.json", "chain-planner": "chain-review.json"}
 PHASE_ROLE = {"hunt": "hunter", "critique": "critic", "chain": "chain-planner"}
 
@@ -79,6 +84,10 @@ def load_plan(path):
     ids = [a["agent_id"] for a in plan["agents"]]
     if len(ids) != len(set(ids)) or not all(board.AGENT_RE.match(i) for i in ids):
         raise ValueError("plan has duplicate or invalid agent ids")
+    overridden = [a["agent_id"] for a in plan["agents"] if any(k in a for k in MODEL_KEYS)]
+    if overridden:
+        raise ValueError("per-agent model settings are not allowed; every agent in a round runs on the same model: "
+                         + ", ".join(overridden[:5]))
     return plan
 
 
@@ -237,6 +246,8 @@ def run_round(plan, run_dir, target, phase="all", only=None, **opts):
     by_id = {a["agent_id"]: a for a in plan["agents"]}
     size = opts.get("max_concurrency") or plan.get("parameters", {}).get("max_concurrency", 30)
     statuses = []
+    model = opts.get("model") or "Codex default (no --model given)"
+    print(f"model: {model}, the same for all {len(plan['agents'])} planned agent(s)", flush=True)
     for ph in plan["phases"]:
         if phase not in ("all", ph["phase"]):
             continue
@@ -255,6 +266,7 @@ def run_round(plan, run_dir, target, phase="all", only=None, **opts):
                     f.write(json.dumps(e, ensure_ascii=False) + "\n")
             print(f"  board: {len(valid)} entries merged, {len(rejected)} rejected", flush=True)
     summary = {"round": plan["round"], "finished_at": now(), "phase": phase,
+               "model": model, "model_policy": "one model for every agent in the round",
                "counts": {s: sum(1 for r in statuses if r["status"] == s) for s in sorted({r["status"] for r in statuses})},
                "agents": statuses}
     with open(run_dir / f"round-{plan['round']}-status.json", "w", encoding="utf-8") as f:
@@ -275,8 +287,9 @@ def main():
     s.add_argument("--max-concurrency", type=int)
     s.add_argument("--timeout-s", type=int, default=3600)
     s.add_argument("--codex-bin", default=os.environ.get("CODEX_BIN", "codex"))
-    s.add_argument("--model")
-    s.add_argument("--profile")
+    s.add_argument("--model", help="model for EVERY agent of the round. Give the model you selected in the Codex app to "
+                                   "match it; without this flag every agent uses Codex's configured default")
+    s.add_argument("--profile", help="Codex config profile, applied to every agent alike")
     s.add_argument("--no-network-override", action="store_true",
                    help="do not pass the config override that forces network off (use if your Codex rejects it)")
     s.add_argument("--dry-run", action="store_true", help="write prompts and print commands; start nothing")
