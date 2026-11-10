@@ -8,6 +8,10 @@
 !/analysis/
 /analysis/*
 !/analysis/.gitkeep
+# Security audit records and the approval-gated PoC verification pipeline (security/README.md).
+!/security/
+!/.oss-scanner/
+!/.github/
 
 results/
 __pycache__/

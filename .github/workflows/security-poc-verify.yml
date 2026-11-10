@@ -1,0 +1,119 @@
+name: security-poc-verify
+
+# Runs approved PoC harnesses inside a network-less container and records the evidence.
+#
+# It starts only from an owner-controlled event:
+#   - a commit on the default branch that changes security/approvals/approvals.json, or
+#   - a manual run by someone with write access.
+# Do not add pull_request, pull_request_target, issue_comment or workflow_run triggers:
+# this workflow executes PoC code, so nobody without write access may be able to start it.
+# See security/DESIGN.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - security/approvals/approvals.json
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: security-poc-verify
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    # Only the repository owner's approval commit or manual run counts.
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      count: ${{ steps.list.outputs.count }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Test the approval gate
+        run: python3 -m unittest discover -s security/pipeline/tests
+      - name: List approved candidates
+        id: list
+        run: |
+          python3 security/pipeline/verify.py list
+          python3 security/pipeline/verify.py list --approved --json > "$RUNNER_TEMP/approved.json"
+          echo "count=$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))))' "$RUNNER_TEMP/approved.json")" >> "$GITHUB_OUTPUT"
+
+  verify:
+    needs: gate
+    if: needs.gate.outputs.count != '0'
+    runs-on: ubuntu-24.04
+    # Optional second gate: give this environment required reviewers in the repository settings
+    # and the job waits for a reviewer before any harness runs.
+    environment: poc-approval
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Build the sandbox image (network on; no harness runs here)
+        run: docker build -f .oss-scanner/Dockerfile -t swarmevolve-poc:ci .
+      - name: Check the sandbox controls
+        run: python3 security/pipeline/verify.py selftest --backend docker --image swarmevolve-poc:ci
+      - name: Run approved harnesses (no network, read-only target)
+        run: |
+          mkdir -p "$RUNNER_TEMP/evidence"
+          python3 security/pipeline/verify.py run --all-approved --backend docker \
+            --image swarmevolve-poc:ci \
+            --evidence-dir "$RUNNER_TEMP/evidence" \
+            --summary "$RUNNER_TEMP/evidence/summary.json"
+      - name: Summary
+        run: |
+          {
+            echo "### PoC verification"
+            echo
+            echo "| verdict | fingerprint | reason |"
+            echo "|---|---|---|"
+            python3 -c 'import json,sys; [print("| {verdict} | `{fingerprint}` | {reason} |".format(**r)) for r in json.load(open(sys.argv[1]))]' "$RUNNER_TEMP/evidence/summary.json"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: poc-evidence
+          path: ${{ runner.temp }}/evidence
+          if-no-files-found: error
+          retention-days: 90
+
+  record:
+    # Separate job: the job that runs harnesses never holds a write token.
+    needs: verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: poc-evidence
+          path: ${{ runner.temp }}/evidence
+      - name: Copy validated evidence and push it to the security-evidence branch
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          # Validate with the script from the default branch, into a directory this job created.
+          python3 security/pipeline/collect_evidence.py "$RUNNER_TEMP/evidence" "$RUNNER_TEMP/validated"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Append to the evidence branch; earlier evidence stays in its history.
+          if git fetch origin security-evidence; then
+            git checkout -B security-evidence FETCH_HEAD
+          else
+            git checkout -b security-evidence
+          fi
+          mkdir -p security/evidence
+          cp -R "$RUNNER_TEMP/validated/." security/evidence/
+          git add -f security/evidence
+          if git diff --cached --quiet; then echo "no new evidence"; exit 0; fi
+          git commit -m "security: PoC verification evidence (run ${RUN_ID})"
+          git push origin security-evidence
