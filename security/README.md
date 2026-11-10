@@ -79,7 +79,7 @@
 | 러너의 승인 게이트·판정 로직 | 단위 테스트 21개 통과 |
 | unshare 샌드박스 백엔드 | 자체 점검 통과 (네트워크 차단, 최소 환경, 읽기 전용 대상, scratch 쓰기) |
 | docker 샌드박스 백엔드, `.oss-scanner/Dockerfile` | **미검증.** 작성한 환경에 Docker 데몬이 없었다. 두 `pip install` 단계만 따로 확인 |
-| GitHub Actions 워크플로 | **미실행.** YAML 문법만 확인. `main`에 병합돼야 동작한다 |
+| GitHub Actions 워크플로 | `main` 병합 때 한 번 실행됨([실행 기록](https://github.com/Topabaem05/SwarmEvolve-cyber/actions/runs/42776155605)): `gate` 성공, 승인된 후보가 0건이라 `verify`·`record`는 건너뜀. 하네스를 돌리는 `verify` 작업은 **아직 실행된 적 없음** |
 | 하네스 2건 | **초안, 미실행.** 첫 실행은 승인 후 |
 | 나머지 후보 19건 | 하네스 없음. `NEEDS-VALIDATION.md`의 계획을 옮겨 써야 한다 |
 
