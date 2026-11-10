@@ -27,6 +27,8 @@
 | `redteam/teamplan.py`, `redteam/plans/` | 코드베이스에서 라운드별 팀 규모와 배정을 계산하는 플래너(기본 하한 30명)와 그 산출 계획 |
 | `redteam/briefs/` | 헌터·비평가 프롬프트 v2 |
 | `redteam/zeromdash/` | ZeroMDASH를 직접 돌릴 때 쓰는 설정 (실행해 보지 않음) |
+| `codex/DESIGN.md` | Codex 데스크톱·CLI 연동 설계. 관련 파일은 루트의 `AGENTS.md`, `.codex/`, `.agents/skills/` |
+| `redteam/codex_round.py` | 계획된 라운드를 에이전트당 `codex exec` 프로세스 하나로 실행 (실제 Codex로는 미실행) |
 | `../.oss-scanner/` | 샌드박스 이미지 레시피, 위협 모델 |
 | `../.github/workflows/security-poc-verify.yml` | 승인 커밋에 반응하는 워크플로 |
 
@@ -47,6 +49,8 @@
    ```bash
    python3 security/pipeline/verify.py approve shinka-webui/plot-file-unrestricted-read --by <GitHub 로그인>
    ```
+
+   이 명령은 대화형 터미널에서만 동작하고, 후보 제목과 하네스 해시를 보여 준 뒤 fingerprint를 다시 입력해야 기록한다. 코딩 에이전트가 다른 작업 중에 승인을 기록하지 못하게 하려는 것이다.
 
 4. `main`에 커밋·푸시하면 워크플로가 네트워크 없는 컨테이너에서 하네스를 실행하고 증거를 `security-evidence` 브랜치에 남긴다.
 

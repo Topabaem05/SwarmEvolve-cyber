@@ -403,6 +403,19 @@ def cmd_approve(args):
     if bound["harness_sha256"] is None:
         die(f"no harness to approve: {harness_dir(args.fingerprint).relative_to(ROOT)}/ does not exist. "
             "Write and review the harness first; an approval covers exact harness content.")
+    # Approval is a person's decision. Coding agents run commands without a terminal, so this stops an
+    # agent from recording an approval as a side effect of some other task. It is a speed bump, not a
+    # boundary: the control that counts is the owner reviewing the approvals.json commit.
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        die("approve must be run by the repository owner in an interactive terminal. "
+            "If you are an automated agent, stop and show the owner this command instead.")
+    rel = harness_dir(args.fingerprint).relative_to(ROOT)
+    print(f"Candidate : {args.fingerprint}")
+    print(f"Title     : {candidates[args.fingerprint].get('title')}")
+    print(f"Harness   : {rel}/  (sha256 {bound['harness_sha256'][:16]}...)")
+    print("This allows the harness above to be executed in the sandbox. Read it before you approve.")
+    if input("Type the fingerprint again to approve, or anything else to cancel: ").strip() != args.fingerprint:
+        die("cancelled; nothing was recorded", code=1)
     data = load_json(APPROVALS, {"approvals": []})
     data["approvals"] = [a for a in data.get("approvals", []) if a.get("fingerprint") != args.fingerprint]
     entry = {"fingerprint": args.fingerprint, "scope": SCOPE, "approved_by": args.by,

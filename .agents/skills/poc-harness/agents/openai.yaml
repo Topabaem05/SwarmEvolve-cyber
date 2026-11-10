@@ -1,0 +1,5 @@
+interface:
+  display_name: "PoC harness"
+  short_description: "Draft a sandbox PoC harness for one candidate (not executed)"
+policy:
+  allow_implicit_invocation: false

@@ -12,6 +12,10 @@
 !/security/
 !/.oss-scanner/
 !/.github/
+# Codex integration (security/codex/DESIGN.md). Run directories such as .redteam-runs/ stay ignored.
+!/AGENTS.md
+!/.codex/
+!/.agents/
 
 results/
 __pycache__/

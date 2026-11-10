@@ -1,0 +1,45 @@
+# Command rules for this repository (Codex rules are experimental; see security/codex/DESIGN.md).
+# They back up AGENTS.md: instructions ask, rules refuse or prompt.
+# Matching is by exact argument prefix, so a differently spelled command can slip past.
+# The approval gate itself does not depend on these rules.
+
+# Approval is the owner's act. An agent must not record it.
+prefix_rule(
+    pattern = [["python3", "python"], "security/pipeline/verify.py", "approve"],
+    decision = "forbidden",
+    justification = "Approving a PoC is the repository owner's act. Show the owner the command; they run it themselves in a terminal.",
+    match = [
+        "python3 security/pipeline/verify.py approve shinka-webui/plot-file-unrestricted-read --by someone",
+        "python security/pipeline/verify.py approve x --by y",
+    ],
+    not_match = [
+        "python3 security/pipeline/verify.py list",
+        "python3 security/pipeline/verify.py selftest",
+    ],
+)
+
+# Running approved harnesses is allowed only when the owner says so.
+prefix_rule(
+    pattern = [["python3", "python"], "security/pipeline/verify.py", "run"],
+    decision = "prompt",
+    justification = "This executes approved PoC harnesses in the sandbox. Confirm the owner asked for it.",
+    match = ["python3 security/pipeline/verify.py run --all-approved"],
+    not_match = ["python3 security/pipeline/verify.py list --approved"],
+)
+
+# Starting a multi-agent round costs real money and starts many processes.
+prefix_rule(
+    pattern = [["python3", "python"], "security/redteam/codex_round.py", "run"],
+    decision = "prompt",
+    justification = "This starts one Codex process per planned agent. Confirm the plan size and the run directory with the owner. Use --dry-run to inspect first.",
+    match = ["python3 security/redteam/codex_round.py run --plan p.json --run-dir r"],
+)
+
+# Publishing is the owner's decision. A push to main can start the verification workflow.
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "prompt",
+    justification = "Pushing publishes audit material and, on main, can start the PoC verification workflow.",
+    match = ["git push origin main", "git push"],
+    not_match = ["git status", "git log --oneline"],
+)

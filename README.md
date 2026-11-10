@@ -34,6 +34,7 @@
 | 검증 파이프라인 | 승인 게이트 테스트 통과, 로컬 샌드박스 자체 점검 통과. GitHub Actions 워크플로는 `main` 병합 때 한 번 실행돼 게이트 작업이 통과했고, 승인된 후보가 없어 실행 작업은 건너뛰었다. Docker로 하네스를 돌리는 작업은 아직 실행된 적이 없다 |
 | PoC 하네스 | 초안 2건, 미실행. 나머지 후보 19건은 하네스가 없다 |
 | 레드팀 설계 | 도구 테스트 통과. 실제 에이전트 라운드는 아직 돌리지 않았다 |
+| Codex 연동 | 설정·스킬·실행기 작성, 가짜 `codex`로 실행기 테스트 통과. 실제 Codex로는 아직 실행하지 않았다 |
 
 **후보는 확정된 취약점이 아니다.** 소스만 읽고 만든 미검증 후보이고, 대부분 벤더링된 베이스라인의 코드에 관한 것이다. 해당 프로젝트 관리자에게 알린 적은 없으며, 업스트림 최신 버전에서 이미 고쳐졌는지도 확인하지 않았다.
 
@@ -46,6 +47,7 @@
 | [`security/audit/run-1/NEEDS-VALIDATION.md`](security/audit/run-1/NEEDS-VALIDATION.md) | 후보 21건의 근거와 로컬 검증 계획 |
 | [`security/DESIGN.md`](security/DESIGN.md) | 승인 게이트 PoC·재현 검증 파이프라인 설계 |
 | [`security/redteam/DESIGN.md`](security/redteam/DESIGN.md) | 레드팀 운영 설계: seam 단위 헌터, 공유 보드, 체인 계획, 팀 규모 산정 |
+| [`security/codex/DESIGN.md`](security/codex/DESIGN.md) | Codex 데스크톱·CLI에서 구동하는 방법과 한계 |
 
 ## 바로 해 볼 수 있는 것
 

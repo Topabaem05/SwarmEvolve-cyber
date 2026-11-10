@@ -164,6 +164,16 @@ class ApprovalGateTests(unittest.TestCase):
         rec = verify.verify_one(FP, self.candidate, None, None, 1, self.root / "ev")
         self.assertEqual((rec["verdict"], rec["reason"]), ("blocked", "no_sandbox_backend_available"))
 
+    def test_approve_command_refuses_to_run_without_a_terminal(self):
+        import argparse
+        self.write_harness()
+        args = argparse.Namespace(fingerprint=FP, by="owner", note=None)
+        with self.assertRaises(SystemExit) as ctx:  # the test runner has no terminal, like a coding agent
+            verify.cmd_approve(args)
+        self.assertEqual(ctx.exception.code, 2)
+        self.assertFalse(verify.APPROVALS.exists())
+        self.assertEqual(self.state(), "not_approved")
+
     def test_symlink_in_harness_dir_is_refused(self):
         self.write_harness()
         (verify.harness_dir(FP) / "link").symlink_to("/etc/passwd")

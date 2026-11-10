@@ -1,0 +1,14 @@
+# Project-scoped Codex settings for this repository.
+# Codex applies a project .codex/ layer only after you mark the project as trusted.
+
+# Work inside the repository, ask before going outside it, and keep the network off.
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+
+[sandbox_workspace_write]
+network_access = false
+
+[agents]
+# In-thread subagents share the parent's sandbox, so keep this small.
+# Rounds of 30 or more agents use security/redteam/codex_round.py instead (one process per agent).
+max_concurrent_threads_per_session = 6

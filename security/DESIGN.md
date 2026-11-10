@@ -37,6 +37,8 @@
 python3 security/pipeline/verify.py approve <fingerprint> --by <github-login>
 ```
 
+이 명령은 대화형 터미널에서만 동작하고 fingerprint를 다시 입력해야 기록한다. 코딩 에이전트가 실행하는 명령에는 터미널이 없으므로, 에이전트가 다른 작업의 부수 효과로 승인을 기록하는 실수를 막는다. 우회할 수 있는 장치이므로 경계로 믿지는 않는다(`security/codex/DESIGN.md` §5).
+
 ```bash
 git add security/approvals/approvals.json && git commit -m "security: approve PoC for <fingerprint>" && git push origin main
 ```

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Red-team round"
+  short_description: "Plan and run one source-only red-team round"
+policy:
+  # Starting many agents must be an explicit request, never an inferred one.
+  allow_implicit_invocation: false
